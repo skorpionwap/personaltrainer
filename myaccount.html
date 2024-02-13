@@ -16,7 +16,6 @@
     <link rel="stylesheet" href="assets/css/templatemo-training-studio.css">
     <link rel="stylesheet" href="assets/css/modal.css">
 
- 
     </head>
     
     <body>
@@ -46,6 +45,10 @@
                         <!-- ***** Logo End ***** -->
                         <!-- ***** Menu Start ***** -->
                         <ul class="nav">
+                            <li class="scroll-to-section"><a href="#top" class="active">Home</a></li>
+                            <li class="scroll-to-section"><a href="#profile-info">Date personale</a></li>
+                            <li class="scroll-to-section"><a href="#calculator">Calculator BMI</a></li>
+                            <li class="scroll-to-section"><a href="#antrenamente">Rezerva un antrenament</a></li>
                             <li class="scroll-to-section"><a href="./index.html" class="active">Home</a></li>
                             <li class="scroll-to-section"><a href="#" id="registerButton" onclick="showRegisterModal()"></a></li>
                             <li class="scroll-to-section"><a href="#" id="authButton" onclick="showRegisterModal()"></a></li>
@@ -79,7 +82,81 @@
         </div>
     </div>
     <!-- ***** Main Banner Area End ***** -->
+<!-- ***** Features Item Start ***** -->
 
+<section id="profile-info">
+    <h2>Date Personale</h2>
+    <div class="form-container">
+    <form id="personal-data-form">
+        <label for="height">Inaltime (cm):</label>
+        <input type="number" id="height" name="height">
+        <span id="heightDisplay"></span><br >
+
+        <label for="weight">Greutate (kg):</label>
+        <input type="number" id="weight" name="weight">
+        <span id="weightDisplay"></span><br >
+
+        <label for="waist">Talie (cm):</label>
+        <input type="number" id="waist" name="waist">
+        <span id="waistDisplay"></span><br >
+
+        <label for="bust">Bust (cm):</label>
+        <input type="number" id="bust" name="bust">
+        <span id="bustDisplay"></span><br >
+
+        <label for="arms">Brate (cm):</label>
+        <input type="number" id="arms" name="arms">
+        <span id="armsDisplay"></span><br >
+
+        <label for="thighs">Coapse (cm):</label>
+        <input type="number" id="thighs" name="thighs">
+        <span id="thighsDisplay"></span><br >
+
+        <button type="submit" id="saveButton" style="display: none;">Salvează</button>
+        <div id="successMessage" style="display: none; color: green;">Datele au fost înregistrate cu succes!</div>
+        <button id="editButton" style="display: none;">Editează</button>
+    </form>
+
+
+    <form id="progress-pictures-form">
+
+    <label for="front-image">Imagine din față:</label>
+    <input type="file" id="front-image" name="front-image" accept="image/*"><br>
+    
+    <label for="side-image">Imagine laterală:</label>
+    <input type="file" id="side-image" name="side-image" accept="image/*"><br>
+    
+    <label for="back-image">Imagine din spate:</label>
+    <input type="file" id="back-image" name="back-image" accept="image/*"><br>
+    
+    <input type="submit" value="Încarcă imagini">
+
+    </form>
+    </div>
+    
+    <div id="progressPicturesContainer" class="form-container">
+
+    <img id="frontImageDisplay" alt="Front Progress Picture">
+    <img id="sideImageDisplay" alt="Side Progress Picture">
+    <img id="backImageDisplay" alt="Back Progress Picture">
+    </div>
+           <!-- Sectiunea pentru stergerea datelor personale dupa data -->
+<div>
+    <h3>Șterge Date Personale</h3>
+    <label for="deletePersonalDataDate">Selectează Data:</label>
+    <input type="date" id="deletePersonalDataDate">
+    <button id="deletePersonalDataButton">Șterge Datele Personale</button>
+</div>
+
+<!-- Sectiunea pentru stergerea pozelor de progres dupa data -->
+<div>
+    <h3>Șterge Poze Progres</h3>
+    <label for="deleteProgressPicturesDate">Selectează Data:</label>
+    <input type="date" id="deleteProgressPicturesDate">
+    <button id="deleteProgressPicturesButton">Șterge Pozele de Progres</button>
+</div>
+
+</section>
    
     
     <!-- ***** Footer Start ***** -->
@@ -119,9 +196,9 @@
    
     <!-- Firebase module -->
    <script type="module" src="assets/js/firebase-config.js"></script>
-   <script type="module" src="assets/js/auth.js"></script>
+   <!-- <script type="module" src="assets/js/auth.js"></script> -->
    <script type="module" src="assets/js/auth-ui.js"></script>
-     
+   <script type="module" src="assets/js/personalData.js"></script>
     <!-- Global Init -->
     <script src="assets/js/custom.js"></script>
   </body>

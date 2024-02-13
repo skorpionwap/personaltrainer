@@ -13,6 +13,8 @@ function validatePassword(password) {
     return regex.test(password);
 }
 
+document.addEventListener('DOMContentLoaded', (event) => {
+ 
 // Înregistrarea formularului
 const registrationForm = document.getElementById("registration-form");
 
@@ -82,4 +84,5 @@ document.getElementById('reset-password').addEventListener('click', function(e) 
   } else {
       alert("Email-ul este necesar pentru resetarea parolei.");
   }
+});
 });

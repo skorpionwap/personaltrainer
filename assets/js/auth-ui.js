@@ -49,8 +49,9 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Eroare la delogare:', error);
       });
     };
-    showElement(accountButton.id);
-    hideElement(registerButton.id);
+    if (accountButton) showElement(accountButton.id);
+    if (registerButton) hideElement(registerButton.id);
+
   }
 
   // Functia pentru actualizarea UI-ului pentru vizitatori (utilizatori neautentificati)
