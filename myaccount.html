@@ -87,90 +87,50 @@
 <section id="profile-info">
     <h2>Date Personale</h2>
     <div class="form-container">
-    <form id="personal-data-form">
-        <label for="height">Inaltime (cm):</label>
-        <input type="number" id="height" name="height">
-        <span id="heightDisplay"></span><br >
+        <form id="personal-data-form">
+            <input type="text" id="height" placeholder="Înălțime (cm)">
+            <input type="text" id="weight" placeholder="Greutate (kg)">
+            <input type="text" id="waist" placeholder="Talie (cm)">
+            <input type="text" id="bust" placeholder="Bust (cm)">
+            <input type="text" id="arms" placeholder="Brațe (cm)">
+            <input type="text" id="thighs" placeholder="Coapse (cm)">
+            <button type="submit">Salvează Datele Personale</button>
+        </form>
+        <input type="date" id="deletePersonalDataDate">
+<button id="deletePersonalDataButton">Șterge Datele Personale</button>
 
-        <label for="weight">Greutate (kg):</label>
-        <input type="number" id="weight" name="weight">
-        <span id="weightDisplay"></span><br >
-
-        <label for="waist">Talie (cm):</label>
-        <input type="number" id="waist" name="waist">
-        <span id="waistDisplay"></span><br >
-
-        <label for="bust">Bust (cm):</label>
-        <input type="number" id="bust" name="bust">
-        <span id="bustDisplay"></span><br >
-
-        <label for="arms">Brate (cm):</label>
-        <input type="number" id="arms" name="arms">
-        <span id="armsDisplay"></span><br >
-
-        <label for="thighs">Coapse (cm):</label>
-        <input type="number" id="thighs" name="thighs">
-        <span id="thighsDisplay"></span><br >
-
-        <button type="submit" id="saveButton" style="display: none;">Salvează</button>
-        <div id="successMessage" style="display: none; color: green;">Datele au fost înregistrate cu succes!</div>
-        <button id="editButton" style="display: none;">Editează</button>
-    </form>
-
-        <div id="profileDataContainer">
-            <h3>Datele tale personale:</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Înălțime</th>
-                        <th>Greutate</th>
-                        <th>Talie</th>
-                        <th>Bust</th>
-                        <th>Brațe</th>
-                        <th>Coapse</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Rândurile vor fi adăugate dinamic aici -->
-                </tbody>
-            </table>
-        </div>
+        <form id="progress-pictures-form">
+            <input type="file" id="front-image" accept="image/*">Fotografie din față<br>
+            <input type="file" id="side-image" accept="image/*">Fotografie din lateral<br>
+            <input type="file" id="back-image" accept="image/*">Fotografie din spate<br>
+            <button type="submit">Încarcă Pozele de Progres</button>
+        </form>
+        <input type="date" id="deleteProgressPicturesDate">
+<button id="deleteProgressPicturesButton">Șterge Pozele de Progres</button>
         
+       <!-- Pentru Datele Personale -->
+<table id="profileDataContainer">
+    <thead>
+        <tr>
+            <th>Data</th>
+            <th>Înălțime</th>
+            <th>Greutate</th>
+            <th>Talie</th>
+            <th>Bust</th>
+            <th>Brațe</th>
+            <th>Coapse</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Randuri adaugate dinamic -->
+    </tbody>
+</table>
 
-    <form id="progress-pictures-form">
-
-    <label for="front-image">Imagine din față:</label>
-    <input type="file" id="front-image" name="front-image" accept="image/*"><br>
-    
-    <label for="side-image">Imagine laterală:</label>
-    <input type="file" id="side-image" name="side-image" accept="image/*"><br>
-    
-    <label for="back-image">Imagine din spate:</label>
-    <input type="file" id="back-image" name="back-image" accept="image/*"><br>
-    
-    <input type="submit" value="Încarcă imagini">
-
-    </form>
-    </div>
-    
-    <div id="progressPicturesContainer"></div>
-
-           <!-- Sectiunea pentru stergerea datelor personale dupa data -->
-<div>
-    <h3>Șterge Date Personale</h3>
-    <label for="deletePersonalDataDate">Selectează Data:</label>
-    <input type="date" id="deletePersonalDataDate">
-    <button id="deletePersonalDataButton">Șterge Datele Personale</button>
+<!-- Pentru Pozele de Progres -->
+<div id="progressPicturesContainer">
+    <!-- Imagini adaugate dinamic -->
 </div>
 
-<!-- Sectiunea pentru stergerea pozelor de progres dupa data -->
-<div>
-    <h3>Șterge Poze Progres</h3>
-    <label for="deleteProgressPicturesDate">Selectează Data:</label>
-    <input type="date" id="deleteProgressPicturesDate">
-    <button id="deleteProgressPicturesButton">Șterge Pozele de Progres</button>
-</div>
 
 </section>
    

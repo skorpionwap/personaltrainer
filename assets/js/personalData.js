@@ -1,229 +1,26 @@
 // myaccount.js
-import { firestore, auth } from './firebase-config.js';
-import { doc, setDoc, getDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
-import { collection, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Get a reference to the Firebase storage service
+// Importuri Firestore
+import { firestore, auth } from './firebase-config.js';
+import { doc, setDoc, deleteDoc, serverTimestamp, collection, query, orderBy, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+// Importuri Firebase Storage
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
 const storage = getStorage();
 
-// Function to get and display user profile data
 document.addEventListener('DOMContentLoaded', function() {
-    async function getAndDisplayAllProfileData() {
-        if (auth.currentUser) {
-            try {
-                const tbody = document.querySelector('#profileDataContainer tbody');
-                const recordsRef = collection(firestore, `users/${auth.currentUser.uid}/personalCollection/personalData/records`);
-                const q = query(recordsRef, orderBy("date", "desc"));
-                const querySnapshot = await getDocs(q);
-
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const date = new Date(data.date.seconds * 1000).toLocaleDateString("ro-RO");
-                    const row = `
-                        <tr>
-                            <td>${date}</td>
-                            <td>${data.height} cm</td>
-                            <td>${data.weight} kg</td>
-                            <td>${data.waist} cm</td>
-                            <td>${data.bust} cm</td>
-                            <td>${data.arms} cm</td>
-                            <td>${data.thighs} cm</td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
-            } catch (error) {
-                console.error("Error fetching profile data:", error);
-            }
-        }
-    }
-
-    // Apelarea funcției
-    getAndDisplayAllProfileData();
-});
-
-
-
-// Function to get and display user progress pictures
-async function getAndDisplayProgressPictures() {
     if (auth.currentUser) {
-        try {
-            const q = query(collection(firestore, `users/${auth.currentUser.uid}/progressPictures`), orderBy("uploadDate"));
-            const querySnapshot = await getDocs(q);
-
-            querySnapshot.forEach((doc) => {
-                const imagesData = doc.data();
-                // Display images on the myaccount page
-                displayProgressPictures(imagesData);
-            });
-        } catch (error) {
-            console.error("Error fetching progress pictures:", error);
-        }
+        getAndDisplayAllProfileData();
+        getAndDisplayProgressPictures();
     }
-}
 
-
-
-function displayProgressPictures(imagesData) {
-    const imagesContainer = document.getElementById('progressPicturesContainer');
-    const imageSetElement = document.createElement('div');
-    imageSetElement.classList.add('image-set');
-
-    Object.keys(imagesData).forEach(key => {
-        if (key.includes('Image')) {
-            const img = document.createElement('img');
-            img.src = imagesData[key];
-            img.alt = key;
-            // Setează dimensiunile pentru ID card
-            img.setAttribute('width', '300mm');
-            img.setAttribute('height', '370mm');
-            imageSetElement.appendChild(img);
-        }
-    });
-
-    imagesContainer.appendChild(imageSetElement);
-}
-
-
-
-document.getElementById('deletePersonalDataButton').addEventListener('click', function() {
-    const dateToDelete = document.getElementById('deletePersonalDataDate').value;
-    if (dateToDelete) {
-        deleteProfileDataByDate(dateToDelete).then(() => {
-            alert('Datele personale pentru data selectată au fost șterse.');
-        }).catch((error) => {
-            console.error('Eroare la ștergerea datelor personale:', error);
-        });
-    } else {
-        alert('Vă rugăm să selectați o dată.');
-    }
-});
-
-document.getElementById('deleteProgressPicturesButton').addEventListener('click', function() {
-    const dateToDelete = document.getElementById('deleteProgressPicturesDate').value;
-    if (dateToDelete) {
-        deleteProgressPicturesByDate(dateToDelete).then(() => {
-            alert('Pozele de progres pentru data selectată au fost șterse.');
-        }).catch((error) => {
-            console.error('Eroare la ștergerea pozelor de progres:', error);
-        });
-    } else {
-        alert('Vă rugăm să selectați o dată.');
-    }
-});
-
-// // Add an event listener for the edit button
-// document.getElementById('editButton').addEventListener('click', function() {
-//     // Hide the display elements
-//     document.getElementById('heightDisplay').style.display = 'none';
-//     document.getElementById('weightDisplay').style.display = 'none';
-//     document.getElementById('waistDisplay').style.display = 'none';
-//     document.getElementById('bustDisplay').style.display = 'none';
-//     document.getElementById('armsDisplay').style.display = 'none';
-//     document.getElementById('thighsDisplay').style.display = 'none';
-
-//     // Display the text fields
-//     document.getElementById('height').style.display = 'block';
-//     document.getElementById('weight').style.display = 'block';
-//     document.getElementById('waist').style.display = 'block';
-//     document.getElementById('bust').style.display = 'block';
-//     document.getElementById('arms').style.display = 'block';
-//     document.getElementById('thighs').style.display = 'block';
-
-//     // Hide the edit button
-//     this.style.display = 'none';
-// });
-
-async function deleteProfileDataByDate(dateToDelete) {
-    if (auth.currentUser) {
-        try {
-            // Transformă data în formatul corespunzător pentru a o compara cu datele din Firestore
-            const startOfDay = new Date(dateToDelete);
-            startOfDay.setHours(0, 0, 0, 0);
-
-            const endOfDay = new Date(dateToDelete);
-            endOfDay.setHours(23, 59, 59, 999);
-
-            // Referința către colecția de înregistrări
-            const recordsRef = collection(firestore, `users/${auth.currentUser.uid}/personalCollection/personalData/records`);
-            
-            // Creează o interogare pentru a găsi documentele dintr-o anumită zi
-            const q = query(recordsRef, where("date", ">=", startOfDay), where("date", "<=", endOfDay));
-
-            const querySnapshot = await getDocs(q);
-            
-            // Verifică dacă există documente în intervalul specificat și le șterge
-            if (!querySnapshot.empty) {
-                const deletePromises = querySnapshot.docs.map((doc) => deleteDoc(doc.ref));
-                await Promise.all(deletePromises);
-                console.log(`Profile data from ${dateToDelete} successfully deleted.`);
-            } else {
-                console.log(`No profile data found for ${dateToDelete}.`);
-            }
-        } catch (error) {
-            console.error(`Error deleting profile data from ${dateToDelete}:`, error);
-        }
-    }
-}
-
-async function deleteProgressPicturesByDate(dateToDelete) {
-    if (auth.currentUser) {
-        try {
-            // Convert the date to the start and end of the specified day
-            const startOfDay = new Date(dateToDelete);
-            startOfDay.setHours(0, 0, 0, 0);
-            
-            const endOfDay = new Date(dateToDelete);
-            endOfDay.setHours(23, 59, 59, 999);
-            
-            // Reference to the user's progressPictures collection
-            const picturesRef = collection(firestore, `users/${auth.currentUser.uid}/progressPictures`);
-            
-            // Query to find pictures uploaded on the specified date
-            const q = query(picturesRef, where("uploadDate", ">=", startOfDay), where("uploadDate", "<=", endOfDay));
-
-            const querySnapshot = await getDocs(q);
-            
-            // Delete each document found for the specified date
-            const deletePromises = querySnapshot.docs.map((doc) => deleteDoc(doc.ref));
-            await Promise.all(deletePromises);
-
-            console.log(`Progress pictures from ${dateToDelete} successfully deleted.`);
-        } catch (error) {
-            console.error(`Error deleting progress pictures from ${dateToDelete}:`, error);
-        }
-    }
-}
-
-    // Add listener for the delete button
-    document.getElementById('deletePersonalDataButton').addEventListener('click', deletePersonalDataDate);
-    document.getElementById('deleteProgressPicturesButton').addEventListener('click', deleteProgressPicturesDate);
-
-    // Add event listener for the image upload form and personal data form here
-    const inputs = document.querySelectorAll('#personal-data-form input');
-    const saveButton = document.getElementById('saveButton'); // Make sure you have a button with this ID
-    // const editButton = document.getElementById('editButton'); // Make sure you have a button with this ID
-
-    if (!saveButton || !editButton) {
-        console.error('Save or Edit button not found');
-        return;
-    }
-    saveButton.style.display = 'none'; // Initially hide the button
-
-    inputs.forEach(input => {
-        input.addEventListener('input', () => {
-            let isAnyInputFilled = Array.from(inputs).some(input => input.value.trim() !== '');
-            saveButton.style.display = isAnyInputFilled ? 'block' : 'none';
-        });
-    });
-
+    // Listener pentru formularul de date personale
     document.getElementById('personal-data-form').addEventListener('submit', async function(event) {
         event.preventDefault();
     
-        // The values fetched from the form
         const personalData = {
-            date: new Date(), // Add the current date
+            date: serverTimestamp(), // Folosim serverTimestamp pentru consistență
             height: document.getElementById('height').value,
             weight: document.getElementById('weight').value,
             waist: document.getElementById('waist').value,
@@ -234,72 +31,143 @@ async function deleteProgressPicturesByDate(dateToDelete) {
     
         if (auth.currentUser) {
             try {
-                // Save the personal data to the user's profile in Firestore
-                await setDoc(doc(firestore, `users/${auth.currentUser.uid}/personalCollection/personalData/records/${personalData.date.toISOString()}`), personalData);
-    
+                await setDoc(doc(firestore, `users/${auth.currentUser.uid}/personalCollection/personalData/records/${new Date().toISOString()}`), personalData);
                 console.log('Personal data successfully saved.');
-                document.getElementById('successMessage').style.display = 'block'; // Display the success message
+                alert('Datele personale au fost salvate cu succes.'); // Înlocuiește console.log cu alert pentru feedback vizibil utilizatorului
             } catch (error) {
                 console.error('Error saving personal data:', error);
+                alert('Eroare la salvarea datelor personale.'); // Feedback vizibil pentru erori
             }
-        } else {
-            console.log('No user is signed in.');
         }
     });
     
-   // Add an event listener for the image upload form
-   document.getElementById('progress-pictures-form').addEventListener('submit', async function(event) {
-    event.preventDefault();
+    // Listener pentru formularul de încărcare a pozelor de progres
+    document.getElementById('progress-pictures-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
 
-    // Get the uploaded images
-    const frontImage = document.getElementById('front-image').files[0];
-    const sideImage = document.getElementById('side-image').files[0];
-    const backImage = document.getElementById('back-image').files[0];
+        const frontImage = document.getElementById('front-image').files[0];
+        const sideImage = document.getElementById('side-image').files[0];
+        const backImage = document.getElementById('back-image').files[0];
 
-    // Create a reference to the storage location for each image
-    const frontImageRef = ref(storage, `users/${auth.currentUser.uid}/progressPictures/frontImage`);
-    const sideImageRef = ref(storage, `users/${auth.currentUser.uid}/progressPictures/sideImage`);
-    const backImageRef = ref(storage, `users/${auth.currentUser.uid}/progressPictures/backImage`);
+        // Referințe pentru stocarea imaginilor
+        const imageRefs = [
+            {ref: ref(storage, `users/${auth.currentUser.uid}/progressPictures/frontImage`), file: frontImage},
+            {ref: ref(storage, `users/${auth.currentUser.uid}/progressPictures/sideImage`), file: sideImage},
+            {ref: ref(storage, `users/${auth.currentUser.uid}/progressPictures/backImage`), file: backImage},
+        ];
 
-    // Upload the images and save the references to them in Firestore
-    try {
-        await uploadBytesResumable(frontImageRef, frontImage);
-        await uploadBytesResumable(sideImageRef, sideImage);
-        await uploadBytesResumable(backImageRef, backImage);
+        try {
+            const uploadPromises = imageRefs.map(({ref, file}) => uploadBytesResumable(ref, file).then(() => getDownloadURL(ref)));
+            const [frontImageUrl, sideImageUrl, backImageUrl] = await Promise.all(uploadPromises);
 
-        const frontImageUrl = await getDownloadURL(frontImageRef);
-        const sideImageUrl = await getDownloadURL(sideImageRef);
-        const backImageUrl = await getDownloadURL(backImageRef);
-        const userId = auth.currentUser.uid; // Obține UID-ul utilizatorului curent
+            const progressPicturesRef = doc(collection(firestore, `users/${auth.currentUser.uid}/progressPictures`));
+            await setDoc(progressPicturesRef, {
+                frontImage: frontImageUrl,
+                sideImage: sideImageUrl,
+                backImage: backImageUrl,
+                uploadDate: serverTimestamp()
+            });
 
-        // Set the data for the progress pictures in Firestore
-        const progressPicturesRef = collection(firestore, `users/${userId}/progressPictures`);
-        const newProgressPicDoc = doc(progressPicturesRef);
-        setDoc(newProgressPicDoc, {
-            frontImage: frontImageUrl,
-            sideImage: sideImageUrl,
-            backImage: backImageUrl,
-            uploadDate: serverTimestamp()
-          }).then(() => {
             console.log("Progress pictures successfully uploaded.");
-          }).catch((error) => {
-            console.error("Error uploading progress pictures:", error);
-          });
-        
+            alert('Pozele de progres au fost încărcate cu succes.'); // Feedback vizibil pentru utilizator
+        } catch (error) {
+            console.error('Error uploading progress pictures:', error);
+            alert('Eroare la încărcarea pozelor de progres.'); // Feedback vizibil pentru erori
+        }
+    });
+});
 
-        console.log('Progress pictures successfully uploaded.');
-    } catch (error) {
-        console.error('Error uploading progress pictures:', error);
+auth.onAuthStateChanged(user => {
+    if (user) {
+        getAndDisplayAllProfileData();
+        getAndDisplayProgressPictures();
     }
 });
 
 
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            getAndDisplayAllProfileData();
-            getAndDisplayProgressPictures();
-        }
+document.addEventListener('DOMContentLoaded', function() {
+    if (auth.currentUser) {
+        getAndDisplayAllProfileData();
+        getAndDisplayProgressPictures();
+    }
+
+    document.getElementById('deletePersonalDataButton').addEventListener('click', async () => {
+        const dateToDelete = document.getElementById('deletePersonalDataDate').value;
+        await deleteDataByDate(dateToDelete, 'personalCollection/personalData/records');
+    });
+
+    document.getElementById('deleteProgressPicturesButton').addEventListener('click', async () => {
+        const dateToDelete = document.getElementById('deleteProgressPicturesDate').value;
+        await deleteDataByDate(dateToDelete, 'progressPictures');
     });
 });
+
+async function getAndDisplayAllProfileData() {
+    const tbody = document.querySelector('#profileDataContainer tbody');
+    tbody.innerHTML = ''; // Clear tbody before adding new rows
+    const q = query(collection(firestore, `users/${auth.currentUser.uid}/personalCollection/personalData/records`), orderBy("date", "desc"));
+    
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach(doc => {
+        const data = doc.data();
+        const date = new Date(data.date.seconds * 1000).toLocaleDateString("ro-RO");
+        tbody.innerHTML += `
+            <tr>
+                <td>${date}</td>
+                <td>${data.height || ''} cm</td>
+                <td>${data.weight || ''} kg</td>
+                <td>${data.waist || ''} cm</td>
+                <td>${data.bust || ''} cm</td>
+                <td>${data.arms || ''} cm</td>
+                <td>${data.thighs || ''} cm</td>
+            </tr>
+        `;
+    });
+}
+
+async function getAndDisplayProgressPictures() {
+    const container = document.getElementById('progressPicturesContainer');
+    container.innerHTML = ''; // Clear the container before adding new images
+    const q = query(collection(firestore, `users/${auth.currentUser.uid}/progressPictures`), orderBy("uploadDate"));
+    
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach(doc => {
+        const data = doc.data();
+        Object.keys(data).forEach(key => {
+            if (key.includes('Image')) {
+                const img = document.createElement('img');
+                img.src = data[key];
+                img.alt = "Progress picture";
+                img.style.width = "100px"; // Adjust as needed
+                container.appendChild(img);
+            }
+        });
+    });
+}
+
+async function deleteDataByDate(dateToDelete, collectionPath) {
+    const startOfDay = new Date(dateToDelete);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(dateToDelete);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const q = query(collection(firestore, `users/${auth.currentUser.uid}/${collectionPath}`), where("date", ">=", startOfDay), where("date", "<=", endOfDay));
+    const querySnapshot = await getDocs(q);
+    const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+
+    try {
+        await Promise.all(deletePromises);
+        alert(`Datele din ${dateToDelete} au fost șterse cu succes.`);
+    } catch (error) {
+        console.error(`Eroare la ștergerea datelor din ${dateToDelete}:`, error);
+        alert(`Eroare la ștergerea datelor din ${dateToDelete}.`);
+    }
+}
+
+auth.onAuthStateChanged(user => {
+    if (user) {
+        getAndDisplayAllProfileData();
+        getAndDisplayProgressPictures();
+    }
 });
-// End of myaccount.js
+
