@@ -19,3 +19,16 @@
     border: 1px solid #888;
     width: 80%; /* Could be more or less, depending on screen size */
   }
+
+  .progress-image-group {
+    margin-bottom: 20px; /* Adaugă spațiu între grupuri */
+}
+
+.progress-image-group img {
+    width: 100px; /* Sau orice altă dimensiune preferi */
+    margin-right: 10px; /* Adaugă spațiu între imagini */
+}
+
+.progress-image-group h4 {
+    margin-bottom: 10px; /* Spațiu între titlu și imagini */
+}
