@@ -6,6 +6,7 @@ import { doc, setDoc, deleteDoc, serverTimestamp, collection, query, orderBy, ge
 
 // Importuri Firebase Storage
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+import { deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 const storage = getStorage();
 
@@ -34,6 +35,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 await setDoc(doc(firestore, `users/${auth.currentUser.uid}/personalCollection/personalData/records/${new Date().toISOString()}`), personalData);
                 console.log('Personal data successfully saved.');
                 alert('Datele personale au fost salvate cu succes.'); // Înlocuiește console.log cu alert pentru feedback vizibil utilizatorului
+                // Resetează formularul de date personale
+            document.getElementById('height').value = '';
+            document.getElementById('weight').value = '';
+            document.getElementById('waist').value = '';
+            document.getElementById('bust').value = '';
+            document.getElementById('arms').value = '';
+            document.getElementById('thighs').value = '';
             } catch (error) {
                 console.error('Error saving personal data:', error);
                 alert('Eroare la salvarea datelor personale.'); // Feedback vizibil pentru erori
@@ -70,6 +78,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             console.log("Progress pictures successfully uploaded.");
             alert('Pozele de progres au fost încărcate cu succes.'); // Feedback vizibil pentru utilizator
+            // Resetează formularul de încărcare a pozelor de progres
+        document.getElementById('front-image').value = '';
+        document.getElementById('side-image').value = '';
+        document.getElementById('back-image').value = '';
         } catch (error) {
             console.error('Error uploading progress pictures:', error);
             alert('Eroare la încărcarea pozelor de progres.'); // Feedback vizibil pentru erori
@@ -128,22 +140,36 @@ async function getAndDisplayAllProfileData() {
 async function getAndDisplayProgressPictures() {
     const container = document.getElementById('progressPicturesContainer');
     container.innerHTML = ''; // Clear the container before adding new images
-    const q = query(collection(firestore, `users/${auth.currentUser.uid}/progressPictures`), orderBy("uploadDate"));
+    const q = query(collection(firestore, `users/${auth.currentUser.uid}/progressPictures`), orderBy("uploadDate", "desc"));
     
     const querySnapshot = await getDocs(q);
     querySnapshot.forEach(doc => {
         const data = doc.data();
-        Object.keys(data).forEach(key => {
-            if (key.includes('Image')) {
+        const uploadDate = data.uploadDate ? new Date(data.uploadDate.seconds * 1000).toLocaleDateString("ro-RO") : "Necunoscut";
+        
+        // Crează un div pentru a grupa imaginile și data încărcării
+        const imageGroup = document.createElement('div');
+        imageGroup.className = 'progress-image-group';
+        imageGroup.innerHTML = `<h4>Data încărcării: ${uploadDate}</h4>`;
+
+        // Definește ordinea dorită a imaginilor
+        const imageOrder = ['frontImage', 'sideImage', 'backImage'];
+        
+        // Sortează și afișează imaginile în ordinea definită
+        imageOrder.forEach(key => {
+            if (data[key]) { // Verifică dacă cheia există în date
                 const img = document.createElement('img');
                 img.src = data[key];
-                img.alt = "Progress picture";
+                img.alt = `${key}`;
                 img.style.width = "100px"; // Adjust as needed
-                container.appendChild(img);
+                imageGroup.appendChild(img);
             }
         });
+
+        container.appendChild(imageGroup);
     });
 }
+
 
 async function deleteDataByDate(dateToDelete, collectionPath) {
     const startOfDay = new Date(dateToDelete);
@@ -151,9 +177,26 @@ async function deleteDataByDate(dateToDelete, collectionPath) {
     const endOfDay = new Date(dateToDelete);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const q = query(collection(firestore, `users/${auth.currentUser.uid}/${collectionPath}`), where("date", ">=", startOfDay), where("date", "<=", endOfDay));
+    // Determină tipul de câmp folosit pentru filtrare în funcție de calea colecției
+    const dateField = collectionPath.includes('personalCollection/personalData/records') ? "date" : "uploadDate";
+
+    const q = query(collection(firestore, `users/${auth.currentUser.uid}/${collectionPath}`), where(dateField, ">=", startOfDay), where(dateField, "<=", endOfDay));
     const querySnapshot = await getDocs(q);
-    const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+    
+    const deletePromises = querySnapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        // Verifică dacă documentul include referințe la imagini (pentru colecția de poze de progres)
+        if (collectionPath.includes('progressPictures')) {
+            for (const key of Object.keys(data)) {
+                if (key.includes('Image')) {
+                    const fileRef = ref(storage, data[key]); // Presupunând că `data[key]` este URL-ul imaginii în Storage
+                    await deleteObject(fileRef); // Șterge fișierul din Storage
+                }
+            }
+        }
+        // Șterge documentul din Firestore
+        return deleteDoc(doc.ref);
+    });
 
     try {
         await Promise.all(deletePromises);
@@ -163,11 +206,4 @@ async function deleteDataByDate(dateToDelete, collectionPath) {
         alert(`Eroare la ștergerea datelor din ${dateToDelete}.`);
     }
 }
-
-auth.onAuthStateChanged(user => {
-    if (user) {
-        getAndDisplayAllProfileData();
-        getAndDisplayProgressPictures();
-    }
-});
 
