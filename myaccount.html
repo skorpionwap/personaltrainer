@@ -15,6 +15,7 @@
     <link rel="stylesheet" type="text/css" href="assets/css/font-awesome.css">
     <link rel="stylesheet" href="assets/css/templatemo-training-studio.css">
     <link rel="stylesheet" href="assets/css/modal.css">
+    <link rel="stylesheet" href="assets/css/myaccount.css">
 
     </head>
     
@@ -45,14 +46,9 @@
                         <!-- ***** Logo End ***** -->
                         <!-- ***** Menu Start ***** -->
                         <ul class="nav">
-                            <li class="scroll-to-section"><a href="#top" class="active">Home</a></li>
-                            <li class="scroll-to-section"><a href="#profile-info">Date personale</a></li>
-                            <li class="scroll-to-section"><a href="#calculator">Calculator BMI</a></li>
-                            <li class="scroll-to-section"><a href="#antrenamente">Rezerva un antrenament</a></li>
                             <li class="scroll-to-section"><a href="./index.html" class="active">Home</a></li>
                             <li class="scroll-to-section"><a href="#" id="registerButton" onclick="showRegisterModal()"></a></li>
-                            <li class="scroll-to-section"><a href="#" id="authButton" onclick="showRegisterModal()"></a></li>
-                            
+                            <li class="scroll-to-section"><a href="#" id="authButton" onclick="showLoginModal()"></a></li>
                         </ul>        
                         <a class='menu-trigger'>
                             <span>Menu</span>
@@ -83,57 +79,87 @@
     </div>
     <!-- ***** Main Banner Area End ***** -->
 <!-- ***** Features Item Start ***** -->
-
 <section id="profile-info">
-    <h2>Date Personale</h2>
-    <div class="form-container">
-        <form id="personal-data-form">
-            <input type="text" id="height" placeholder="Înălțime (cm)">
-            <input type="text" id="weight" placeholder="Greutate (kg)">
-            <input type="text" id="waist" placeholder="Talie (cm)">
-            <input type="text" id="bust" placeholder="Bust (cm)">
-            <input type="text" id="arms" placeholder="Brațe (cm)">
-            <input type="text" id="thighs" placeholder="Coapse (cm)">
-            <button type="submit">Salvează Datele Personale</button>
-        </form>
-        <input type="date" id="deletePersonalDataDate">
-<button id="deletePersonalDataButton">Șterge Datele Personale</button>
-
-        <form id="progress-pictures-form">
-            <input type="file" id="front-image" accept="image/*">Fotografie din față<br>
-            <input type="file" id="side-image" accept="image/*">Fotografie din lateral<br>
-            <input type="file" id="back-image" accept="image/*">Fotografie din spate<br>
-            <button type="submit">Încarcă Pozele de Progres</button>
-        </form>
-        <input type="date" id="deleteProgressPicturesDate">
-<button id="deleteProgressPicturesButton">Șterge Pozele de Progres</button>
-        
-       <!-- Pentru Datele Personale -->
-<table id="profileDataContainer">
-    <thead>
-        <tr>
-            <th>Data</th>
-            <th>Înălțime</th>
-            <th>Greutate</th>
-            <th>Talie</th>
-            <th>Bust</th>
-            <th>Brațe</th>
-            <th>Coapse</th>
-        </tr>
-    </thead>
-    <tbody>
-        <!-- Randuri adaugate dinamic -->
-    </tbody>
-</table>
-
-<!-- Pentru Pozele de Progres -->
-<div id="progressPicturesContainer">
-    <!-- Imagini adaugate dinamic -->
-</div>
-
-
+    <div class="container">
+        <h2>Date Personale</h2>
+        <div class="form-container">
+            <form id="personal-data-form" class="form-modal">
+                <div class="form-group">
+                    <input type="text" id="height" class="form-control" placeholder="Înălțime (cm)" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="weight" class="form-control" placeholder="Greutate (kg)" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="waist" class="form-control" placeholder="Talie (cm)" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="bust" class="form-control" placeholder="Bust (cm)" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="arms" class="form-control" placeholder="Brațe (cm)" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="thighs" class="form-control" placeholder="Coapse (cm)" required>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Salvează Datele Personale</button>
+                </div>
+            </form>
+            <div class="form-group">
+                <input type="date" id="deletePersonalDataDate" class="form-control">
+                <button id="deletePersonalDataButton" class="btn btn-secondary">Șterge Datele Personale</button>
+            </div>
+            <h2>Poze de progres</h2>
+            <form id="progress-pictures-form" class="form-modal">
+                <div class="form-group">
+                    <input type="file" id="front-image" accept="image/*" class="form-control-file">Fotografie din față
+                </div>
+                <div class="form-group">
+                    <input type="file" id="side-image" accept="image/*" class="form-control-file">Fotografie din lateral
+                </div>
+                <div class="form-group">
+                    <input type="file" id="back-image" accept="image/*" class="form-control-file">Fotografie din spate
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Încarcă Pozele de Progres</button>
+                </div>
+            </form>
+            <div class="form-group">
+                <input type="date" id="deleteProgressPicturesDate" class="form-control">
+                <button id="deleteProgressPicturesButton" class="btn btn-secondary">Șterge Pozele de Progres</button>
+            </div>
+        </div>
+    </div>
 </section>
-   
+
+   <!-- My Account if user is trainer -->
+   <div id="clientsDataContainer" class="container"></div>
+
+    <!-- Pentru Datele Personale -->
+    <div class="container">
+        <table id="profileDataContainer" class="table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Înălțime</th>
+                    <th>Greutate</th>
+                    <th>Talie</th>
+                    <th>Bust</th>
+                    <th>Brațe</th>
+                    <th>Coapse</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Randuri adaugate dinamic -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pentru Pozele de Progres -->
+    <div id="progressPicturesContainer" class="container">
+        <!-- Imagini adaugate dinamic -->
+    </div>
     
     <!-- ***** Footer Start ***** -->
     <footer>
