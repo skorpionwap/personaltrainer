@@ -1,0 +1,76 @@
+/* Import font 'Poppins' de la Google Fonts în cazul în care nu este deja importat în HTML */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+/* Stiluri de bază */
+body {
+    font-family: 'Poppins', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    padding: 0;
+    margin: 0;
+    background-color: #f8f8f8;
+}
+
+/* Container pentru articole */
+.article-container {
+    width: 80%;
+    max-width: 800px;
+    margin: 40px auto;
+    background-color: #fff;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+}
+
+/* Stilizare titlu h1 */
+.article-container h1 {
+    font-size: 28px;
+    color: #e04819; /* Culoarea portocalie pentru titlu */
+    margin-bottom: 10px;
+    font-weight: 600; /* Font mai gros pentru titlu */
+}
+
+/* Stilizare paragrafe */
+.article-container p {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+/* Stilizare conținut articol */
+.article-container #articleContent {
+    text-align: justify;
+    margin-bottom: 30px;
+}
+
+/* Stilizare linkuri */
+.article-container a {
+    display: inline-block;
+    background-color: #e04819; /* Culoarea portocalie pentru butoane */
+    color: #fff;
+    padding: 10px 15px;
+    text-decoration: none;
+    border-radius: 3px;
+    transition: background-color 0.3s;
+}
+
+/* Efect de întunecare la hover pe linkuri */
+.article-container a:hover {
+    background-color: #cc3e17; /* O nuanță mai întunecată de portocaliu la hover */
+}
+
+/* Responsivitate pentru dispozitive mobile */
+@media screen and (max-width: 768px) {
+    .article-container {
+        width: 90%;
+        padding: 10px;
+    }
+
+    .article-container h1 {
+        font-size: 24px; /* Dimensiunea titlului redusă pe dispozitive mobile */
+    }
+
+    .article-container p {
+        font-size: 14px; /* Dimensiunea textului redusă pe dispozitive mobile */
+    }
+}

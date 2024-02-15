@@ -1,0 +1,55 @@
+#articles-section .container {
+    max-width: 1200px; /* sau orice maxim doriti pentru container */
+    margin: auto;
+    padding: 0 15px; /* Ajustați padding-ul după preferințe */
+}
+
+#articles-section .articles-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start; /* Asigurați că articolele încep de la stânga containerului */
+    gap: 20px; /* Ajustați gap-ul dacă este necesar */
+}
+
+#articles-section .feature-item {
+    width: calc(50% - 20px); /* Pentru două articole pe rând, scăzând gap-ul */
+    margin-bottom: 20px; /* Spațiu între carduri vertical */
+}
+
+/* Ajustați media queries pentru ecrane mai mici dacă este necesar */
+@media (max-width: 768px) {
+    #articles-section .feature-item {
+        width: 100%; /* Un singur articol pe rând pentru ecrane mici */
+    }
+}
+.edit, .delete {
+    padding: 8px 16px;
+    border: none;
+    cursor: pointer;
+    margin-right: 8px;
+    color: white;
+    font-weight: bold;
+    border-radius: 4px;
+}
+
+.edit {
+    background-color: #4CAF50;
+}
+
+.delete {
+    background-color: #f44336;
+}
+
+h4, p {
+    margin: 0;
+    padding: 0;
+}
+
+h4 {
+    margin-bottom: 10px; /* Adaugă un spațiu sub titlu */
+    color: #333;
+}
+
+p {
+    color: #666;
+}

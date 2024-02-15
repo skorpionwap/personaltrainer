@@ -19,6 +19,9 @@ auth.onAuthStateChanged(async (user) => {
             console.log("Executing client data functions");
             getAndDisplayAllProfileData();
             getAndDisplayProgressPictures();
+            // Ascunde secțiunea "articole" pentru clienți
+            document.getElementById('articole').style.display = 'none';
+            
         } else if (userRole === 'trainer') {
             console.log("Executing trainer data functions");
             getAllClientsData();
@@ -33,6 +36,7 @@ auth.onAuthStateChanged(async (user) => {
             
         }
     } else {
+            
         console.log("No current user detected");
     }
 });

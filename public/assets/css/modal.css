@@ -84,3 +84,37 @@
   margin-bottom: 20px; /* Mai mult spațiu între mesaje și alte elemente */
   display: block; /* Preparat pentru a fi afișat */
 }
+.modal {
+  display: none; /* Ascunde modalul implicit */
+  position: fixed; /* Stai în poziție fixă */
+  z-index: 1; /* Situat deasupra altor elemente */
+  left: 0;
+  top: 0;
+  width: 100%; /* Lățime completă */
+  height: 100%; /* Înălțime completă */
+  overflow: auto; /* Permite scroll dacă este necesar */
+  background-color: rgb(0,0,0); /* Culoare de fundal */
+  background-color: rgba(0,0,0,0.4); /* Negru cu opacitate */
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto; /* 15% de la partea de sus și centrat orizontal */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%; /* Poți ajusta lățimea */
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
