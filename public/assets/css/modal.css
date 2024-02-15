@@ -1,34 +1,86 @@
-.close-button {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-  }
-  
-  .close-button:hover,
-  .close-button:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
-  }
-  
+.modal-content {
+  background-color: #ffffff;
+  padding: 20px;
+  margin: 5% auto; /* Redus pentru a aduce modalul mai sus pe ecran */
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* Umbra mai pronunțată pentru adâncime */
+  max-width: 600px; /* Setează o lățime maximă pentru desktop */
+}
+
+.modal-header,
+.modal-footer {
+  border-bottom: 2px solid #f0f0f0; /* Linie mai subtilă */
+  border-top: 2px solid #f0f0f0;
+  padding: 15px 20px;
+  background: #f9f9f9; /* Fundal ușor diferit pentru header/footer */
+}
+
+.modal-title {
+  font-size: 1.75rem; /* Mărit pentru a atrage atenția */
+  margin-bottom: 15px;
+  color: #0056b3; /* Coerență cu butoanele */
+}
+
+/* Îmbunătățirea inputurilor și a textarea-urilor */
+.modal-body input[type="text"],
+.modal-body input[type="email"],
+.modal-body input[type="password"],
+.modal-body select,
+.modal-body textarea {
+  padding: 15px; /* Mai mult spațiu intern pentru input */
+  margin-bottom: 20px; /* Mai mult spațiu între câmpuri */
+  border: 2px solid #e6e6e6; /* Bordură mai groasă și mai luminoasă */
+  border-radius: 6px; /* Colțuri mai rotunjite */
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06); /* Umbră internă pentru adâncime */
+  font-size: 1rem; /* Font mai mare pentru lizibilitate */
+}
+
+/* Stilizarea butoanelor */
+.modal-body button {
+  padding: 12px 30px;
+  border-radius: 6px;
+  background-color: #007bff; /* O nuanță mai vibrantă de albastru */
+  color: white;
+  font-size: 1rem;
+  font-weight: 600; /* Text mai gros pentru a ieși în evidență */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Umbră pentru efect de elevație */
+  margin-top: 10px; /* Spațiu adăugat în partea de sus */
+}
+
+.modal-body button:hover,
+.modal-body button:focus {
+  background-color: #0069d9; /* Schimbare subtilă la hover/focus */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Umbră mai pronunțată la hover/focus */
+  outline: none; /* Înlătură outline-ul default */
+}
+
+/* Media queries pentru adaptabilitate la dispozitive mobile */
+@media (max-width: 768px) {
   .modal-content {
-    background-color: #fefefe;
-    margin: 15% auto; /* 15% from the top and centered */
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%; /* Could be more or less, depending on screen size */
+    margin: 10% auto;
+    padding: 15px;
   }
 
-  .progress-image-group {
-    margin-bottom: 20px; /* Adaugă spațiu între grupuri */
+  .modal-title {
+    font-size: 1.5rem;
+  }
 }
 
-.progress-image-group img {
-    width: 100px; /* Sau orice altă dimensiune preferi */
-    margin-right: 10px; /* Adaugă spațiu între imagini */
+/* Alte stiluri */
+.modal-body label {
+  margin-bottom: 10px;
+  color: #333333;
+  font-weight: 500; /* Face etichetele să iasă în evidență */
 }
 
-.progress-image-group h4 {
-    margin-bottom: 10px; /* Spațiu între titlu și imagini */
+.modal-body select {
+  padding: .65rem;
+}
+
+.modal-body .error-message,
+.modal-body .success-message {
+  border-radius: 6px; /* Colțuri rotunjite pentru mesaje */
+  padding: 15px; /* Mai mult spațiu intern */
+  margin-bottom: 20px; /* Mai mult spațiu între mesaje și alte elemente */
+  display: block; /* Preparat pentru a fi afișat */
 }

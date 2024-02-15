@@ -52,7 +52,7 @@
                             <li class="scroll-to-section"><a href="#schedule">Schedules</a></li>
                             <li class="scroll-to-section"><a href="#contact-us">Contact</a></li> 
                             <li class="scroll-to-section"><a href="#" id="registerButton" onclick="showRegisterModal()"></a></li>
-                            <li class="scroll-to-section"><a href="#" id="authButton" onclick="showRegisterModal()"></a></li>
+                            <li class="scroll-to-section"><a href="#" id="authButton" onclick="showLoginModal()"></a></li>
                             <li class="scroll-to-section"><a href="./myaccount.html" id="accountButton">My Account</a></li> 
 
                         </ul>        
@@ -67,65 +67,89 @@
     </header>
     <!-- ***** Header Area End ***** -->
     
-     <!-- Modalul de Autentificare -->
-  <div id="loginModal" class="modal">
-    <div class="modal-content">
-      <span class="close-button" data-modal-id="loginModal">&times;</span>
-      <!-- Conținutul modalului de autentificare -->
-      <div class="col-lg-6">
-        <h2>Autentificare</h2>
-        <form id="login-form">
-            <label for="login-email">E-mail:</label>
-            <input type="email" id="login-email" required /><br />
-
-            <label for="login-password">Parolă:</label>
-            <input type="password" id="login-password" required /><br />
-            <a href="#" id="reset-password">Ai uitat parola?</a>
-             <!-- Here is the error message display element -->
-             <div id="login-error-message" style="color: red;"></div>
-            <button type="submit" style="background-color: #4CAF50; color: white;">Autentifică-te</button>
-        </form>
-    </div>
+ <!-- Modalul de Autentificare -->
+<div id="loginModal" class="modal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Autentificare</h5>
+          <span class="close-button" data-modal-id="loginModal">&times;</span>
+        </div>
+        <div class="modal-body">
+          <form id="login-form" class="form-modal">
+              <div class="form-group">
+                <label for="login-email">E-mail:</label>
+                <input type="email" id="login-email" class="form-control" required />
+              </div>
+  
+              <div class="form-group">
+                <label for="login-password">Parolă:</label>
+                <input type="password" id="login-password" class="form-control" required />
+              </div>
+              <a href="#" id="reset-password">Ai uitat parola?</a>
+              
+              <div id="login-error-message" class="error-message"></div>
+              <button type="submit" class="btn btn-primary">Autentifică-te</button>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
   
   <!-- Modalul de Înregistrare -->
   <div id="registerModal" class="modal">
-    <div class="modal-content">
-      <span class="close-button" data-modal-id="registerModal">&times;</span>
-      <!-- Conținutul modalului de înregistrare -->
-      <div class="col-lg-6">
-        <h2>Înregistrare</h2>
-        <form id="registration-form">
-            <label for="registration-first-name">Nume:</label>
-            <input type="text" id="registration-first-name" required /><br />
-
-            <label for="registration-last-name">Prenume:</label>
-            <input type="text" id="registration-last-name" required /><br />
-
-            <label for="registration-gender">Gen:</label>
-            <select id="registration-gender" required>
-              <option value="masculin">Masculin</option>
-              <option value="feminin">Feminin</option>
-            </select><br />
-        
-            <label for="registration-email">E-mail:</label>
-            <input type="email" id="registration-email" required /><br />
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Înregistrare</h5>
+          <span class="close-button" data-modal-id="registerModal">&times;</span>
+        </div>
+        <div class="modal-body">
+          <form id="registration-form" class="form-modal">
+              <div class="form-group">
+                <label for="registration-first-name">Nume:</label>
+                <input type="text" id="registration-first-name" class="form-control" required />
+              </div>
   
-            <label for="registration-password">Parolă:</label>
-            <input type="password" id="registration-password" required /><br />
-            <label for="registration-role">Rol:</label>
-            <select id="registration-role" required>
-                <option value="client">Client</option>
-                <option value="trainer">Antrenor</option>
-            </select><br />
-              <!-- Here is the error message display element -->
-            <div id="registration-error-message" style="color: red;"></div>
-            <button type="submit" style="background-color: #4CAF50; color: white;">Înregistrează-te</button>
-        </form>
-    </div>
+              <div class="form-group">
+                <label for="registration-last-name">Prenume:</label>
+                <input type="text" id="registration-last-name" class="form-control" required />
+              </div>
+  
+              <div class="form-group">
+                <label for="registration-gender">Gen:</label>
+                <select id="registration-gender" class="form-control" required>
+                  <option value="masculin">Masculin</option>
+                  <option value="feminin">Feminin</option>
+                </select>
+              </div>
+          
+              <div class="form-group">
+                <label for="registration-email">E-mail:</label>
+                <input type="email" id="registration-email" class="form-control" required />
+              </div>
+    
+              <div class="form-group">
+                <label for="registration-password">Parolă:</label>
+                <input type="password" id="registration-password" class="form-control" required />
+              </div>
+  
+              <div class="form-group">
+                <label for="registration-role">Rol:</label>
+                <select id="registration-role" class="form-control" required>
+                    <option value="client">Client</option>
+                    <option value="trainer">Antrenor</option>
+                </select>
+              </div>
+              
+              <div id="registration-error-message" class="error-message"></div>
+              <button type="submit" class="btn btn-primary">Înregistrează-te</button>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
+  
   
 
     <!-- ***** Main Banner Area Start ***** -->

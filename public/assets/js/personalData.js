@@ -2,13 +2,167 @@
 
 // Importuri Firestore
 import { firestore, auth } from './firebase-config.js';
-import { doc, setDoc, deleteDoc, serverTimestamp, collection, query, orderBy, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
+import { doc, setDoc, deleteDoc, getDoc, serverTimestamp, collection, query, orderBy, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 // Importuri Firebase Storage
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 import { deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 const storage = getStorage();
+
+auth.onAuthStateChanged(async (user) => {
+    if (user) {
+        console.log("Current user detected:", user.uid);
+        const userRole = await getUserRole(user.uid);
+        console.log("User role is:", userRole);
+        
+        if (userRole === 'client') {
+            console.log("Executing client data functions");
+            getAndDisplayAllProfileData();
+            getAndDisplayProgressPictures();
+        } else if (userRole === 'trainer') {
+            console.log("Executing trainer data functions");
+            getAllClientsData();
+        } else {
+            console.log("User role not recognized");
+        }
+
+        // Adaugă aici cod pentru a afișa/ascunde elementele HTML sau pentru a activa/dezactiva funcționalitățile în funcție de rolul utilizatorului
+        if (userRole === 'trainer') {
+            // Ascunde formularele și butoanele de ștergere pentru antrenor
+            document.getElementById('profile-info').style.display = 'none';
+            
+        }
+    } else {
+        console.log("No current user detected");
+    }
+});
+
+async function getUserRole(userId) {
+    console.log("Getting user role for userID:", userId);
+    const userRef = doc(firestore, `users/${userId}`);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+        console.log("User document found:", userSnap.data());
+        return userSnap.data().role; // presupunând că există un câmp `role`
+    } else {
+        console.log("No such document for userID:", userId);
+        return null;
+    }
+}
+
+async function getAllClientsData() {
+    console.log("Fetching all clients data");
+    const clientsRef = collection(firestore, "users");
+    const q = query(clientsRef, where("role", "==", "client"));
+    const querySnapshot = await getDocs(q);
+    const container = document.getElementById('clientsDataContainer');
+    container.innerHTML = ''; // Curăță containerul înainte de a adăuga noi elemente
+
+    for (let doc of querySnapshot.docs) {
+        const clientUID = doc.id;
+        const clientData = doc.data();
+        console.log("Processing client data for:", clientData.email);
+
+        // Inițializare HTML pentru datele clientului
+        let clientHTML = `
+            <div class="client-data">
+                <h3>${clientData.firstName} ${clientData.lastName} (${clientData.email})</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Înălțime</th>
+                            <th>Greutate</th>
+                            <th>Talie</th>
+                            <th>Bust</th>
+                            <th>Brațe</th>
+                            <th>Coapse</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        // Preluare și adăugare date personale în tabel
+        const personalDataRef = collection(firestore, `users/${clientUID}/personalCollection/personalData/records`);
+        const personalDataSnapshot = await getDocs(query(personalDataRef, orderBy("date", "desc")));
+
+        personalDataSnapshot.forEach(record => {
+            const data = record.data();
+            const date = new Date(data.date.seconds * 1000).toLocaleDateString("ro-RO");
+            clientHTML += `
+                <tr>
+                    <td>${date}</td>
+                    <td>${data.height || 'N/A'} cm</td>
+                    <td>${data.weight || 'N/A'} kg</td>
+                    <td>${data.waist || 'N/A'} cm</td>
+                    <td>${data.bust || 'N/A'} cm</td>
+                    <td>${data.arms || 'N/A'} cm</td>
+                    <td>${data.thighs || 'N/A'} cm</td>
+                </tr>
+            `;
+        });
+
+        clientHTML += `</tbody></table>`;
+
+        // Container pentru pozele de progres
+        clientHTML += `<div class="progress-pictures" id="progress-pictures-${clientUID}"></div>`;
+        container.innerHTML += clientHTML;
+
+        // Încărcare și afișare poze de progres
+        await displayProgressPictures(clientUID, `progress-pictures-${clientUID}`);
+    }
+    console.log("Finished processing all client data");
+}
+
+async function displayProgressPictures(clientUID, containerId) {
+    const progressPicturesRef = collection(firestore, `users/${clientUID}/progressPictures`);
+    const progressPicturesSnapshot = await getDocs(query(progressPicturesRef, orderBy("uploadDate", "desc")));
+    const progressContainer = document.getElementById(containerId);
+    // Inițializăm tabelul pentru imagini
+    let tableHTML = `
+        <table class="progress-pictures-table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Imagine Față</th>
+                    <th>Imagine Spate</th>
+                    <th>Imagine Laterală</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    if (!progressPicturesSnapshot.empty) {
+        progressPicturesSnapshot.forEach(progressDoc => {
+            const progressData = progressDoc.data();
+            const uploadDate = progressData.uploadDate ? new Date(progressData.uploadDate.seconds * 1000).toLocaleDateString("ro-RO") : "Necunoscut";
+
+            // Construim rândul tabelului pentru fiecare set de imagini de progres
+            tableHTML += `
+                <tr>
+                    <td>${uploadDate}</td>
+                    <td><img src="${progressData.frontImage || '#'}" alt="Față" style="width: 100px;"></td>
+                    <td><img src="${progressData.backImage || '#'}" alt="Spate" style="width: 100px;"></td>
+                    <td><img src="${progressData.sideImage || '#'}" alt="Lateral" style="width: 100px;"></td>
+                </tr>
+            `;
+        });
+        tableHTML += `</tbody></table>`;
+        progressContainer.innerHTML = tableHTML;
+    } else {
+        progressContainer.innerHTML = 'Nicio poză de progres disponibilă';
+    }
+}
+
+
+
+
+
+// Continuarea codului pentru gestionarea evenimentelor formularului și alte funcționalități
+
+
+
+
 
 document.addEventListener('DOMContentLoaded', function() {
     if (auth.currentUser) {
@@ -89,14 +243,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-auth.onAuthStateChanged(user => {
-    if (user) {
-        getAndDisplayAllProfileData();
-        getAndDisplayProgressPictures();
-    }
-});
-
-
 document.addEventListener('DOMContentLoaded', function() {
     if (auth.currentUser) {
         getAndDisplayAllProfileData();
@@ -161,7 +307,6 @@ async function getAndDisplayProgressPictures() {
                 const img = document.createElement('img');
                 img.src = data[key];
                 img.alt = `${key}`;
-                img.style.width = "100px"; // Adjust as needed
                 imageGroup.appendChild(img);
             }
         });
