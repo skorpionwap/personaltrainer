@@ -56,45 +56,44 @@
 
 
 	$(document).ready(function () {
-		// Smooth scroll
-		$('.scroll-to-section a[href^="#"]').on('click', function (e) {
-			e.preventDefault();
-	
-			$('a').each(function () {
-				$(this).removeClass('active');
-			});
-			$(this).addClass('active');
-	
-			var targetHash = this.hash;
-			var target = $(targetHash);
-			if (target.length) { // Verifică dacă elementul există
-				$('html, body').stop().animate({
-					scrollTop: target.offset().top + 1
-				}, 500, 'swing', function () {
-					// Odată ce animația de scroll este completă, poți să faci ceva aici dacă este necesar
-					// De exemplu, reatașează listener-ul de scroll dacă este necesar
-					// $(document).on("scroll", someFunction); // 'someFunction' trebuie să fie definită dacă dorești să o folosești
-					window.location.hash = targetHash; // Actualizează hash-ul în URL
-				});
-			}
-		});
+	    $(document).on("scroll", onScroll);
+	    
+	    //smoothscroll
+	    $('.scroll-to-section a[href^="#"]').on('click', function (e) {
+	        e.preventDefault();
+	        $(document).off("scroll");
+	        
+	        $('a').each(function () {
+	            $(this).removeClass('active');
+	        })
+	        $(this).addClass('active');
+	      
+	        var target = this.hash,
+	        menu = target;
+	       	var target = $(this.hash);
+	        $('html, body').stop().animate({
+	            scrollTop: (target.offset().top) + 1
+	        }, 500, 'swing', function () {
+	            window.location.hash = target;
+	            $(document).on("scroll", onScroll);
+	        });
+	    });
 	});
-	
 
-	$('.scroll-to-section a[href^="#"]').on('click', function (e) {
-		e.preventDefault();
-		var targetHash = this.hash;
-		var target = $(targetHash);
-	
-		if (target.length) { // Asigură-te că elementul există
-			$('html, body').stop().animate({
-				scrollTop: target.offset().top + 1
-			}, 500, 'swing', function () {
-				window.location.hash = targetHash;
-			});
-		}
-	});
-	
+	function onScroll(event){
+	    var scrollPos = $(document).scrollTop();
+	    $('.nav a').each(function () {
+	        var currLink = $(this);
+	        var refElement = $(currLink.attr("href"));
+	        if (refElement.position().top <= scrollPos && refElement.position().top + refElement.height() > scrollPos) {
+	            $('.nav ul li a').removeClass("active");
+	            currLink.addClass("active");
+	        }
+	        else{
+	            currLink.removeClass("active");
+	        }
+	    });
+	}
 
 
 	// Page loading animation
