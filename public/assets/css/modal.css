@@ -18,7 +18,7 @@
 .modal-title {
   font-size: 1.75rem; /* Mărit pentru a atrage atenția */
   margin-bottom: 15px;
-  color: #0056b3; /* Coerență cu butoanele */
+  color: #ed563b; /* Coerență cu butoanele */
 }
 
 /* Îmbunătățirea inputurilor și a textarea-urilor */
@@ -39,7 +39,7 @@
 .modal-body button {
   padding: 12px 30px;
   border-radius: 6px;
-  background-color: #007bff; /* O nuanță mai vibrantă de albastru */
+  background-color: #ed563b; /* O nuanță mai vibrantă de albastru */
   color: white;
   font-size: 1rem;
   font-weight: 600; /* Text mai gros pentru a ieși în evidență */
@@ -49,7 +49,7 @@
 
 .modal-body button:hover,
 .modal-body button:focus {
-  background-color: #0069d9; /* Schimbare subtilă la hover/focus */
+  background-color: #ed563b; /* Schimbare subtilă la hover/focus */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Umbră mai pronunțată la hover/focus */
   outline: none; /* Înlătură outline-ul default */
 }
@@ -87,15 +87,15 @@
 .modal {
   display: none; /* Ascunde modalul implicit */
   position: fixed; /* Stai în poziție fixă */
-  z-index: 1; /* Situat deasupra altor elemente */
+  z-index: 1040; /* Ajustează această valoare conform necesităților */
   left: 0;
   top: 0;
   width: 100%; /* Lățime completă */
   height: 100%; /* Înălțime completă */
   overflow: auto; /* Permite scroll dacă este necesar */
-  background-color: rgb(0,0,0); /* Culoare de fundal */
-  background-color: rgba(0,0,0,0.4); /* Negru cu opacitate */
+  background-color: rgba(0,0,0,0.4); /* Fundal semitransparent */
 }
+
 
 .modal-content {
   background-color: #fefefe;
@@ -105,16 +105,19 @@
   width: 80%; /* Poți ajusta lățimea */
 }
 
-.close {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
+.modal.show {
+  display: block; /* sau "display: flex;", în funcție de layout-ul dorit */
 }
 
-.close:hover,
-.close:focus {
-  color: black;
-  text-decoration: none;
-  cursor: pointer;
+.close-button {
+  cursor: pointer; /* Asigură că apare cursorul de mână pentru a indica interactivitate */
+  position: absolute; /* Poziționare absolută față de parinte */
+  top: 10px; /* Ajustează distanța de marginea superioară a modalului */
+  right: 10px; /* Ajustează distanța de marginea dreaptă a modalului */
+  z-index: 1050; /* Asigură-te că este deasupra oricărui alt conținut din modal */
+}
+.close-button:hover, .close-button:focus {
+  color: #d9534f; /* Schimbă culoarea pentru a indica interacțiunea */
+  text-decoration: none; /* Elimină sublinierea dacă este aplicată */
+  outline: none; /* Elimină conturul pentru focus, dacă este necesar */
 }

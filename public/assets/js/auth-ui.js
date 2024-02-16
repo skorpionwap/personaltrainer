@@ -80,28 +80,27 @@ function closeModal(modalId) {
   hideElement(modalId);
 }
 
-// Ascunde modalele când utilizatorul face clic în afara lor sau pe o zonă de fundal
 document.addEventListener('DOMContentLoaded', function() {
-  // Ascultători de evenimente pentru butoanele de închidere din modale
-  const closeButtons = document.querySelectorAll('.close-modal');
+  const closeButtons = document.querySelectorAll('.close-button');
   closeButtons.forEach(button => {
     button.addEventListener('click', function() {
+      // Aici `closest('.modal')` găsește elementul modal părinte al butonului
       const modal = this.closest('.modal');
       if (modal) {
-        closeModal(modal.id);
+        hideElement(modal.id); // Folosește `hideElement` pentru a ascunde modalul
       }
     });
   });
 
+
+
   // Ascunde modalele când utilizatorul face clic în afara lor pe zona de fundal
   window.addEventListener('click', function(event) {
-    // Verifică dacă clicul a fost făcut pe fundalul modalului de login
-    if (event.target.id === 'loginModal') {
-      closeModal('loginModal');
-    }
-    // Verifică dacă clicul a fost făcut pe fundalul modalului de înregistrare
-    else if (event.target.id === 'registerModal') {
-      closeModal('registerModal');
-    }
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(function(modal) {
+      if (event.target === modal) {
+        closeModal(modal.id);
+      }
+    });
   });
 });
