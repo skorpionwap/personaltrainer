@@ -14,12 +14,13 @@ h2 {
 
 #bmrTdeeForm {
     background-color: #ffffff;
-    max-width: 600px;
+    max-width: 1000px; /* Ajustează această valoare în funcție de preferințele tale */
     margin: 20px auto;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     display: flex;
+    flex-wrap: wrap; /* Permite elementelor să se înfășoare pe ecranele mai mici */
     justify-content: space-between;
 }
 
@@ -28,28 +29,30 @@ h2 {
     flex: 1;
 }
 
-.left-column {
-    margin-right: 20px;
+@media (max-width: 768px) {
+    .left-column,
+    .right-column {
+        flex-basis: 100%; /* Pe dispozitive mobile, fiecare coloană va ocupa întreaga lățime */
+    }
+    .right-column {
+        margin-top: 20px; /* Adaugă un spațiu suplimentar între coloane pe dispozitive mobile */
+    }
 }
 
-label {
-    margin-top: 10px;
-    color: #666;
+label, input[type="number"], select, button, #results {
+    width: 100%; /* Asigură-te că elementele de formă și rezultatele se extind pe întreaga lățime */
+    margin-top: 10px; /* Uniformizează spațiul vertical între elementele de formă */
 }
 
-input[type="number"],
-select {
-    width: 100%;
-    padding: 8px; /* Reducem padding-ul */
-    margin-top: 5px;
+input[type="number"], select {
+    padding: 8px;
     border-radius: 4px;
     border: 1px solid #ddd;
     box-sizing: border-box;
-    font-size: 14px; /* Reducem dimensiunea fontului */
+    font-size: 14px;
 }
 
 button {
-    width: 100%;
     padding: 10px;
     margin-top: 20px;
     background-color: #ed563b;
@@ -61,17 +64,15 @@ button {
 }
 
 button:hover {
-    background-color: #ed563b;
+    background-color: #c75233; /* O nuanță puțin mai închisă pentru hover, pentru un efect vizual */
 }
 
-
 #results {
-    width: 300px;
-    margin: 0 auto;
+    margin: 20px 0; /* Adaugă spațiu suplimentar înainte și după containerul de rezultate */
     padding: 20px;
     background-color: #ffffff;
     border-radius: 4px;
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
     text-align: center;
     color: #ed563b;
-  }
+}
