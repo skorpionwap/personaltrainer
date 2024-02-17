@@ -356,3 +356,20 @@ async function deleteDataByDate(dateToDelete, collectionPath) {
     }
 }
 
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleButton = document.getElementById('toggleFormButton');
+    const formContainer = document.querySelector('.form-container'); // Presupunând că formularul este într-un container cu această clasă
+
+    toggleButton.addEventListener('click', function() {
+        formContainer.classList.toggle('hidden-form');
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleButton = document.getElementById('toggleArticlesFormButton');
+    const container = document.querySelector('.adm-articole'); // Asigură-te că acesta selectează containerul corect
+
+    toggleButton.addEventListener('click', function() {
+        container.classList.toggle('hidden-form'); // Utilizează clasa 'hidden-form' pentru a controla vizibilitatea
+    });
+});
