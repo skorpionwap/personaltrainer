@@ -24,13 +24,17 @@ function hideElement(elementId) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Logica pentru determinarea dacă un utilizator este autentificat
   onAuthStateChanged(auth, (user) => {
-    if (user) {
-      // Utilizatorul este autentificat
+    if (!user && window.location.pathname.includes('myaccount.html')) {
+      // Afișează un mesaj de alertă și redirecționează către pagina index.html
+      // fără a depinde de prezența oricărui element UI
+      alert('Te rugăm să te autentifici pentru a accesa această pagină.');
+      window.location.href = 'index.html';
+    } else if (user) {
+      // Utilizatorul este autentificat, actualizează UI-ul corespunzător
       updateUIForAuthenticatedUser();
     } else {
-      // Niciun utilizator autentificat
+      // Niciun utilizator autentificat, dar pagina nu necesită autentificare
       updateUIForUnauthenticatedUser();
     }
   });

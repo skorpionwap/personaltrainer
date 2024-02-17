@@ -173,3 +173,50 @@ body {
     padding: 10px;
     border-bottom: 1px solid #ddd;
 }
+.hidden-form {
+    display: none;
+}
+.table-scroll {
+    max-height: 400px; /* Ajustează înălțimea conform nevoilor tale */
+    overflow-y: auto; /* Permite scroll-ul vertical */
+    overflow-x: auto; /* Permite scroll-ul orizontal */
+    width: 100%; /* Asigură că containerul se extinde pe toată lățimea disponibilă */
+}
+
+#toggleFormButton {
+    display: block; /* Asigură că butonul este tratat ca un bloc, permițând centrarea */
+    margin: 20px auto; /* Adaugă un spațiu de sus și jos și îl centrează orizontal */
+    padding: 10px 20px; /* Adaugă padding pentru a mări dimensiunea butonului */
+    background-color: #007bff; /* O culoare de fundal modernă, de exemplu, un albastru */
+    color: white; /* Text alb pentru contrast */
+    border: none; /* Elimină border-ul implicit */
+    border-radius: 5px; /* Adaugă borduri rotunjite pentru un aspect modern */
+    cursor: pointer; /* Schimbă cursorul într-un pointer când este deasupra butonului */
+    font-size: 16px; /* Mărește dimensiunea fontului */
+    text-transform: uppercase; /* Face textul să fie uppercase pentru un look mai definit */
+    font-weight: bold; /* Face fontul să fie bold */
+    transition: background-color 0.3s; /* Adaugă o tranzitie pentru hover */
+}
+
+#toggleFormButton:hover {
+    background-color: #0056b3; /* Schimbă culoarea de fundal la hover pentru feedback */
+}
+
+#toggleArticlesFormButton {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    text-transform: uppercase;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+#toggleArticlesFormButton:hover {
+    background-color: #0056b3;
+}
