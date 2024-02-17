@@ -45,23 +45,19 @@
     <!-- Adaugă aici script-urile tale -->
     
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+       document.addEventListener('DOMContentLoaded', function() {
     const articleId = new URLSearchParams(window.location.search).get('id');
     if (articleId) {
-        // Obține URL-ul de bază fără pathname sau ajustează-l în funcție de structura site-ului
-        const baseUrl = `${window.location.protocol}//${window.location.host}/personaltrainer`;
-
-        // Construiește URL-ul articolului
-        const articleUrl = `${baseUrl}/article.html?id=${articleId}`;
+        // Construiește URL-ul articolului fără a adăuga 'personaltrainer' de două ori
+        const articleUrl = `https://personaltrainer-74ea4.web.app/article.html?id=${articleId}`;
 
         // Actualizează `data-href` pentru fiecare plugin de Facebook
         document.querySelectorAll('.fb-like, .fb-comments, .fb-share-button').forEach(element => {
             element.setAttribute('data-href', articleUrl);
         });
 
-        // Reîmprospătează plugin-urile Facebook, dacă FB este definit
         if (window.FB) {
-            FB.XFBML.parse();
+            FB.XFBML.parse(); // Reîmprospătează plugin-urile Facebook
         }
     }
 });
