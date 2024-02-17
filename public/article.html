@@ -3,17 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="Titlul Articolului" />
+    <meta property="og:description" content="Descrierea Articolului" />
+    
     <title>Detalii Articol</title>
     <!-- Adaugă aici link-uri către CSS-ul tău -->
     <!-- Include stilurile CSS pentru Quill -->
 
     <link rel="stylesheet" href="assets/css/style.css">
+    <div id="fb-root"></div>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/ro_RO/sdk.js#xfbml=1&version=v19.0" nonce="7MfOqqAS"></script>
 </head>
 <body>
+    
     <div class="article-container">
     <h1 id="articleTitle"></h1>
     <p id="articleDate"></p>
     <div id="articleContentDisplay"></div> <!-- Adaugă acest element pentru a afișa conținutul articolului -->
+    <!-- Like Button -->
+    <div class="fb-like" data-href="https://personaltrainer-74ea4.web.app/article.html?id=" data-width="" data-layout="" data-action="" data-size="" data-share="true"></div>
+    <!-- Comments Plugin -->
+    <div class="fb-comments" data-href="https://personaltrainer-74ea4.web.app/?id=" data-width="" data-numposts="5"></div>
+
     <a href="index.html#our-classes">Înapoi la lista de articole</a>
 </div>
 
@@ -21,6 +32,31 @@
       <script type="module" src="assets/js/firebase-config.js"></script>
       <script type="module" src="assets/js/articole.js"></script>
      
+    <!-- Adaugă aici script-urile tale -->
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+    const articleId = new URLSearchParams(window.location.search).get('id');
+    if (articleId) {
+        // Obține URL-ul de bază fără pathname sau ajustează-l în funcție de structura site-ului
+        const baseUrl = `${window.location.protocol}//${window.location.host}/personaltrainer`;
+
+        // Construiește URL-ul articolului
+        const articleUrl = `${baseUrl}/article.html?id=${articleId}`;
+
+        // Actualizează `data-href` pentru fiecare plugin de Facebook
+        document.querySelectorAll('.fb-like, .fb-comments, .fb-share-button').forEach(element => {
+            element.setAttribute('data-href', articleUrl);
+        });
+
+        // Reîmprospătează plugin-urile Facebook, dacă FB este definit
+        if (window.FB) {
+            FB.XFBML.parse();
+        }
+    }
+});
+        </script>
+        
 
 </body>
 </html>
