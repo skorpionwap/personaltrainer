@@ -152,52 +152,61 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function updateMetaTags(articleData) {
-    if (articleData) {
-        // Actualizează titlul
-        const titleTag = document.querySelector('meta[property="og:title"]');
-        if (titleTag) {
-            titleTag.setAttribute("content", articleData.title || "Titlu implicit");
-        }
+    console.log("Actualizare metataguri cu datele articolului:", articleData);
 
-        // Preia primele 200 de caractere din conținutul articolului pentru descriere
-        const descriptionContent = articleData.content.substring(0, 200) + "..." ;
-        const descriptionTag = document.querySelector('meta[property="og:description"]');
-        if (descriptionTag) {
-            descriptionTag.setAttribute("content", descriptionContent);
-        }
+    // Actualizează titlul
+    const titleTag = document.querySelector('meta[property="og:title"]');
+    console.log("Element metatag titlu:", titleTag);
+    if (titleTag) {
+        titleTag.setAttribute("content", articleData.title || "Titlu implicit");
+        console.log("Titlul actualizat:", articleData.title);
+    }
 
-        // Actualizează imaginea
-        const imageTag = document.querySelector('meta[property="og:image"]');
-        if (imageTag && articleData.imageUrl) {
-            imageTag.setAttribute("content", articleData.imageUrl);
-        }
+    // Preia primele 200 de caractere din conținutul articolului pentru descriere
+    const descriptionContent = articleData.content ? articleData.content.substring(0, 200) + "..." : "Descriere implicită";
+    const descriptionTag = document.querySelector('meta[property="og:description"]');
+    console.log("Element metatag descriere:", descriptionTag);
+    if (descriptionTag) {
+        descriptionTag.setAttribute("content", descriptionContent);
+        console.log("Descrierea actualizată:", descriptionContent);
+    }
+
+    // Actualizează imaginea
+    const imageTag = document.querySelector('meta[property="og:image"]');
+    console.log("Element metatag imagine:", imageTag);
+    if (imageTag && articleData.imageUrl) {
+        imageTag.setAttribute("content", articleData.imageUrl);
+        console.log("Imaginea actualizată:", articleData.imageUrl);
     }
 }
 
 
+
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log("Document încărcat. Încep preluarea datelor articolului...");
     const articleId = new URLSearchParams(window.location.search).get('id');
+    console.log("ID articol:", articleId);
+
     if (articleId) {
         const articleRef = doc(firestore, "articole", articleId);
         const docSnap = await getDoc(articleRef);
 
         if (docSnap.exists()) {
             const articleData = docSnap.data();
+            console.log("Datele articolului preluate:", articleData);
+
             // Actualizează conținutul paginii cu datele articolului
             document.getElementById('articleTitle').textContent = articleData.title;
             document.getElementById('articleDate').textContent = articleData.timestamp ? articleData.timestamp.toDate().toLocaleDateString("ro-RO") : "Data necunoscută";
             document.getElementById('articleContentDisplay').innerHTML = articleData.content;
             
             // Actualizează metatagurile OG
-            updateMetaTags({
-                title: articleData.title,
-                description: articleData.content ? articleData.content.substring(0, 200) + "..." : "",
-            });
+            updateMetaTags(articleData);
         } else {
             console.log("Articolul nu există!");
-            // Afișează un mesaj corespunzător sau redirecționează utilizatorul
         }
     }
 });
+
 
 
