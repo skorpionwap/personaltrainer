@@ -151,7 +151,30 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Asumând că ai importurile necesare de la începutul scriptului
+function updateMetaTags(articleData) {
+    if (articleData) {
+        // Actualizează titlul
+        const titleTag = document.querySelector('meta[property="og:title"]');
+        if (titleTag) {
+            titleTag.setAttribute("content", articleData.title || "Titlu implicit");
+        }
+
+        // Preia primele 200 de caractere din conținutul articolului pentru descriere
+        const descriptionContent = articleData.content ? articleData.content.substring(0, 200) + "..." : "Descriere implicită";
+        const descriptionTag = document.querySelector('meta[property="og:description"]');
+        if (descriptionTag) {
+            descriptionTag.setAttribute("content", descriptionContent);
+        }
+
+        // Actualizează imaginea
+        const imageTag = document.querySelector('meta[property="og:image"]');
+        if (imageTag && articleData.imageUrl) {
+            imageTag.setAttribute("content", articleData.imageUrl);
+        }
+    }
+}
+
+
 document.addEventListener('DOMContentLoaded', async () => {
     const articleId = new URLSearchParams(window.location.search).get('id');
     if (articleId) {
@@ -160,12 +183,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (docSnap.exists()) {
             const articleData = docSnap.data();
+            // Actualizează conținutul paginii cu datele articolului
             document.getElementById('articleTitle').textContent = articleData.title;
             document.getElementById('articleDate').textContent = articleData.timestamp ? articleData.timestamp.toDate().toLocaleDateString("ro-RO") : "Data necunoscută";
             document.getElementById('articleContentDisplay').innerHTML = articleData.content;
+            
+            // Actualizează metatagurile OG
+            updateMetaTags({
+                title: articleData.title,
+                description: articleData.content ? articleData.content.substring(0, 200) + "..." : "",
+            });
         } else {
             console.log("Articolul nu există!");
             // Afișează un mesaj corespunzător sau redirecționează utilizatorul
         }
     }
 });
+
+

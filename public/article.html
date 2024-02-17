@@ -6,13 +6,10 @@
     <meta property="og:title" content="Titlul Articolului" />
     <meta property="og:description" content="Descrierea Articolului" />
     
-    <title>Detalii Articol</title>
     <!-- Adaugă aici link-uri către CSS-ul tău -->
     <!-- Include stilurile CSS pentru Quill -->
 
     <link rel="stylesheet" href="assets/css/style.css">
-    <div id="fb-root"></div>
-<script async defer crossorigin="anonymous" src="https://connect.facebook.net/ro_RO/sdk.js#xfbml=1&version=v19.0" nonce="7MfOqqAS"></script>
 </head>
 <body>
     
@@ -43,7 +40,8 @@
       <script type="module" src="assets/js/articole.js"></script>
      
     <!-- Adaugă aici script-urile tale -->
-    
+    <div id="fb-root"></div>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/ro_RO/sdk.js#xfbml=1&version=v19.0" nonce="7MfOqqAS"></script>
     <script>
        document.addEventListener('DOMContentLoaded', function() {
     const articleId = new URLSearchParams(window.location.search).get('id');
