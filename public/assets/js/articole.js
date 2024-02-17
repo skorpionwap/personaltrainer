@@ -11,10 +11,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Inițializează Quill pentru conținutul articolului
     quill = new Quill('#articleContent', {
-        theme: 'snow'
-        
+        theme: 'snow',
+        modules: {
+            toolbar: [
+              ['bold', 'italic', 'underline', 'strike'],        // formate text îngroșat, italic, subliniat și tăiat
+              ['blockquote', 'code-block'],                      // blocuri de citat și cod
+              [{ 'header': 1 }, { 'header': 2 }],                // headere de nivel 1 și 2
+              [{ 'list': 'ordered'}, { 'list': 'bullet' }],      // liste ordonate și neordonate
+              [{ 'script': 'sub'}, { 'script': 'super' }],       // subscript și superscript
+              [{ 'indent': '-1'}, { 'indent': '+1' }],           // indentare
+              [{ 'direction': 'rtl' }],                          // text de la dreapta la stânga
+              [{ 'size': ['small', false, 'large', 'huge'] }],  // mărimi font
+              [{ 'header': [1, 2, 3, 4, 5, 6, false] }],         // headere
+              [{ 'color': [] }, { 'background': [] }],          // selector de culoare text și fundal
+              [{ 'font': [] }],                                 // fonturi
+              [{ 'align': [] }],                                // aliniere
+              ['clean'],                                         // buton de curățare formatare
+              ['image']                                         // buton pentru adăugare imagini
+            ]
+          }
     });
 
+    
     // Handler pentru submit-ul formularului de articole
     articlesForm.addEventListener('submit', async (e) => {
         e.preventDefault();
