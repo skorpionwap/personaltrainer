@@ -160,7 +160,7 @@ function updateMetaTags(articleData) {
         }
 
         // Preia primele 200 de caractere din conținutul articolului pentru descriere
-        const descriptionContent = articleData.content ? articleData.content.substring(0, 200) + "..." : "Descriere implicită";
+        const descriptionContent = articleData.content.substring(0, 200) + "..." ;
         const descriptionTag = document.querySelector('meta[property="og:description"]');
         if (descriptionTag) {
             descriptionTag.setAttribute("content", descriptionContent);
