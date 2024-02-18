@@ -1,37 +1,20 @@
 // Presupunând că ai importat și configurat Firebase într-un alt fișier
 import { firestore } from './firebase-config.js';
 import {doc, setDoc, deleteDoc, getDoc, serverTimestamp, collection, query, orderBy, getDocs, where, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+// Importă instanța Quill din quill.js
+import { quill } from './quill.js';
 
-   // Inițializarea Quill
-let quill; // Variabilă globală pentru instanța Quill
+
+// Definește funcția extractText pentru a fi folosită în tot documentul
+function extractText(htmlString) {
+    const tempDivElement = document.createElement("div");
+    tempDivElement.innerHTML = htmlString;
+    return tempDivElement.textContent || tempDivElement.innerText || "";
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     const articlesForm = document.getElementById('articles-form');
     const articlesList = document.getElementById('articlesList');
-
-    // Inițializează Quill pentru conținutul articolului
-    quill = new Quill('#articleContent', {
-        theme: 'snow',
-        modules: {
-            toolbar: [
-              ['bold', 'italic', 'underline', 'strike'],        // formate text îngroșat, italic, subliniat și tăiat
-              ['blockquote', 'code-block'],                      // blocuri de citat și cod
-              [{ 'header': 1 }, { 'header': 2 }],                // headere de nivel 1 și 2
-              [{ 'list': 'ordered'}, { 'list': 'bullet' }],      // liste ordonate și neordonate
-              [{ 'script': 'sub'}, { 'script': 'super' }],       // subscript și superscript
-              [{ 'indent': '-1'}, { 'indent': '+1' }],           // indentare
-              [{ 'direction': 'rtl' }],                          // text de la dreapta la stânga
-              [{ 'size': ['small', false, 'large', 'huge'] }],  // mărimi font
-              [{ 'header': [1, 2, 3, 4, 5, 6, false] }],         // headere
-              [{ 'color': [] }, { 'background': [] }],          // selector de culoare text și fundal
-              [{ 'font': [] }],                                 // fonturi
-              [{ 'align': [] }],                                // aliniere
-              ['clean'],                                         // buton de curățare formatare
-              ['image']                                         // buton pentru adăugare imagini
-            ]
-          }
-    });
-
     
     // Handler pentru submit-ul formularului de articole
     articlesForm.addEventListener('submit', async (e) => {
@@ -70,26 +53,29 @@ document.addEventListener('DOMContentLoaded', function() {
         const queryToArticles = query(collection(firestore, "articole"), orderBy("timestamp", "desc"));
     
         onSnapshot(queryToArticles, (querySnapshot) => {
-            articlesList.innerHTML = ''; // Golește lista înainte de a re-afișa articolele
+            articlesList.innerHTML = '';
             articlesList.style.display = 'flex';
             articlesList.style.flexWrap = 'wrap';
-            articlesList.style.justifyContent = 'space-between'; // Asigură-te că folosești spațiu între articole
-            
+            articlesList.style.justifyContent = 'space-between';
+        
             querySnapshot.forEach((doc) => {
                 const article = doc.data();
                 const articleElement = document.createElement('div');
-                // Aplică stiluri pentru articol
-                articleElement.style.width = 'calc(50% - 10px)'; // Calculează lățimea pentru două articole pe rând minus spațiu între ele
-                articleElement.style.marginBottom = '20px'; // Spațiu între rânduri de articole
-    
-                const contentPreview = article.content.substring(0, 200) + '...';
+                articleElement.style.width = 'calc(50% - 10px)';
+                articleElement.style.marginBottom = '20px';
+                
+                // Extrage textul și limitează-l la 200 de caractere pentru preview
+                const textContent = extractText(article.content); // Utilizează funcția de extracție definită anterior
+                const previewContent = textContent.length > 200 ? textContent.substring(0, 200) + '...' : textContent;
+        
                 articleElement.classList.add('article');
                 articleElement.innerHTML = `
                     <h4>${article.title}</h4>
-                    <p>${contentPreview}</p>
+                    <p>${previewContent}</p>
                     <button class="edit" onclick="editArticle('${doc.id}')">Edit</button>
                     <button class="delete" onclick="deleteArticle('${doc.id}')">Delete</button>
                 `;
+        
     
                 // Aplică stiluri pentru butoane direct prin JavaScript
                 const buttons = articleElement.querySelectorAll('button');
@@ -141,25 +127,28 @@ window.editArticle = async (articleId) => {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-    const articlesList = document.getElementById('articles-container'); 
+    const articlesList = document.getElementById('articles-container');
 
     const queryToArticles = query(collection(firestore, "articole"), orderBy("timestamp", "desc"));
     onSnapshot(queryToArticles, (querySnapshot) => {
-        articlesList.innerHTML = ''; // Golește containerul înainte de a adăuga noi articole
+        articlesList.innerHTML = '';
 
         querySnapshot.forEach((doc) => {
             const article = doc.data();
             const articleElement = document.createElement('div');
-            articleElement.classList.add('feature-item'); // Clasa pentru stilizarea cardului
+            articleElement.classList.add('feature-item');
 
-            // Structura HTML actualizată pentru a se potrivi cu stilul dorit
+            // Extrage textul și limitează-l la 200 de caractere pentru preview
+            const textContent = extractText(article.content); // Utilizează funcția de extracție definită anterior
+            const previewContent = textContent.length > 200 ? textContent.substring(0, 200) + '...' : textContent;
+
             articleElement.innerHTML = `
                 <div class="left-icon">
                     <img src="assets/images/features-first-icon.png" alt="Icon">
                 </div>
                 <div class="right-content">
                     <h4>${article.title}</h4>
-                    <p>${article.content.substring(0, 100)}...</p>
+                    <p>${previewContent}</p>
                     <a href="article.html?id=${doc.id}" class="text-button">Discover More</a>
                 </div>
             `;

@@ -21,4 +21,15 @@ const auth = getAuth(app);
 const storage = getStorage(app);
 const db = getFirestore(app);
 
-export { firestore, auth, storage, db };
+
+async function saveImageToStorage(file) {
+    // Adaugă un timestamp sau un identificator unic la numele fișierului pentru a preveni suprascrierea
+    const uniqueName = `articole/${Date.now()}-${file.name}`;
+    const fileRef = ref(storage, uniqueName); // Actualizează calea pentru a include folderul comun `articole`
+    await uploadBytes(fileRef, file); // Încarcă fișierul în Firebase Storage
+    const url = await getDownloadURL(fileRef); // Obține URL-ul public al imaginii încărcate
+    return url; // Returnează URL-ul pentru utilizare ulterioară
+}
+
+
+export { firestore, auth, storage, db, saveImageToStorage };
