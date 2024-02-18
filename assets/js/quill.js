@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+
 // Funcția care deschide un input de tip 'file' pentru selectarea imaginii
 function selectLocalImage() {
   const input = document.createElement('input');
