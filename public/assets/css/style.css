@@ -40,14 +40,14 @@ body {
   display: inline-block;
   background-color: #e04819; /* Culoarea portocalie pentru butoane */
   color: #fff;
-  padding: 10px 15px;
+  padding: 2px 4px;
   text-decoration: none;
   border-radius: 3px;
   transition: background-color 0.3s;
 }
 
 .article-container a:hover {
-    color: #cc3e17;
+    color: #f5f2f1;
 }
 
 /* Responsivitate pentru dispozitive mobile */
