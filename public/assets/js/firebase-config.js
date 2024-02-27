@@ -32,4 +32,4 @@ async function saveImageToStorage(file) {
 }
 
 
-export { firestore, auth, storage, db, saveImageToStorage };
+export { firestore, auth, storage, db, saveImageToStorage, initializeApp, firebaseConfig };

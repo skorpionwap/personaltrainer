@@ -118,40 +118,60 @@ async function getAllClientsData() {
     console.log("Finished processing all client data");
 }
 
+// Funcția pentru a converti un timestamp Firestore la o dată citibilă
+function firestoreTimestampToString(timestamp) {
+    // Verificăm dacă timestamp-ul este un obiect cu proprietatea 'seconds'
+    if (timestamp && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate().toLocaleDateString("ro-RO") + 
+               " " + 
+               timestamp.toDate().toLocaleTimeString("ro-RO");
+    } else {
+        // Dacă timestamp-ul nu este valid, returnăm un placeholder sau aruncăm o eroare
+        return "Data necunoscută";
+    }
+}
+
 async function displayProgressPictures(clientUID, containerId) {
     const progressPicturesRef = collection(firestore, `users/${clientUID}/progressPictures`);
-    const progressPicturesSnapshot = await getDocs(query(progressPicturesRef, orderBy("uploadDate", "desc")));
+    const progressPicturesSnapshot = await getDocs(progressPicturesRef);
     const progressContainer = document.getElementById(containerId);
-    // Inițializăm tabelul pentru imagini
-    let tableHTML = `
-        <table class="progress-pictures-table">
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Imagine Față</th>
-                    <th>Imagine Spate</th>
-                    <th>Imagine Laterală</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+
+    let allImageSets = [];
 
     if (!progressPicturesSnapshot.empty) {
-        progressPicturesSnapshot.forEach(progressDoc => {
-            const progressData = progressDoc.data();
-            const uploadDate = progressData.uploadDate ? new Date(progressData.uploadDate.seconds * 1000).toLocaleDateString("ro-RO") : "Necunoscut";
+        progressPicturesSnapshot.forEach((dateDoc) => {
+            const date = dateDoc.id; // Data este ID-ul documentului
+            const imagesSets = dateDoc.data(); // Obținem seturile de imagini pentru acea dată
+            Object.entries(imagesSets).forEach(([setId, imageSet]) => {
+                // Convertim timestamp-ul Firestore la Date și apoi la string
+                const uploadDate = imageSet.uploadDate.toDate().toLocaleDateString("ro-RO") + ' ' + imageSet.uploadDate.toDate().toLocaleTimeString("ro-RO");
+                allImageSets.push({
+                    setId,
+                    date,
+                    uploadDate, // Folosim data formatată
+                    ...imageSet
+                });
+            });
+        });
 
-            // Construim rândul tabelului pentru fiecare set de imagini de progres
+        // Sortăm toate seturile de imagini după setId în ordine descrescătoare
+        allImageSets.sort((a, b) => parseInt(b.setId) - parseInt(a.setId));
+
+        let tableHTML = '<table class="progress-pictures-table"><thead><tr><th>Data</th><th>Imagine Față</th><th>Imagine Spate</th><th>Imagine Laterală</th></tr></thead><tbody>';
+
+        allImageSets.forEach((imageSet) => {
+            const uploadDateStr = firestoreTimestampToString(imageSet.uploadDate);
             tableHTML += `
                 <tr>
-                    <td>${uploadDate}</td>
-                    <td><img src="${progressData.frontImage || '#'}" alt="Față" style="width: 100px;"></td>
-                    <td><img src="${progressData.backImage || '#'}" alt="Spate" style="width: 100px;"></td>
-                    <td><img src="${progressData.sideImage || '#'}" alt="Lateral" style="width: 100px;"></td>
+                    <td>${uploadDateStr}</td>
+                    <td><img src="${imageSet.frontImage || '#'}" alt="Față" style="width: 100px;"></td>
+                    <td><img src="${imageSet.backImage || '#'}" alt="Spate" style="width: 100px;"></td>
+                    <td><img src="${imageSet.sideImage || '#'}" alt="Lateral" style="width: 100px;"></td>
                 </tr>
             `;
         });
-        tableHTML += `</tbody></table>`;
+
+        tableHTML += '</tbody></table>';
         progressContainer.innerHTML = tableHTML;
     } else {
         progressContainer.innerHTML = 'Nicio poză de progres disponibilă';
@@ -161,12 +181,7 @@ async function displayProgressPictures(clientUID, containerId) {
 
 
 
-
 // Continuarea codului pentru gestionarea evenimentelor formularului și alte funcționalități
-
-
-
-
 
 document.addEventListener('DOMContentLoaded', function() {
     if (auth.currentUser) {
@@ -210,41 +225,56 @@ document.addEventListener('DOMContentLoaded', function() {
     // Listener pentru formularul de încărcare a pozelor de progres
     document.getElementById('progress-pictures-form').addEventListener('submit', async function(event) {
         event.preventDefault();
-
+    
         const frontImage = document.getElementById('front-image').files[0];
         const sideImage = document.getElementById('side-image').files[0];
         const backImage = document.getElementById('back-image').files[0];
-
-        // Referințe pentru stocarea imaginilor
+    
+        const today = new Date().toISOString().split('T')[0];
+        const uniqueId = new Date().getTime();
+    
+        const basePath = `users/${auth.currentUser.uid}/progressPictures/${today}/${uniqueId}`;
         const imageRefs = [
-            {ref: ref(storage, `users/${auth.currentUser.uid}/progressPictures/frontImage`), file: frontImage},
-            {ref: ref(storage, `users/${auth.currentUser.uid}/progressPictures/sideImage`), file: sideImage},
-            {ref: ref(storage, `users/${auth.currentUser.uid}/progressPictures/backImage`), file: backImage},
+            { ref: ref(storage, `${basePath}/frontImage`), file: frontImage },
+            { ref: ref(storage, `${basePath}/sideImage`), file: sideImage },
+            { ref: ref(storage, `${basePath}/backImage`), file: backImage },
         ];
-
+    
         try {
-            const uploadPromises = imageRefs.map(({ref, file}) => uploadBytesResumable(ref, file).then(() => getDownloadURL(ref)));
-            const [frontImageUrl, sideImageUrl, backImageUrl] = await Promise.all(uploadPromises);
-
-            const progressPicturesRef = doc(collection(firestore, `users/${auth.currentUser.uid}/progressPictures`));
-            await setDoc(progressPicturesRef, {
-                frontImage: frontImageUrl,
-                sideImage: sideImageUrl,
-                backImage: backImageUrl,
-                uploadDate: serverTimestamp()
-            });
-
-            console.log("Progress pictures successfully uploaded.");
-            alert('Pozele de progres au fost încărcate cu succes.'); // Feedback vizibil pentru utilizator
-            // Resetează formularul de încărcare a pozelor de progres
-        document.getElementById('front-image').value = '';
-        document.getElementById('side-image').value = '';
-        document.getElementById('back-image').value = '';
+            // Încărcați imaginile și obțineți URL-urile de descărcare
+            const urls = await Promise.all(imageRefs.map(async ({ ref, file }) => {
+                const uploadTaskSnapshot = await uploadBytesResumable(ref, file);
+                return getDownloadURL(uploadTaskSnapshot.ref);
+            }));
+    
+            // După ce toate URL-urile au fost obținute, salvați metadatele în Firestore
+            const [frontImageUrl, sideImageUrl, backImageUrl] = urls;
+            const progressPicturesRef = doc(firestore, `users/${auth.currentUser.uid}/progressPictures`, today);
+            const dataToSave = {
+                [uniqueId]: {
+                    frontImage: frontImageUrl,
+                    sideImage: sideImageUrl,
+                    backImage: backImageUrl,
+                    uploadDate: serverTimestamp()
+                }
+            };
+    
+            // Actualizează documentul cu noile imagini fără a suprascrie datele existente
+            await setDoc(progressPicturesRef, dataToSave, { merge: true });
+    
+            console.log("Progress pictures successfully uploaded and metadata saved.");
+            alert('Pozele de progres au fost încărcate cu succes și metadatele salvate în Firestore.');
+            
+            // Resetează formularul
+            document.getElementById('front-image').value = '';
+            document.getElementById('side-image').value = '';
+            document.getElementById('back-image').value = '';
         } catch (error) {
-            console.error('Error uploading progress pictures:', error);
-            alert('Eroare la încărcarea pozelor de progres.'); // Feedback vizibil pentru erori
+            console.error('Error uploading progress pictures or saving metadata:', error);
+            alert('Eroare la încărcarea pozelor de progres sau la salvarea metadatelor.');
         }
-    });
+    });    
+    
 });
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -287,37 +317,185 @@ async function getAndDisplayAllProfileData() {
     });
 }
 
+
+// Variabilele globale
+let progressImageSets = [];
+let currentSetIndex = 0;
+let compareSetIndex = 1; // Indexul pentru imaginea de comparație
+let currentAngle = 'front';
+
+// Funcții ajutătoare
+function createImageElement(src, alt) {
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = alt;
+    img.className = 'progress-image-modal';
+    return img;
+}
+
+function updateModalImages() {
+    const modal = document.getElementById('myModal');
+    const comparisonContainer = document.getElementById('comparisonContainer');
+    const currentImageSet = progressImageSets[currentSetIndex];
+    const compareImageSet = progressImageSets[compareSetIndex];
+
+    comparisonContainer.innerHTML = ''; // Golim conținutul anterior
+
+    if (!currentImageSet || !compareImageSet) {
+        console.error('Seturile de imagini nu au fost găsite.');
+        return;
+    }
+    
+    const currentImg = createImageElement(currentImageSet[currentAngle + 'Image'], `Imaginea curentă pentru ${currentAngle}`);
+    const compareImg = createImageElement(compareImageSet[currentAngle + 'Image'], `Imaginea pentru comparație pentru ${currentAngle}`);
+
+    comparisonContainer.appendChild(currentImg);
+    comparisonContainer.appendChild(compareImg);
+    
+    modal.style.display = "block";
+}
+
+function showModal(date, setId, imageKey) {
+    const captionText = document.getElementById('modalCaption'); // Asigurați-vă că acest ID există în HTML
+
+    const angle = imageKey.replace('Image', ''); // Asigurați-vă că imageKey este unul dintre 'frontImage', 'sideImage', 'backImage'
+    const currentImageSet = progressImageSets.find(set => set.setId === setId && set.date === date);
+    
+    if (!currentImageSet) {
+        console.error('Setul de imagini nu a fost găsit.');
+        return;
+    }
+    
+    // Actualizăm indexul curent și unghiul bazat pe setul găsit
+    currentSetIndex = progressImageSets.indexOf(currentImageSet);
+    compareSetIndex = currentSetIndex === 0 ? 1 : 0; // Setăm un index diferit pentru comparație
+    currentAngle = angle;
+
+    updateModalImages();
+}
+
+function navigateImageSet(direction) {
+    currentSetIndex = (currentSetIndex + direction + progressImageSets.length) % progressImageSets.length;
+    updateModalImages();
+}
+
+function navigateCompareSet(direction) {
+    // Asigurați-vă că nu comparăm același set cu sine însuși
+    do {
+        compareSetIndex = (compareSetIndex + direction + progressImageSets.length) % progressImageSets.length;
+    } while (compareSetIndex === currentSetIndex);
+    updateModalImages();
+}
+
+function changeAngle(angle) {
+    currentAngle = angle;
+    updateModalImages();
+}
+
+
+
+// Funcția async pentru a obține și afișa pozele de progres
 async function getAndDisplayProgressPictures() {
     const container = document.getElementById('progressPicturesContainer');
-    container.innerHTML = ''; // Clear the container before adding new images
-    const q = query(collection(firestore, `users/${auth.currentUser.uid}/progressPictures`), orderBy("uploadDate", "desc"));
-    
-    const querySnapshot = await getDocs(q);
-    querySnapshot.forEach(doc => {
-        const data = doc.data();
-        const uploadDate = data.uploadDate ? new Date(data.uploadDate.seconds * 1000).toLocaleDateString("ro-RO") : "Necunoscut";
-        
-        // Crează un div pentru a grupa imaginile și data încărcării
-        const imageGroup = document.createElement('div');
-        imageGroup.className = 'progress-image-group';
-        imageGroup.innerHTML = `<h4>Data încărcării: ${uploadDate}</h4>`;
+    container.innerHTML = '';
 
-        // Definește ordinea dorită a imaginilor
-        const imageOrder = ['frontImage', 'sideImage', 'backImage'];
-        
-        // Sortează și afișează imaginile în ordinea definită
-        imageOrder.forEach(key => {
-            if (data[key]) { // Verifică dacă cheia există în date
-                const img = document.createElement('img');
-                img.src = data[key];
-                img.alt = `${key}`;
-                imageGroup.appendChild(img);
+    const titles = document.createElement('div');
+    titles.className = 'progress-image-titles';
+    titles.innerHTML = '<div class="title">Front</div><div class="title">Side</div><div class="title">Back</div>';
+    container.appendChild(titles);
+
+    const progressPicturesRef = collection(firestore, `users/${auth.currentUser.uid}/progressPictures`);
+    const querySnapshot = await getDocs(progressPicturesRef);
+
+    progressImageSets = []; // Resetăm array-ul pentru a evita duplicarea
+
+    for (const doc of querySnapshot.docs) {
+        const date = doc.id;
+        const sets = doc.data(); // Obținem seturile de imagini pentru acea dată
+
+        for (const setId of Object.keys(sets)) {
+            const imageData = sets[setId];
+            if (imageData && imageData.uploadDate) {
+                const uploadDate = imageData.uploadDate.toDate(); // Convertim timestamp-ul Firestore într-o dată JavaScript
+                progressImageSets.push({ setId, date, ...imageData, uploadDate }); // Asigurați-vă că setId este atribuit aici
             }
-        });
+        }
+    }
 
-        container.appendChild(imageGroup);
+    // Sortăm array-ul de seturi de imagini după uploadDate în ordine descrescătoare
+    progressImageSets.sort((a, b) => b.uploadDate - a.uploadDate);
+
+    // Afișăm fiecare set de imagini
+    progressImageSets.forEach((imageSet) => {
+        const formattedDate = imageSet.uploadDate.toLocaleDateString("ro-RO") + ' ' + imageSet.uploadDate.toLocaleTimeString("ro-RO");
+        displayImageRow(imageSet, formattedDate, container);
     });
 }
+
+function displayImageRow(imageSet, uploadDate, container) {
+    const imageRow = document.createElement('div');
+    imageRow.className = 'progress-image-row';
+
+    ['frontImage', 'sideImage', 'backImage'].forEach((imageKey) => {
+        const imageContainer = document.createElement('div');
+        imageContainer.className = 'image-container';
+
+        if (imageSet[imageKey]) {
+            const img = document.createElement('img');
+            img.src = imageSet[imageKey];
+            img.alt = `Imagine ${imageKey} din data ${uploadDate}`;
+            img.className = 'progress-image';
+            
+            img.addEventListener('click', () => {
+                // Accesăm date și setId direct din obiectul imageSet
+                const date = imageSet.date;
+                const setId = imageSet.setId;
+                const imageKeyCorrected = imageKey; // Nu este nevoie să modificăm imageKey, funcția showModal va gestiona asta intern
+            
+                // Apelăm showModal cu parametrii corecți
+                showModal(date, setId, imageKeyCorrected);
+            });
+            
+            
+            
+            imageContainer.appendChild(img);
+
+            const dateLabel = document.createElement('div');
+            dateLabel.className = 'date-label';
+            dateLabel.innerText = uploadDate;
+            imageContainer.appendChild(dateLabel);
+        } else {
+            imageContainer.textContent = `Nu există imagine pentru ${imageKey.replace('Image', '').toLowerCase()}`;
+            imageContainer.className += ' no-image';
+        }
+
+        imageRow.appendChild(imageContainer);
+    });
+
+    container.appendChild(imageRow);
+}
+
+// Event listener pentru DOMContentLoaded pentru a asigura că DOM-ul este încărcat
+document.addEventListener('DOMContentLoaded', function () {
+    // Adaugă event listener pentru butoanele de navigare și unghi
+    document.getElementById('prev').addEventListener('click', () => navigateImageSet(-1));
+    document.getElementById('next').addEventListener('click', () => navigateImageSet(1));
+    document.querySelectorAll('.angle-selector button').forEach(button => {
+        button.addEventListener('click', () => changeAngle(button.getAttribute('data-angle')));
+    });
+
+    // Adaugă event listener pentru închiderea modalului
+    document.querySelector('.close').addEventListener('click', () => {
+        document.getElementById('myModal').style.display = "none";
+    });
+
+    // Apelul funcției de încărcare și afișare a pozelor de progres
+    getAndDisplayProgressPictures();
+});
+
+
+
+
 
 
 async function deleteDataByDate(dateToDelete, collectionPath) {

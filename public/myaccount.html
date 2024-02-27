@@ -171,6 +171,35 @@
     <!-- Imagini adaugate dinamic -->
 </div>
 </div>
+
+<!-- Modal Structure -->
+<div id="myModal" class="modal">
+    <span class="close">&times;</span>
+    <div class="modal-content" id="modalContent">
+        <!-- Container pentru navigare și imagine -->
+        <div class="modal-nav">
+            <!-- Săgeți pentru navigare, event listeneri vor fi adăugați în JavaScript -->
+            <a id="prev" class="prev">&#10094;</a> <!-- săgeată la stânga -->
+            <a id="next" class="next">&#10095;</a> <!-- săgeată la dreapta -->
+        </div>
+        <!-- Locul pentru imagini comparate -->
+        <div id="comparisonContainer">
+            <!-- Imaginile din modal vor fi adăugate dinamic aici -->
+        </div>
+        <div id="modalCaption"></div>
+        <!-- Navigare pentru unghiuri -->
+        <div class="angle-selector">
+            <!-- Butonii pentru unghiuri, event listeneri vor fi adăugați în JavaScript -->
+            <button data-angle="front">Front</button>
+            <button data-angle="side">Side</button>
+            <button data-angle="back">Back</button>
+        </div>
+    </div>
+</div>
+
+
+
+  
 </section>
 
    <!-- My Account if user is trainer -->
@@ -270,6 +299,7 @@
 <script type="module" src="assets/js/articole.js"></script>
 <script type="module" src="assets/js/contact.js"></script>
 <script type="module" src="assets/js/deleteprofile.js"></script>
+
 
 
 <!-- Global Init -->
