@@ -276,20 +276,93 @@ body {
     background-color: #666;
 }
 
-/* Responsive styles */
-@media only screen and (max-width: 768px) {
+/* Media query pentru dispozitive mobile */
+@media only screen and (max-width: 600px) {
+    /* Stiluri pentru body când modalul este deschis */
+    body.modal-open {
+        position: fixed; /* Fixează body-ul pentru a împiedica scroll-ul pe fundal */
+        width: 100%;
+        height: 100%;
+        overflow: hidden; /* Ascunde overflow-ul pentru a împiedica scroll-ul */
+    }
+
+    body.modal-open .modal-content {
+        /* Ajustează dimensiunea și poziționarea pentru modul landscape */
+        height: 100vw;
+        transform: rotate(90deg) translateX(-100%);
+        transform-origin: bottom left;
+        overflow-y: scroll; /* Permite scroll pe verticală dacă este necesar */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vh;
+    }
+
+    body.modal-open .close {
+        /* Poziționează butonul de închidere */
+        transform: rotate(-90deg); /* Anulează rotirea pentru butonul de închidere */
+        transform-origin: right top;
+        top: 10px; /* Ajustează poziția după rotire */
+        right: 10px;
+    }
+}
+/* Media query pentru dispozitive mobile */
+@media only screen and (max-width: 600px) {
+    /* Stiluri pentru conținutul modalului */
     .modal-content {
-        width: 90%;
-        padding: 10px;
-        border-radius: 5px;
+        width: 100%; /* Folosește întreaga lățime a ecranului */
+        max-width: none; /* Înlătură restricțiile de lățime maximă */
+        height: auto; /* Înălțimea se ajustează automat */
+        padding: 10px; /* Reducem padding-ul pentru mai mult spațiu */
+        box-sizing: border-box; /* Include padding-ul în lățimea totală */
+        transform: none; /* Înlătură orice transformări */
+        top: 10%; /* Poziționează mai sus în ecran */
+        margin-top: 0; /* Elimină orice margini exterioare */
+    }
+
+    /* Stiluri pentru imaginile din modal */
+    .modal-content .progress-image-modal {
+        max-height: 40vh; /* Înălțime maximă ajustată pentru a permite săgeților să fie vizibile */
+        margin: 5px 0; /* Spațiu sus și jos pentru separare */
+    }
+
+    /* Stiluri pentru navigația modalului */
+    .modal-nav {
+        position: absolute; /* Pozitionează absolut pentru a nu afecta fluxul documentului */
+        top: 50%; /* Centrat vertical */
+        transform: translateY(-50%); /* Ajustează transform pentru centrare */
+        width: 100%; /* Lățimea întregii lățimi a modalului */
+    }
+
+    .modal-nav a {
+        font-size: 24px; /* Mărește dimensiunea fontului pentru vizibilitate */
+        opacity: 0.7; /* Opacitate redusă pentru design */
+    }
+
+    .modal-nav .prev {
+        left: 10px; /* Poziționare în stânga ecranului */
+    }
+
+    .modal-nav .next {
+        right: 10px; /* Poziționare în dreapta ecranului */
+    }
+
+    /* Stiluri pentru butoanele de unghi din modal */
+    .angle-selector {
+        position: absolute; /* Pozitionează absolut pentru a nu afecta fluxul documentului */
+        bottom: 10px; /* Poziționează la baza modalului */
+        left: 50%; /* Centrat pe orizontală */
+        transform: translateX(-50%); /* Ajustează transform pentru centrare */
+        width: auto; /* Lățimea se ajustează după conținut */
+    }
+
+    .angle-selector button {
+        font-size: 14px; /* Mărește dimensiunea fontului pentru vizibilitate */
+        padding: 5px 10px; /* Padding redus pentru a economisi spațiu */
     }
 }
 
-@media only screen and (max-width: 480px) {
-    .modal-content {
-        top: 45%;
-    }
-}
+
 
 
 

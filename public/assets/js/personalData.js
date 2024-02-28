@@ -353,6 +353,7 @@ function updateModalImages() {
     comparisonContainer.appendChild(compareImg);
     
     modal.style.display = "block";
+    document.body.classList.add('modal-open'); // Adăugăm clasa când deschidem modalul
 }
 
 function showModal(date, setId, imageKey) {
@@ -487,6 +488,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Adaugă event listener pentru închiderea modalului
     document.querySelector('.close').addEventListener('click', () => {
         document.getElementById('myModal').style.display = "none";
+        document.body.classList.remove('modal-open'); // Eliminăm clasa când închidem modalul
     });
 
     // Apelul funcției de încărcare și afișare a pozelor de progres
