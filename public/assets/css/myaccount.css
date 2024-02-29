@@ -236,7 +236,7 @@ body {
 }
 
 /* Caption of modal image */
-#modalCaption { /* Acest selector a fost actualizat pentru a corespunde cu ID-ul din HTML */
+#modalCaption { 
     text-align: center;
     color: #333;
     font-size: 16px;
@@ -259,109 +259,174 @@ body {
     cursor: pointer;
 }
 
-/* Adjusted styles for navigation and angle selector in modal */
+/* Stiluri pentru butoanele de navigare și selectorul de unghiuri în modal */
 .modal-nav a, .angle-selector button {
     text-decoration: none;
     color: white;
-    font-size: 18px;
+    font-size: 18px; /* Mărimea fontului poate fi ajustată dacă este necesar */
     background-color: #444;
     border: none;
-    padding: 10px 15px;
+    padding: 10px 15px; /* Mărimea padding-ului poate fi ajustată dacă este necesar */
     border-radius: 5px;
     cursor: pointer;
-    margin: 0 5px;
+    margin: 0 5px; /* Distanța dintre butoane poate fi ajustată dacă este necesar */
+    flex-grow: 0; /* Nu permite butoanelor să crească */
+    flex-shrink: 0; /* Nu permite butoanelor să se micșoreze */
 }
 
+/* Stiluri pentru hover pe butoanele de navigare și selectorul de unghiuri în modal */
 .modal-nav a:hover, .angle-selector button:hover {
     background-color: #666;
 }
 
-/* Media query pentru dispozitive mobile */
-@media only screen and (max-width: 600px) {
-    /* Stiluri pentru body când modalul este deschis */
-    body.modal-open {
-        position: fixed; /* Fixează body-ul pentru a împiedica scroll-ul pe fundal */
-        width: 100%;
-        height: 100%;
-        overflow: hidden; /* Ascunde overflow-ul pentru a împiedica scroll-ul */
-    }
+/* Plasarea butoanelor în partea de jos a modalului pentru desktop */
+.modal-nav, .angle-selector {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between; /* Distribuie butoanele la extremități */
+    align-items: center;
+    padding: 5px; /* Padding pe verticală */
+    box-sizing: border-box;
+}
 
-    body.modal-open .modal-content {
-        /* Ajustează dimensiunea și poziționarea pentru modul landscape */
-        height: 100vw;
-        transform: rotate(90deg) translateX(-100%);
-        transform-origin: bottom left;
-        overflow-y: scroll; /* Permite scroll pe verticală dacă este necesar */
+.modal-nav .prev, .modal-nav .next {
+    flex: 1; /* Permite butoanelor de navigație să crească dacă este spațiu disponibil */
+    text-align: center; /* Centrează textul săgeților */
+}
+
+.angle-selector {
+    justify-content: center; /* Centrează butoanele de unghi */
+}
+
+.angle-selector button {
+    flex: none; /* Butonii de unghi nu vor crește sau micșora */
+    text-align: center;
+}
+
+/* Asigurăm că săgețile și butoanele sunt vizibile și deasupra altor elemente */
+.modal-nav a, .angle-selector button {
+    z-index: 20;
+}
+
+
+/* Media query pentru dispozitive mobile în modul portrait și landscape */
+@media only screen and (max-width: 600px), 
+       only screen and (max-height: 600px) and (orientation: landscape) {
+    body.modal-open .modal {
+        /* Poziționare și dimensiune pentru întregul modal pe dispozitive mobile */
         position: fixed;
         top: 0;
         left: 0;
-        width: 100vh;
+        width: 100%;
+        height: 100%;
+        overflow-y: auto; /* Permite scroll pe verticală dacă este necesar */
     }
 
-    body.modal-open .close {
-        /* Poziționează butonul de închidere */
-        transform: rotate(-90deg); /* Anulează rotirea pentru butonul de închidere */
-        transform-origin: right top;
-        top: 10px; /* Ajustează poziția după rotire */
-        right: 10px;
-    }
-}
-/* Media query pentru dispozitive mobile */
-@media only screen and (max-width: 600px) {
-    /* Stiluri pentru conținutul modalului */
-    .modal-content {
-        width: 100%; /* Folosește întreaga lățime a ecranului */
-        max-width: none; /* Înlătură restricțiile de lățime maximă */
+    body.modal-open .modal-content {
+        /* Ajustează conținutul modalului pentru a se potrivi corect */
+        position: relative; /* Poziționare relativă la body */
+        top: 0; /* Anulează orice stiluri 'top' din alte media queries */
+        left: 0; /* Anulează orice stiluri 'left' din alte media queries */
+        transform: none; /* Anulează orice transformări */
+        width: 90%; /* Lățimea conținutului modalului */
+        margin: 5% auto; /* Centrare și spațiu în jurul modalului */
         height: auto; /* Înălțimea se ajustează automat */
-        padding: 10px; /* Reducem padding-ul pentru mai mult spațiu */
-        box-sizing: border-box; /* Include padding-ul în lățimea totală */
-        transform: none; /* Înlătură orice transformări */
-        top: 10%; /* Poziționează mai sus în ecran */
-        margin-top: 0; /* Elimină orice margini exterioare */
+        max-height: 90%; /* Înălțimea maximă pentru a evita suprapunerea cu header/footer */
     }
 
-    /* Stiluri pentru imaginile din modal */
-    .modal-content .progress-image-modal {
-        max-height: 40vh; /* Înălțime maximă ajustată pentru a permite săgeților să fie vizibile */
-        margin: 5px 0; /* Spațiu sus și jos pentru separare */
+    body.modal-open .modal-content .progress-image-modal {
+        /* Ajustează imaginile pentru a se potrivi în modal */
+        max-width: auto; /* Utilizăm mai puțin de jumătate din lățime pentru fiecare imagine */
+        height: auto; /* Înălțimea automată pentru a păstra proporțiile */
+        max-height: 300px; /* Înălțimea maximă fixă */
+        margin: 10px 1%; /* Spațiu între și în jurul imaginilor */
     }
 
-    /* Stiluri pentru navigația modalului */
-    .modal-nav {
-        position: absolute; /* Pozitionează absolut pentru a nu afecta fluxul documentului */
-        top: 50%; /* Centrat vertical */
-        transform: translateY(-50%); /* Ajustează transform pentru centrare */
-        width: 100%; /* Lățimea întregii lățimi a modalului */
+    body.modal-open #comparisonContainer {
+        /* Stiluri pentru containerul care deține imaginile comparate */
+        display: flex; /* Utilizăm flexbox pentru a aranja imaginile */
+        flex-wrap: nowrap; /* Permite imaginilor să treacă pe rândul următor dacă este necesar */
+        justify-content: space-around; /* Distribuie spațiul în mod egal în jurul elementelor */
+        align-items: flex-start; /* Alinează elementele la începutul containerului */
     }
 
-    .modal-nav a {
-        font-size: 24px; /* Mărește dimensiunea fontului pentru vizibilitate */
-        opacity: 0.7; /* Opacitate redusă pentru design */
-    }
 
-    .modal-nav .prev {
-        left: 10px; /* Poziționare în stânga ecranului */
-    }
-
-    .modal-nav .next {
-        right: 10px; /* Poziționare în dreapta ecranului */
-    }
-
-    /* Stiluri pentru butoanele de unghi din modal */
-    .angle-selector {
-        position: absolute; /* Pozitionează absolut pentru a nu afecta fluxul documentului */
-        bottom: 10px; /* Poziționează la baza modalului */
-        left: 50%; /* Centrat pe orizontală */
-        transform: translateX(-50%); /* Ajustează transform pentru centrare */
-        width: auto; /* Lățimea se ajustează după conținut */
-    }
-
-    .angle-selector button {
-        font-size: 14px; /* Mărește dimensiunea fontului pentru vizibilitate */
-        padding: 5px 10px; /* Padding redus pentru a economisi spațiu */
-    }
+/* Stiluri pentru butoanele de navigație și selectorul de unghiuri */
+body.modal-open .modal-nav,
+body.modal-open .angle-selector {
+ position: fixed; /* Fixează butoanele la partea de jos a ecranului */
+ bottom: 0; /* La marginea inferioară a viewport-ului */
+ left: 0; /* De la marginea stângă a viewport-ului */
+ right: 0; /* De la marginea dreaptă a viewport-ului */
+ width: 100%; /* Lățime completă */
+ display: flex; /* Utilizează flexbox pentru aliniere */
+ justify-content: space-between; /* Distribuie butoanele la extremități */
+ align-items: center; /* Centrează elementele pe verticală */
+ padding: 5px; /* Padding pentru spațiu */
+ box-sizing: border-box; /* Include padding-ul în lățime */
+ z-index: 20; /* Asigură că butoanele sunt peste alte elemente */
 }
 
+ /* Stiluri pentru săgețile de navigare */
+ body.modal-open .modal-nav .prev,
+ body.modal-open .modal-nav .next {
+     position: fixed; /* Fixează săgețile în viewport */
+     top: 50%; /* Poziționează săgețile pe centrul vertical al ecranului */
+     transform: translateY(-50%); /* Centrare verticală */
+     z-index: 25; /* Asigură că săgețile sunt peste alte elemente */
+     background: rgba(0, 0, 0, 0.5); /* Adaugă un fundal pentru vizibilitate și contrast */
+     border-radius: 50%; /* Opțional: butoane rotunde */
+ }
+
+ body.modal-open .modal-nav .prev { left: 10px; } /* Poziționează săgeata la stânga */
+ body.modal-open .modal-nav .next { right: 10px; } /* Poziționează săgeata la dreapta */
+
+
+/* Stiluri pentru butoanele de selectare a unghiului */
+body.modal-open .angle-selector {
+ bottom: 10px; /* Poziționat puțin mai sus de marginea inferioară a viewport-ului */
+ justify-content: center; /* Centrează butoanele */
+ padding: 5px; /* Padding pentru spațiu */
+}
+
+body.modal-open .angle-selector button {
+ font-size: 14px; /* Mărimea fontului pentru butoane */
+ padding: 5px 10px; /* Padding pentru butoane */
+ margin: 0 2px; /* Spațiu între butoane */
+ flex-grow: 0; /* Nu permite butoanelor să crească */
+ flex-shrink: 0; /* Nu permite butoanelor să se micșoreze */
+}
+}
+
+}
+
+/* Media query pentru modul landscape pe dispozitive mobile */
+@media only screen and (orientation: landscape) {
+    body.modal-open .modal-content {
+        width: 90%; /* sau o valoare care se potrivește bine pe ecranul tău */
+        height: auto; /* Înălțimea se ajustează automat */
+        max-height: 80vh; /* Maximal 80% din înălțimea viewport-ului */
+        overflow-y: auto; /* Permite scroll pe verticală dacă este necesar */
+    }
+
+    body.modal-open .modal-content .progress-image-modal {
+        max-width: auto; /* Fiecare imagine să ocupe maxim 45% din lățimea containerului */
+        height: auto; /* Înălțimea se ajustează pentru a menține proporțiile */
+        max-height: 45vh; /* Înălțimea maximă a imaginii este 45% din înălțimea viewport-ului */
+    }
+
+    body.modal-open #comparisonContainer {
+        flex-direction: row; /* Imaginile sunt în rând pe orizontală */
+        flex-wrap: nowrap; /* Imaginile nu vor trece pe rândul următor */
+        justify-content: center; /* Centrează imaginile pe orizontală */
+        align-items: center; /* Centrează imaginile pe verticală */
+    }
+
+}
 
 
 
