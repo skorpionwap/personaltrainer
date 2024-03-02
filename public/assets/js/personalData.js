@@ -54,68 +54,140 @@ async function getUserRole(userId) {
     }
 }
 
+// Obiect pentru a stoca instanțele graficelor pentru fiecare client
+let clientCharts = {};
+
 async function getAllClientsData() {
-    console.log("Fetching all clients data");
     const clientsRef = collection(firestore, "users");
     const q = query(clientsRef, where("role", "==", "client"));
     const querySnapshot = await getDocs(q);
     const container = document.getElementById('clientsDataContainer');
     container.innerHTML = ''; // Curăță containerul înainte de a adăuga noi elemente
+    
+    // Definirea mapării etichetelor prietenoase
+    const measurementLabels = {
+        weight: 'Greutate',
+        shoulders: 'Umeri',
+        chest: 'Piept',
+        waist: 'Talie',
+        hips: 'Șolduri',
+        'l-bicep': 'Biceps Stâng',
+        'r-bicep': 'Biceps Drept',
+        'l-forearm': 'Antebraț Stâng',
+        'r-forearm': 'Antebraț Drept',
+        'l-thigh': 'Coapsă Stângă',
+        'r-thigh': 'Coapsă Dreaptă',
+        'l-calf': 'Gambă Stângă',
+        'r-calf': 'Gambă Dreaptă',
+        fat: 'Procent Grăsime'
+    };
 
-    for (let doc of querySnapshot.docs) {
+    querySnapshot.forEach((doc) => {
         const clientUID = doc.id;
         const clientData = doc.data();
-        console.log("Processing client data for:", clientData.email);
-
-        // Inițializare HTML pentru datele clientului
-        let clientHTML = `
-            <div class="client-data">
-                <h3>${clientData.firstName} ${clientData.lastName} (${clientData.email})</h3>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Înălțime</th>
-                            <th>Greutate</th>
-                            <th>Talie</th>
-                            <th>Bust</th>
-                            <th>Brațe</th>
-                            <th>Coapse</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+        const clientDiv = document.createElement('div');
+        clientDiv.className = 'client-data';
+        clientDiv.innerHTML = `
+            <h3>${clientData.firstName} ${clientData.lastName} (${clientData.email})</h3>
+            <div id="chart-container-${clientUID}" class="chart-container">
+                <canvas id="chart-${clientUID}"></canvas>
+            </div>
         `;
 
-        // Preluare și adăugare date personale în tabel
-        const personalDataRef = collection(firestore, `users/${clientUID}/personalCollection/personalData/records`);
-        const personalDataSnapshot = await getDocs(query(personalDataRef, orderBy("date", "desc")));
+        // Crearea și adăugarea selectorului de măsurători
+        const selectContainer = document.createElement('div');
+        selectContainer.className = 'select-container';
+        const selectElement = document.createElement('select');
+        selectElement.id = `measurement-select-${clientUID}`;
+        const measurements = ['weight', 'shoulders', 'chest', 'waist', 'hips', 'l-bicep', 'r-bicep', 'l-forearm', 'r-forearm', 'l-thigh', 'r-thigh', 'l-calf', 'r-calf', 'fat'];
+        measurements.forEach(measurement => {
+            const option = document.createElement('option');
+            option.value = measurement;
+            // Convertirea codurilor în etichete prietenoase folosind maparea
+            option.textContent = measurementLabels[measurement] || measurement;
+            selectElement.appendChild(option);
+        });
+        selectContainer.appendChild(selectElement);
+        clientDiv.appendChild(selectContainer);
 
-        personalDataSnapshot.forEach(record => {
-            const data = record.data();
-            const date = new Date(data.date.seconds * 1000).toLocaleDateString("ro-RO");
-            clientHTML += `
-                <tr>
-                    <td>${date}</td>
-                    <td>${data.height || 'N/A'} cm</td>
-                    <td>${data.weight || 'N/A'} kg</td>
-                    <td>${data.waist || 'N/A'} cm</td>
-                    <td>${data.bust || 'N/A'} cm</td>
-                    <td>${data.arms || 'N/A'} cm</td>
-                    <td>${data.thighs || 'N/A'} cm</td>
-                </tr>
-            `;
+        // Event listener pentru schimbarea selecției
+        selectElement.addEventListener('change', function() {
+            populateChartForClient(`chart-${clientUID}`, clientUID, this.value);
         });
 
-        clientHTML += `</tbody></table>`;
+        container.appendChild(clientDiv);
 
-        // Container pentru pozele de progres
-        clientHTML += `<div class="progress-pictures" id="progress-pictures-${clientUID}"></div>`;
-        container.innerHTML += clientHTML;
+        // Crearea containerului pentru pozele de progres
+        const progressPicturesContainer = document.createElement('div');
+        progressPicturesContainer.className = 'progress-pictures';
+        progressPicturesContainer.id = `progress-pictures-${clientUID}`;
+        clientDiv.appendChild(progressPicturesContainer);
 
-        // Încărcare și afișare poze de progres
-        await displayProgressPictures(clientUID, `progress-pictures-${clientUID}`);
+        // Apelurile inițiale
+        populateChartForClient(`chart-${clientUID}`, clientUID, 'weight');
+        displayProgressPictures(clientUID, progressPicturesContainer.id);
+    });
+}
+
+// Obiect pentru maparea selecției utilizatorului la numele câmpurilor Firestore
+const measurementMapping = {
+    weight: 'weight',
+    fat: 'bodyFat',
+    shoulders: 'shoulders',
+    chest: 'bust',
+    waist: 'waist',
+    hips: 'hips',
+    'l-bicep': 'lBicep',
+    'r-bicep': 'rBicep',
+    'l-forearm': 'lForearm',
+    'r-forearm': 'rForearm',
+    'l-thigh': 'lThigh',
+    'r-thigh': 'rThigh',
+    'l-calf': 'lCalf',
+    'r-calf': 'rCalf',
+    fat: 'bodyFat' // Asigură-te că fiecare valoare din selector are un corespondent aici
+};
+
+
+async function populateChartForClient(canvasId, clientId, measurementType) {
+    if (clientCharts[canvasId]) {
+        clientCharts[canvasId].destroy();
     }
-    console.log("Finished processing all client data");
+
+    // Utilizează mapping-ul pentru a obține numele corect al câmpului din Firestore
+    const firestoreFieldName = measurementMapping[measurementType] || measurementType;
+
+    const dataPoints = [];
+    const labels = [];
+    const personalDataRef = collection(firestore, `users/${clientId}/personalCollection/personalData/records`);
+    const querySnapshot = await getDocs(query(personalDataRef, orderBy("date", "desc")));
+
+    querySnapshot.forEach(doc => {
+        const data = doc.data();
+        const date = new Date(data.date.seconds * 1000).toLocaleDateString("ro-RO");
+        if (data[firestoreFieldName]) { // Folosește numele corect al câmpului aici
+            dataPoints.push(data[firestoreFieldName]);
+            labels.push(date);
+        }
+    });
+
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    clientCharts[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{ label: measurementType, data: dataPoints, borderColor: 'rgb(75, 192, 192)', tension: 0.1 }]
+        },
+        options: { 
+            maintainAspectRatio: false, 
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false // Aici se ascunde legenda
+                }
+            }
+        },
+    });
 }
 
 // Funcția pentru a converti un timestamp Firestore la o dată citibilă
@@ -136,39 +208,23 @@ async function displayProgressPictures(clientUID, containerId) {
     const progressPicturesSnapshot = await getDocs(progressPicturesRef);
     const progressContainer = document.getElementById(containerId);
 
-    let allImageSets = [];
-
     if (!progressPicturesSnapshot.empty) {
-        progressPicturesSnapshot.forEach((dateDoc) => {
-            const date = dateDoc.id; // Data este ID-ul documentului
-            const imagesSets = dateDoc.data(); // Obținem seturile de imagini pentru acea dată
-            Object.entries(imagesSets).forEach(([setId, imageSet]) => {
-                // Convertim timestamp-ul Firestore la Date și apoi la string
-                const uploadDate = imageSet.uploadDate.toDate().toLocaleDateString("ro-RO") + ' ' + imageSet.uploadDate.toDate().toLocaleTimeString("ro-RO");
-                allImageSets.push({
-                    setId,
-                    date,
-                    uploadDate, // Folosim data formatată
-                    ...imageSet
-                });
-            });
-        });
-
-        // Sortăm toate seturile de imagini după setId în ordine descrescătoare
-        allImageSets.sort((a, b) => parseInt(b.setId) - parseInt(a.setId));
-
         let tableHTML = '<table class="progress-pictures-table"><thead><tr><th>Data</th><th>Imagine Față</th><th>Imagine Spate</th><th>Imagine Laterală</th></tr></thead><tbody>';
 
-        allImageSets.forEach((imageSet) => {
-            const uploadDateStr = firestoreTimestampToString(imageSet.uploadDate);
-            tableHTML += `
-                <tr>
-                    <td>${uploadDateStr}</td>
-                    <td><img src="${imageSet.frontImage || '#'}" alt="Față" style="width: 100px;"></td>
-                    <td><img src="${imageSet.backImage || '#'}" alt="Spate" style="width: 100px;"></td>
-                    <td><img src="${imageSet.sideImage || '#'}" alt="Lateral" style="width: 100px;"></td>
-                </tr>
-            `;
+        progressPicturesSnapshot.forEach((docSnapshot) => {
+            const date = docSnapshot.id; // This is the user-selected date
+            const imageSets = docSnapshot.data();
+
+            Object.entries(imageSets).forEach(([setId, imageSet]) => {
+                tableHTML += `
+                    <tr>
+                        <td>${date}</td> <!-- Display the user-selected date -->
+                        <td><img src="${imageSet.frontImage || '#'}" alt="Față" style="width: 100px;"></td>
+                        <td><img src="${imageSet.backImage || '#'}" alt="Spate" style="width: 100px;"></td>
+                        <td><img src="${imageSet.sideImage || '#'}" alt="Lateral" style="width: 100px;"></td>
+                    </tr>
+                `;
+            });
         });
 
         tableHTML += '</tbody></table>';
@@ -180,7 +236,6 @@ async function displayProgressPictures(clientUID, containerId) {
 
 
 
-
 // Continuarea codului pentru gestionarea evenimentelor formularului și alte funcționalități
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -189,92 +244,130 @@ document.addEventListener('DOMContentLoaded', function() {
         getAndDisplayProgressPictures();
     }
 
-    // Listener pentru formularul de date personale
-    document.getElementById('personal-data-form').addEventListener('submit', async function(event) {
+    document.getElementById('save-measurements').addEventListener('click', async function(event) {
         event.preventDefault();
     
+        // Preia data din input-ul de dată
+        const dateInput = document.getElementById('date-input').value;
+        // Converteste valoarea input-ului de dată într-un Timestamp Firestore dacă este specificată o dată
+        const dateToSave = dateInput ? new Date(dateInput) : new Date();
+    
         const personalData = {
-            date: serverTimestamp(), // Folosim serverTimestamp pentru consistență
-            height: document.getElementById('height').value,
-            weight: document.getElementById('weight').value,
-            waist: document.getElementById('waist').value,
-            bust: document.getElementById('bust').value,
-            arms: document.getElementById('arms').value,
-            thighs: document.getElementById('thighs').value,
+            date: dateToSave,
+            height: parseFloat(document.getElementById('height').value),
+            weight: parseFloat(document.getElementById('weight').value),
+            waist: parseFloat(document.getElementById('waist-input').value),
+            bust: parseFloat(document.getElementById('chest-input').value),
+            shoulders: parseFloat(document.getElementById('shoulders-input').value),
+            hips: parseFloat(document.getElementById('hips-input').value),
+            lBicep: parseFloat(document.getElementById('l-bicep-input').value),
+            rBicep: parseFloat(document.getElementById('r-bicep-input').value),
+            lForearm: parseFloat(document.getElementById('l-forearm-input').value),
+            rForearm: parseFloat(document.getElementById('r-forearm-input').value),
+            lThigh: parseFloat(document.getElementById('l-thigh-input').value),
+            rThigh: parseFloat(document.getElementById('r-thigh-input').value),
+            lCalf: parseFloat(document.getElementById('l-calf-input').value),
+            rCalf: parseFloat(document.getElementById('r-calf-input').value),
+            bodyFat: parseFloat(document.getElementById('fat').value),
         };
     
         if (auth.currentUser) {
             try {
-                await setDoc(doc(firestore, `users/${auth.currentUser.uid}/personalCollection/personalData/records/${new Date().toISOString()}`), personalData);
+                await setDoc(doc(firestore, `users/${auth.currentUser.uid}/personalCollection/personalData/records/${dateInput || new Date().toISOString()}`), personalData);
                 console.log('Personal data successfully saved.');
-                alert('Datele personale au fost salvate cu succes.'); // Înlocuiește console.log cu alert pentru feedback vizibil utilizatorului
-                // Resetează formularul de date personale
-            document.getElementById('height').value = '';
-            document.getElementById('weight').value = '';
-            document.getElementById('waist').value = '';
-            document.getElementById('bust').value = '';
-            document.getElementById('arms').value = '';
-            document.getElementById('thighs').value = '';
+                alert('Datele personale au fost salvate cu succes.');
+    
+                // Resetează formularul de date personale după salvare
+                document.getElementById('date-input').value = '';
+                document.getElementById('height').value = '';
+                document.getElementById('weight').value = '';
+                document.getElementById('waist-input').value = '';
+                document.getElementById('chest-input').value = '';
+                document.getElementById('shoulders-input').value = '';
+                document.getElementById('hips-input').value = '';
+                document.getElementById('l-bicep-input').value = '';
+                document.getElementById('r-bicep-input').value = '';
+                document.getElementById('l-forearm-input').value = '';
+                document.getElementById('r-forearm-input').value = '';
+                document.getElementById('l-thigh-input').value = '';
+                document.getElementById('r-thigh-input').value = '';
+                document.getElementById('l-calf-input').value = '';
+                document.getElementById('r-calf-input').value = '';
+                document.getElementById('fat').value = '';
             } catch (error) {
                 console.error('Error saving personal data:', error);
-                alert('Eroare la salvarea datelor personale.'); // Feedback vizibil pentru erori
+                alert('Eroare la salvarea datelor personale.');
             }
         }
     });
     
-    // Listener pentru formularul de încărcare a pozelor de progres
+    
+    
     document.getElementById('progress-pictures-form').addEventListener('submit', async function(event) {
         event.preventDefault();
+    
+        const dateInput = document.getElementById('progress-date-input').value;
+        if (!dateInput) {
+            alert('Vă rugăm să selectați data pentru pozele de progres.');
+            return;
+        }
     
         const frontImage = document.getElementById('front-image').files[0];
         const sideImage = document.getElementById('side-image').files[0];
         const backImage = document.getElementById('back-image').files[0];
     
-        const today = new Date().toISOString().split('T')[0];
-        const uniqueId = new Date().getTime();
+        // Utilizăm data selectată pentru numele documentului
+        const documentPath = `users/${auth.currentUser.uid}/progressPictures/${dateInput}`;
+        const firestoreRef = doc(firestore, documentPath);
     
-        const basePath = `users/${auth.currentUser.uid}/progressPictures/${today}/${uniqueId}`;
+        const uniqueId = `progress_${new Date().getTime()}`;
+        const storagePath = `users/${auth.currentUser.uid}/progressPictures/${dateInput}/${uniqueId}`;
+    
         const imageRefs = [
-            { ref: ref(storage, `${basePath}/frontImage`), file: frontImage },
-            { ref: ref(storage, `${basePath}/sideImage`), file: sideImage },
-            { ref: ref(storage, `${basePath}/backImage`), file: backImage },
+            { ref: ref(storage, `${storagePath}/frontImage`), file: frontImage },
+            { ref: ref(storage, `${storagePath}/sideImage`), file: sideImage },
+            { ref: ref(storage, `${storagePath}/backImage`), file: backImage },
         ];
     
         try {
-            // Încărcați imaginile și obțineți URL-urile de descărcare
             const urls = await Promise.all(imageRefs.map(async ({ ref, file }) => {
-                const uploadTaskSnapshot = await uploadBytesResumable(ref, file);
-                return getDownloadURL(uploadTaskSnapshot.ref);
+                if (file) {
+                    const uploadTaskSnapshot = await uploadBytesResumable(ref, file);
+                    return getDownloadURL(uploadTaskSnapshot.ref);
+                }
+                return null;
             }));
     
-            // După ce toate URL-urile au fost obținute, salvați metadatele în Firestore
             const [frontImageUrl, sideImageUrl, backImageUrl] = urls;
-            const progressPicturesRef = doc(firestore, `users/${auth.currentUser.uid}/progressPictures`, today);
-            const dataToSave = {
+    
+            // Pregătim obiectul cu datele pozelor de progres
+            const progressData = {
                 [uniqueId]: {
                     frontImage: frontImageUrl,
                     sideImage: sideImageUrl,
                     backImage: backImageUrl,
-                    uploadDate: serverTimestamp()
+                    // Setăm uploadDate la data aleasă de utilizator în loc de serverTimestamp
+                    uploadDate: dateInput ? new Date(dateInput) : new Date()
                 }
             };
+            
     
-            // Actualizează documentul cu noile imagini fără a suprascrie datele existente
-            await setDoc(progressPicturesRef, dataToSave, { merge: true });
+            // Actualizăm sau creăm documentul pentru data selectată cu noile imagini
+            await setDoc(firestoreRef, progressData, { merge: true });
     
             console.log("Progress pictures successfully uploaded and metadata saved.");
             alert('Pozele de progres au fost încărcate cu succes și metadatele salvate în Firestore.');
-            
+    
             // Resetează formularul
             document.getElementById('front-image').value = '';
             document.getElementById('side-image').value = '';
             document.getElementById('back-image').value = '';
+            document.getElementById('progress-date-input').value = '';
         } catch (error) {
             console.error('Error uploading progress pictures or saving metadata:', error);
             alert('Eroare la încărcarea pozelor de progres sau la salvarea metadatelor.');
         }
-    });    
-    
+    });
 });
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -304,18 +397,73 @@ async function getAndDisplayAllProfileData() {
         const data = doc.data();
         const date = new Date(data.date.seconds * 1000).toLocaleDateString("ro-RO");
         tbody.innerHTML += `
-            <tr>
-                <td>${date}</td>
-                <td>${data.height || ''} cm</td>
-                <td>${data.weight || ''} kg</td>
-                <td>${data.waist || ''} cm</td>
-                <td>${data.bust || ''} cm</td>
-                <td>${data.arms || ''} cm</td>
-                <td>${data.thighs || ''} cm</td>
-            </tr>
+        <tr>
+        <td>${date}</td>
+        <td>${data.height || 'N/A'} cm</td>
+        <td>${data.weight || 'N/A'} kg</td>
+        <td>${data.bodyFat || 'N/A'}%</td>
+        <td>${data.shoulders || 'N/A'} cm</td>
+        <td>${data.bust || 'N/A'} cm</td>
+        <td>${data.lBicep || 'N/A'} cm</td>
+        <td>${data.rBicep || 'N/A'} cm</td>
+        <td>${data.lForearm || 'N/A'} cm</td>
+        <td>${data.rForearm || 'N/A'} cm</td>
+        <td>${data.waist || 'N/A'} cm</td>
+        <td>${data.hips || 'N/A'} cm</td>
+        <td>${data.lThigh || 'N/A'} cm</td>
+        <td>${data.rThigh || 'N/A'} cm</td>
+        <td>${data.lCalf || 'N/A'} cm</td>
+        <td>${data.rCalf || 'N/A'} cm</td>
+    </tr>
         `;
     });
 }
+
+async function displayMeasurementsForSelectedDate(selectedDate) {
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const measurementsRef = collection(firestore, `users/${auth.currentUser.uid}/personalCollection/personalData/records`);
+    const q = query(measurementsRef, where("date", ">=", startOfDay), where("date", "<=", endOfDay));
+
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+        const data = querySnapshot.docs[0].data(); // Presupunem că există o singură înregistrare pe zi
+
+        // Actualizați etichetele cu datele respective
+    document.querySelector('.measurement-label.fat').textContent = `Fat: ${data.bodyFat || 'N/A'}%`;
+    document.querySelector('.measurement-label.waist').textContent = `Waist: ${data.waist || 'N/A'} cm`;
+    document.querySelector('.measurement-label.hips').textContent = `Hips: ${data.hips || 'N/A'} cm`;
+    document.querySelector('.measurement-label.l-bicep').textContent = `L Bicep: ${data.lBicep || 'N/A'} cm`;
+    document.querySelector('.measurement-label.r-bicep').textContent = `R Bicep: ${data.rBicep || 'N/A'} cm`;
+    document.querySelector('.measurement-label.l-forearm').textContent = `L Forearm: ${data.lForearm || 'N/A'} cm`;
+    document.querySelector('.measurement-label.r-forearm').textContent = `R Forearm: ${data.rForearm || 'N/A'} cm`;
+    document.querySelector('.measurement-label.l-thigh').textContent = `L Thigh: ${data.lThigh || 'N/A'} cm`;
+    document.querySelector('.measurement-label.r-thigh').textContent = `R Thigh: ${data.rThigh || 'N/A'} cm`;
+    document.querySelector('.measurement-label.l-calf').textContent = `L Calf: ${data.lCalf || 'N/A'} cm`;
+    document.querySelector('.measurement-label.r-calf').textContent = `R Calf: ${data.rCalf || 'N/A'} cm`;
+    document.querySelector('.measurement-label.shoulders').textContent = `Shoulders: ${data.shoulders || 'N/A'} cm`;
+    document.querySelector('.measurement-label.chest').textContent = `Chest: ${data.chest || 'N/A'} cm`;
+    document.querySelector('.measurement-label.weight').textContent = `Weight: ${data.weight || 'N/A'} kg`;
+    document.querySelector('.measurement-label.height').textContent = `Height: ${data.height || 'N/A'} cm`;
+
+    } else {
+        alert('Nu există măsurători pentru data selectată.');
+        // Opțional, puteți curăța etichetele dacă doriți
+        document.querySelectorAll('.measurement-label').forEach(label => {
+            label.textContent = `${label.classList[1]}: N/A`;
+        });
+    }
+}
+
+document.getElementById('measurement-date').addEventListener('change', (event) => {
+    const selectedDate = new Date(event.target.value);
+    displayMeasurementsForSelectedDate(selectedDate);
+});
+
 
 
 // Variabilele globale
@@ -428,7 +576,7 @@ async function getAndDisplayProgressPictures() {
 
     // Afișăm fiecare set de imagini
     progressImageSets.forEach((imageSet) => {
-        const formattedDate = imageSet.uploadDate.toLocaleDateString("ro-RO") + ' ' + imageSet.uploadDate.toLocaleTimeString("ro-RO");
+        const formattedDate = imageSet.uploadDate.toLocaleDateString("ro-RO");
         displayImageRow(imageSet, formattedDate, container);
     });
 }
@@ -476,28 +624,42 @@ function displayImageRow(imageSet, uploadDate, container) {
     container.appendChild(imageRow);
 }
 
-// Event listener pentru DOMContentLoaded pentru a asigura că DOM-ul este încărcat
-document.addEventListener('DOMContentLoaded', function () {
+    // Event listener pentru DOMContentLoaded pentru a asigura că DOM-ul este încărcat
+    document.addEventListener('DOMContentLoaded', function () {
     // Adaugă event listener pentru butoanele de navigare și unghi
     document.getElementById('prev').addEventListener('click', () => navigateImageSet(-1));
     document.getElementById('next').addEventListener('click', () => navigateImageSet(1));
     document.querySelectorAll('.angle-selector button').forEach(button => {
-        button.addEventListener('click', () => changeAngle(button.getAttribute('data-angle')));
+    button.addEventListener('click', () => changeAngle(button.getAttribute('data-angle')));
     });
 
-    // Adaugă event listener pentru închiderea modalului
-    document.querySelector('.close').addEventListener('click', () => {
-        document.getElementById('myModal').style.display = "none";
-        document.body.classList.remove('modal-open'); // Eliminăm clasa când închidem modalul
-    });
-
+    // Adaugă event listener pentru butonul de închidere
+document.querySelector('.close').addEventListener('click', function() {
+    closeModal();
+  });
+  
+  // Funcția pentru închiderea modalului
+  function closeModal() {
+    document.getElementById('myModal').style.display = "none";
+    document.body.classList.remove('modal-open');
+  }
+  
+  // Adaugă event listener pe overlay-ul modalului pentru a închide modalul la clic în afara conținutului
+  document.querySelector('.modal').addEventListener('click', function(event) {
+    // Verifică dacă clicul a fost în afara conținutului modalului
+    if (event.target === this) {
+      closeModal();
+    }
+  });
+  
+  // Previne închiderea modalului când se face clic pe conținutul său
+  document.querySelector('.modal-content').addEventListener('click', function(event) {
+    event.stopPropagation(); // Previne propagarea evenimentului la părinte
+  });
+  
     // Apelul funcției de încărcare și afișare a pozelor de progres
     getAndDisplayProgressPictures();
 });
-
-
-
-
 
 
 async function deleteDataByDate(dateToDelete, collectionPath) {
@@ -538,10 +700,14 @@ async function deleteDataByDate(dateToDelete, collectionPath) {
 
 document.addEventListener('DOMContentLoaded', function() {
     const toggleButton = document.getElementById('toggleFormButton');
-    const formContainer = document.querySelector('.form-container'); // Presupunând că formularul este într-un container cu această clasă
+    const formContainer = document.querySelector('.data-container'); // Presupunând că formularul este într-un container cu această clasă
 
     toggleButton.addEventListener('click', function() {
-        formContainer.classList.toggle('hidden-form');
+        if (formContainer.style.display === 'none') {
+            formContainer.style.display = 'block'; // Schimbă display-ul la "block" pentru a afișa formularul
+        } else {
+            formContainer.style.display = 'none'; // Schimbă display-ul la "none" pentru a ascunde formularul
+        }
     });
 });
 
@@ -550,6 +716,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const container = document.querySelector('.adm-articole'); // Asigură-te că acesta selectează containerul corect
 
     toggleButton.addEventListener('click', function() {
-        container.classList.toggle('hidden-form'); // Utilizează clasa 'hidden-form' pentru a controla vizibilitatea
+        if (container.style.display === 'none') {
+            container.style.display = 'block'; // Schimbă display-ul la "block" pentru a afișa conținutul
+        } else {
+            container.style.display = 'none'; // Schimbă display-ul la "none" pentru a ascunde conținutul
+        }
     });
 });

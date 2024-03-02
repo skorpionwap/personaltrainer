@@ -90,37 +90,37 @@
     <!-- ***** Main Banner Area End ***** -->
 <!-- ***** Features Item Start ***** -->
 <section id="profile-info">
-    <button id="toggleFormButton">Ascunde/Arată Formularul</button>
-    <div class="container">
+    <button id="toggleFormButton">Adăugare date personale și poze de progres</button>
+    <div class="data-container">
         <h2>Date Personale</h2>
-        <div class="form-container">
-            <form id="personal-data-form" class="form-modal">
-                <div class="form-group">
-                    <input type="text" id="height" class="form-control" placeholder="Înălțime (cm)" required>
-                </div>
-                <div class="form-group">
-                    <input type="text" id="weight" class="form-control" placeholder="Greutate (kg)" required>
-                </div>
-                <div class="form-group">
-                    <input type="text" id="waist" class="form-control" placeholder="Talie (cm)" required>
-                </div>
-                <div class="form-group">
-                    <input type="text" id="bust" class="form-control" placeholder="Bust (cm)" required>
-                </div>
-                <div class="form-group">
-                    <input type="text" id="arms" class="form-control" placeholder="Brațe (cm)" required>
-                </div>
-                <div class="form-group">
-                    <input type="text" id="thighs" class="form-control" placeholder="Coapse (cm)" required>
-                </div>
-                <div class="form-group">
-                    <button type="submit" class="btn btn-primary">Salvează Datele Personale</button>
-                </div>
-            </form>
-            <div class="form-group">
-                <input type="date" id="deletePersonalDataDate" class="form-control">
-                <button id="deletePersonalDataButton" class="btn btn-secondary">Șterge Datele Personale</button>
-            </div>
+        
+        <div class="measurements-diagram-form">
+            <img src="./assets/images/BodyO.png" alt="Body Silhouette">
+            <!-- Asociem fiecare măsurătoare cu un câmp de intrare -->
+            <input type="text" id="shoulders-input" class="measurement-input" placeholder="Umeri (cm)" />
+            <input type="text" id="chest-input" class="measurement-input" placeholder="Piept (cm)" />
+            <input type="text" id="waist-input" class="measurement-input" placeholder="Talie (cm)" />
+            <input type="text" id="hips-input" class="measurement-input" placeholder="Șolduri (cm)" />
+            <input type="text" id="l-bicep-input" class="measurement-input" placeholder="Biceps St. (cm)" />
+            <input type="text" id="r-bicep-input" class="measurement-input" placeholder="Biceps Dr. (cm)" />
+            <input type="text" id="l-forearm-input" class="measurement-input" placeholder="Antebraț St. (cm)" />
+            <input type="text" id="r-forearm-input" class="measurement-input" placeholder="Antebraț Dr. (cm)" />
+            <input type="text" id="l-thigh-input" class="measurement-input" placeholder="Coapsă St. (cm)" />
+            <input type="text" id="r-thigh-input" class="measurement-input" placeholder="Coapsă Dr. (cm)" />
+            <input type="text" id="l-calf-input" class="measurement-input" placeholder="Gamba St. (cm)" />
+            <input type="text" id="r-calf-input" class="measurement-input" placeholder="Gamba Dr. (cm)" />
+            <input type="text" id="weight" class="measurement-input" placeholder="Greutate" />
+            <input type="text" id="fat" class="measurement-input" placeholder="Procent grăsime" />
+            <input type="text" id="height" class="measurement-input" placeholder="Înălțime" />
+            <input type="date" id="date-input" class="measurement-input date-input" placeholder="Data"/>
+            <button id="save-measurements" class="btn btn-primary save-measurements-button">Salvează Măsurătorile</button>
+          </div>
+          <br>
+          <br>
+          <br>
+          <br>
+         
+            <!-- Formularul pentru încărcarea pozelor de progres -->
             <h2>Poze de progres</h2>
             <form id="progress-pictures-form" class="form-modal">
                 <div class="form-group">
@@ -133,19 +133,87 @@
                     <input type="file" id="back-image" accept="image/*" class="form-control-file">Fotografie din spate
                 </div>
                 <div class="form-group">
+                    <label for="progress-date-input">Data:</label>
+                    <input type="date" id="progress-date-input" class="form-control" name="date">
+                </div>
+                <div class="form-group">
                     <button type="submit" class="btn btn-primary">Încarcă Pozele de Progres</button>
                 </div>
             </form>
-            <div class="form-group">
-                <input type="date" id="deleteProgressPicturesDate" class="form-control">
-                <button id="deleteProgressPicturesButton" class="btn btn-secondary">Șterge Pozele de Progres</button>
-            </div>
+            
+        
+    </div>
+    <br>
+    <div class="date-selector">
+        <label for="measurement-date">Selectează data:</label>
+        <input type="date" id="measurement-date" name="measurement-date">
+    </div>
+    <div class="measurements-diagram">
+        <!-- Aici vei include imaginea siluetei corpului -->
+        <img src="./assets/images/BodyO.png" alt="Body Silhouette">
+        <span class="measurement-label shoulders">Umeri: N/A</span>
+        <span class="measurement-label chest">Piept: N/A</span>
+        <span class="measurement-label waist">Talie: N/A</span>
+        <span class="measurement-label hips">Solduri: N/A</span>
+        <span class="measurement-label l-bicep">L Biceps: N/A</span>
+        <span class="measurement-label r-bicep">R Biceps: N/A</span>
+        <span class="measurement-label l-forearm">L Antebraț: N/A</span>
+        <span class="measurement-label r-forearm">R Antebraț: N/A</span>
+        <span class="measurement-label l-thigh">L Coapsă: N/A</span>
+        <span class="measurement-label r-thigh">R Coapsă: N/A</span>
+        <span class="measurement-label l-calf">L Gambă: N/A</span>
+        <span class="measurement-label r-calf">R Gambă: N/A</span>
+        <span class="measurement-label weight">Greutate: N/A</span>
+        <span class="measurement-label fat">Procent grăsime: N/A</span>
+        <span class="measurement-label height">Înălțime: N/A</span>
+    </div>
+    
+      
+<br>
+<br>
+
+    <!-- Chart pentru progresul măsurătorilor -->
+    
+    <div class="chart-wrapper">
+        <h3>Progres Măsurători Client</h3>
+        <canvas id="chart_container"></canvas>
+        <div class="select-container">
+          <select id="measurement-select">
+            <option value="weight">Greutate</option>
+        <option value="shoulders">Umeri</option>
+        <option value="chest">Piept</option>
+        <option value="waist">Talie</option>
+        <option value="hips">Șolduri</option>
+        <option value="l-bicep">Biceps Stâng</option>
+        <option value="r-bicep">Biceps Drept</option>
+        <option value="l-forearm">Antebraț Stâng</option>
+        <option value="r-forearm">Antebraț Drept</option>
+        <option value="l-thigh">Coapsă Stângă</option>
+        <option value="r-thigh">Coapsă Dreaptă</option>
+        <option value="l-calf">Gambă Stângă</option>
+        <option value="r-calf">Gambă Dreaptă</option>
+        <option value="fat">Procent Grăsime</option>
+          </select>
         </div>
+      </div>
+    
+
+    <h3>Ștergere Date Personale și Poze de Progres</h3>
+    <p>Șterge datele personale și pozele de progres pentru o anumită dată:</p>
+
+      <div class="form-group">
+        <input type="date" id="deletePersonalDataDate" class="form-control">
+        <button id="deletePersonalDataButton" class="btn btn-secondary">Șterge Măsurătorile</button>
+    </div>
+    <div class="form-group">
+        <input type="date" id="deleteProgressPicturesDate" class="form-control">
+        <button id="deleteProgressPicturesButton" class="btn btn-secondary">Șterge Pozele de Progres</button>
     </div>
 
+<br>
+<br>
  <!-- Date Personale Client -->
-
-<div class="table-scroll">
+<!-- <div class="table-scroll">
  <div class="container">
     <table id="profileDataContainer" class="table">
         <thead>
@@ -153,18 +221,29 @@
                 <th>Data</th>
                 <th>Înălțime</th>
                 <th>Greutate</th>
+                <th>Procent Grăsime</th>
+                <th>Umeri</th>
+                <th>Piept</th>
+                <th>Biceps St.</th>
+                <th>Biceps Dr.</th>
+                <th>Antebraț St.</th>
+                <th>Antebraț Dr.</th>
                 <th>Talie</th>
-                <th>Bust</th>
-                <th>Brațe</th>
-                <th>Coapse</th>
+                <th>Șolduri</th>
+                <th>Coapsă St.</th>
+                <th>Coapsă Dr.</th>               
+                <th>Gamba St.</th>
+                <th>Gamba Dr.</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody> -->
             <!-- Randuri adaugate dinamic -->
-        </tbody>
+        <!-- </tbody>
     </table>
 </div>
 </div>
+ -->
+
 <!--  Pozele de Progres Client -->
 <div class="table-scroll">
 <div id="progressPicturesContainer" class="container">
@@ -196,16 +275,13 @@
         </div>
     </div>
 </div>
-
-
-
   
 </section>
 
    <!-- My Account if user is trainer -->
    <!-- Articles section -->
    <section id="articole">
-    <button id="toggleArticlesFormButton" class="toggle-button">Ascunde/Arată Sectiunea de gestionare Articole</button>
+    <button id="toggleArticlesFormButton" class="toggle-button">Gestionare Articole</button>
     <div class="adm-articole">
     <div class="container">
         <h2>Articole</h2>
@@ -299,6 +375,8 @@
 <script type="module" src="assets/js/articole.js"></script>
 <script type="module" src="assets/js/contact.js"></script>
 <script type="module" src="assets/js/deleteprofile.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="module" src="assets/js/chart-data.js"></script>
 
 
 

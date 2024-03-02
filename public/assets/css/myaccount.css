@@ -91,23 +91,6 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Media queries pentru design responsiv */
-@media (max-width: 768px) {
-    .form-container {
-        width: 100%;
-        padding: 15px;
-    }
-
-    #profileDataContainer thead,
-    #profileDataContainer th,
-    #profileDataContainer td {
-        display: block;
-    }
-
-    #progressPicturesContainer img {
-        max-width: 100%;
-    }
-}
 
 /* Stiluri pentru containerul de date ale clientului */
 #clientsDataContainer .client-data {
@@ -246,17 +229,20 @@ body {
 /* The Close Button */
 .close {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    color: #aaa;
-    font-size: 28px;
-    font-weight: bold;
+    top: 20px; /* distanța de la marginea superioară a modalului */
+    right: 20px; /* distanța de la marginea dreaptă a modalului */
+    color: #131010; /* culoarea inițială a butonului de închidere */
+    font-size: 28px; /* mărimea fontului pentru simbolul de închidere */
+    font-weight: bold; /* grosimea fontului pentru simbolul de închidere */
+    z-index: 10; /* asigură că butonul va fi deasupra altor elemente */
 }
+
 .close:hover,
 .close:focus {
-    color: #bbb;
-    text-decoration: none;
-    cursor: pointer;
+    color: #bbb; /* culoarea butonului la hover sau focus */
+    text-decoration: none; /* elimină sublinierea textului la hover sau focus */
+    cursor: pointer; /* schimbă cursorul pentru a indica o acțiune de clic */
+    outline: none; /* elimină conturul care ar putea apărea la focus */
 }
 
 /* Stiluri pentru butoanele de navigare și selectorul de unghiuri în modal */
@@ -402,7 +388,6 @@ body.modal-open .angle-selector button {
 }
 }
 
-}
 
 /* Media query pentru modul landscape pe dispozitive mobile */
 @media only screen and (orientation: landscape) {
@@ -507,3 +492,235 @@ body.modal-open .angle-selector button {
 #toggleArticlesFormButton:hover {
     background-color: #0056b3;
 }
+
+.data-container {
+    display: none; /* Ascunde conținutul implicit */
+}
+.adm-articole {
+    display: none;
+}
+
+.measurements-diagram, .measurements-diagram-form {
+    font-family: Arial, sans-serif;
+    position: relative;
+    max-width: 300px;
+    margin: 20px auto;
+}
+
+.measurements-diagram img, .measurements-diagram-form img {
+    width: 100%;
+    border: none;
+    box-shadow: none;
+}
+
+.measurement-label, .measurement-input {
+    position: absolute;
+    font-size: 14px;
+    color: #333;
+    width: 115px; /* Ajustează în funcție de spațiul disponibil */
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    text-align: center;
+    background-color: #fff;
+}
+  
+  /* poziționare a inputurilor */
+  #shoulders-input { top: 1%; left: -17%; }
+  #chest-input { top: 16%; left: -17%; }
+  #waist-input { top: 65%; left: -17%; }
+  #hips-input { top: 65%; right: -17%; }
+  #l-bicep-input { top: 29%; left: -17%; }
+  #r-bicep-input { top: 29%; right: -17%; }
+  #l-forearm-input { top: 47%; left: -17%; }
+  #r-forearm-input { top: 47%; right: -17%; }
+  #l-thigh-input { top: 80%; left: -17%; }
+  #r-thigh-input { top: 80%; right: -17%; }
+  #l-calf-input { top: 95%; left: -17%; }
+  #r-calf-input { top: 95%; right: -17%; }
+  #weight { top: 2%; right: -17%; }
+  #fat { top: 10%; right: -17%; }
+  #height { top: 18%; right: -17%; }
+/* Stil pentru input-ul de data */
+.date-input { 
+    position: absolute; 
+    top: 1%; 
+    left: 50%; 
+    transform: translate(-50%, -50%); 
+    z-index: 10; 
+}
+
+/* Stil pentru butonul de salvare a măsurătorilor */
+.save-measurements-button { 
+    position: absolute; 
+    bottom: -20%; /* Ajustat pentru a evita suprapunerea cu alte elemente */
+    left: 50%; 
+    transform: translateX(-50%); 
+    z-index: 10; 
+}
+
+.measurements-diagram {
+    font-family: Arial, sans-serif;
+    position: relative;
+    max-width: 300px;
+    margin: 20px auto;
+}
+
+.measurements-diagram img {
+    width: 100%;
+    border: none;
+    box-shadow: none;
+}
+
+.measurement-label {
+    position: absolute;
+    font-size: 14px;
+    color: #fff; /* Schimbată culoarea textului în alb */
+    background-color: #93beec; /* Adăugată culoare de fundal albastră */
+    border-radius: 10px; /* Adăugată rotunjire a colțurilor */
+    padding: 2px 8px; /* Adăugat padding pentru a lărgi etichetele */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Adăugată umbră pentru efect de elevație */
+    white-space: nowrap; /* Asigură că textul rămâne pe o singură linie */
+}
+  .shoulders { top: -1%; left: -12%; }
+  .chest { top: 13%; left: -10%; }
+  .waist { top: 68%; left: -10%; }
+  .hips { top: 68%; right: -10%; }
+  .l-bicep { top: 29%; left: -10%; }
+  .r-bicep { top: 29%; right: -10%; }
+  .l-forearm { top: 47%; left: -10%; }
+  .r-forearm { top: 47%; right: -10%; }
+  .l-thigh { top: 84%; left: -10%; }
+  .r-thigh { top: 84%; right: -10%; }
+  .l-calf { top: 100%; left: -10%; }
+  .r-calf { top: 100%; right: -10%; }
+  .weight { top: 2%; right: -10%; }
+  .fat { top: 10%; right: -10%; }
+  .height { top: 18%; right: -10%; }
+  
+  .date-selector {
+    margin: 0 auto; /* Centrare orizontală */
+    width: fit-content; /* Asigurați-vă că lățimea div-ului se potrivește cu conținutul său */
+}
+
+
+ @media screen and (max-width: 768px) {
+        .measurement-label {
+          font-size: 12px; /* o dimensiune mai mică pentru ecranele mai mici */
+        }
+    }
+     
+    .chart-wrapper h3 {
+        text-align: center; /* Centrează textul */
+        width: 100%; /* Asigură-te că elementul ocupă întreaga lățime */
+        margin: 0 auto; /* Adaugă margini auto pentru a centra elementul dacă are o lățime specifică */
+    }
+    
+    #chart_container {
+        width: 90%;
+        max-width: 600px;
+        max-height: 200px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        display: block; /* Asigură-te că elementul canvas este bloc */
+        margin: 20px auto; /* Aceasta va centra canvas-ul în container-ul său dacă lățimea este definită */
+      }
+      
+      
+      .select-container {
+        width: 100%; /* sau o lățime specifică, dacă dorești */
+        max-width: 200px; /* Limitează lățimea select-ului pentru a nu deveni prea larg */
+        margin: 20px auto; /* Margini pentru partea de sus și jos, și auto pentru stânga și dreapta pentru a centra */
+        position: relative; /* Poziționare relativă pentru pseudo-elemente */
+        display: flex; /* Flexbox pentru alinierea copiilor */
+        justify-content: center; /* Centrarea orizontală a copiilor flex */
+      }
+      
+      .select-container select {
+        width: 100%; /* select va umple containerul părinte */
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: white;
+        cursor: pointer;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        font-size: 1em;
+      }
+      
+      /* Stil pentru săgeată custom pentru dropdown, folosind pseudo-elementul ::after */
+      .select-container::after {
+        content: '▼';
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        pointer-events: none;
+        color: #333;
+        font-size: 0.8em;
+      }
+      
+      @media (max-width: 768px) {
+        .select-container {
+          max-width: 90%; /* Lățimea maximă mai mare pentru mobile */
+          margin: 20px auto; /* Încă centrat */
+        }
+      }
+
+      .client-data h3 {
+        text-align: center;
+        width: 100%;
+        margin: 0 auto;
+    }
+    
+    .chart-container {
+        width: 90%;
+        max-width: 600px;
+        max-height: 200px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        display: block;
+        margin: 20px auto;
+    }
+    
+    .select-container {
+        width: 100%;
+        max-width: 200px;
+        margin: 20px auto;
+        position: relative;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .select-container select {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: white;
+        cursor: pointer;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        font-size: 1em;
+    }
+    
+    .select-container::after {
+        content: '▼';
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        pointer-events: none;
+        color: #333;
+        font-size: 0.8em;
+    }
+    
+    @media (max-width: 768px) {
+        .select-container {
+            max-width: 90%;
+            margin: 20px auto;
+        }
+    }
+    
