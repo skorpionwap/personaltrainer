@@ -359,11 +359,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('side-image').value = '';
             document.getElementById('back-image').value = '';
             document.getElementById('progress-date-input').value = '';
-
-            // Update the labels to show the selected file names
-           updateSelectedImage('Imaginea din față');
-           updateSelectedImage('Imaginea laterală');
-           updateSelectedImage('Imaginea din spate');
         } catch (error) {
             console.error('Error uploading progress pictures or saving metadata:', error);
             alert('Eroare la încărcarea pozelor de progres sau la salvarea metadatelor.');
