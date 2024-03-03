@@ -54,23 +54,39 @@ async function getUserRole(userId) {
     }
 }
 
-function updateStatusMessage(message, isSuccess) {
-    const messageElement = document.getElementById('statusMessage');
-    messageElement.textContent = message;
-    
-    // Setează clasa în funcție de tipul de mesaj
-    if (isSuccess) {
-      messageElement.className = 'status-message success';
-    } else {
-      messageElement.className = 'status-message error';
+function updateStatusMessage(message, isSuccess, messageType) {
+    let elementId = '';
+
+    switch (messageType) {
+        case 'measurements':
+            elementId = 'measurementsStatusMessage';
+            break;
+        case 'progressPictures':
+            elementId = 'progressPicturesStatusMessage';
+            break;
+        case 'deletion':
+            elementId = 'deletionStatusMessage';
+            break;
+        default:
+            console.error('Invalid message type');
+            return;
     }
-  
-    // Afișează mesajul și îl ascunde după un timp
-    messageElement.style.display = 'block';
-    setTimeout(() => {
-      messageElement.style.display = 'none';
-    }, 5000);
-  }
+
+    var statusMessage = document.getElementById(elementId);
+
+    if (statusMessage) {
+        statusMessage.innerText = message;
+        if (isSuccess) {
+            statusMessage.classList.add('success');
+            statusMessage.classList.remove('error');
+        } else {
+            statusMessage.classList.add('error');
+            statusMessage.classList.remove('success');
+        }
+    }
+}
+
+
   
 // Obiect pentru a stoca instanțele graficelor pentru fiecare client
 let clientCharts = {};
@@ -293,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 await setDoc(doc(firestore, `users/${auth.currentUser.uid}/personalCollection/personalData/records/${dateInput || new Date().toISOString()}`), personalData);
                 console.log('Personal data successfully saved.');
-                updateStatusMessage('Datele personale au fost salvate cu succes.', true);
+                updateStatusMessage('Datele personale au fost salvate cu succes.', true, 'measurements');
     
                 // Resetează formularul de date personale după salvare
                 document.getElementById('date-input').value = '';
@@ -314,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('fat').value = '';
             } catch (error) {
                 console.error('Error saving personal data:', error);
-                updateStatusMessage('Eroare la salvarea datelor personale.', false);
+                updateStatusMessage('Eroare la salvarea datelor personale.', false, 'measurements');
             }
         }
     });
@@ -370,7 +386,7 @@ document.addEventListener('DOMContentLoaded', function() {
             await setDoc(firestoreRef, progressData, { merge: true });
     
             console.log("Progress pictures successfully uploaded and metadata saved.");
-            updateStatusMessage('Pozele de progres au fost încărcate cu succes și metadatele salvate în Firestore.', true);
+            updateStatusMessage('Pozele de progres au fost încărcate cu succes și metadatele salvate în Firestore.', true, 'progressPictures');
     
             // Resetează formularul
             document.getElementById('front-image').value = '';
@@ -384,7 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
            updateSelectedImage('Imaginea din spate');
         } catch (error) {
             console.error('Error uploading progress pictures or saving metadata:', error);
-            updateStatusMessage('Eroare la încărcarea pozelor de progres sau la salvarea metadatelor.', false);
+            updateStatusMessage('Eroare la încărcarea pozelor de progres sau la salvarea metadatelor.', false, 'progressPictures');
         }
     });
 });
@@ -453,21 +469,21 @@ async function displayMeasurementsForSelectedDate(selectedDate) {
         const data = querySnapshot.docs[0].data(); // Presupunem că există o singură înregistrare pe zi
 
         // Actualizați etichetele cu datele respective
-    document.querySelector('.measurement-label.fat').textContent = `Fat: ${data.bodyFat || 'N/A'}%`;
-    document.querySelector('.measurement-label.waist').textContent = `Waist: ${data.waist || 'N/A'} cm`;
-    document.querySelector('.measurement-label.hips').textContent = `Hips: ${data.hips || 'N/A'} cm`;
-    document.querySelector('.measurement-label.l-bicep').textContent = `L Bicep: ${data.lBicep || 'N/A'} cm`;
-    document.querySelector('.measurement-label.r-bicep').textContent = `R Bicep: ${data.rBicep || 'N/A'} cm`;
-    document.querySelector('.measurement-label.l-forearm').textContent = `L Forearm: ${data.lForearm || 'N/A'} cm`;
-    document.querySelector('.measurement-label.r-forearm').textContent = `R Forearm: ${data.rForearm || 'N/A'} cm`;
-    document.querySelector('.measurement-label.l-thigh').textContent = `L Thigh: ${data.lThigh || 'N/A'} cm`;
-    document.querySelector('.measurement-label.r-thigh').textContent = `R Thigh: ${data.rThigh || 'N/A'} cm`;
-    document.querySelector('.measurement-label.l-calf').textContent = `L Calf: ${data.lCalf || 'N/A'} cm`;
-    document.querySelector('.measurement-label.r-calf').textContent = `R Calf: ${data.rCalf || 'N/A'} cm`;
-    document.querySelector('.measurement-label.shoulders').textContent = `Shoulders: ${data.shoulders || 'N/A'} cm`;
-    document.querySelector('.measurement-label.chest').textContent = `Chest: ${data.chest || 'N/A'} cm`;
-    document.querySelector('.measurement-label.weight').textContent = `Weight: ${data.weight || 'N/A'} kg`;
-    document.querySelector('.measurement-label.height').textContent = `Height: ${data.height || 'N/A'} cm`;
+    document.querySelector('.measurement-label.fat').textContent = `Grăsime corp: ${data.bodyFat || 'N/A'}%`;
+    document.querySelector('.measurement-label.waist').textContent = `Talie: ${data.waist || 'N/A'} cm`;
+    document.querySelector('.measurement-label.hips').textContent = `Solduri: ${data.hips || 'N/A'} cm`;
+    document.querySelector('.measurement-label.l-bicep').textContent = `L Biceps: ${data.lBicep || 'N/A'} cm`;
+    document.querySelector('.measurement-label.r-bicep').textContent = `R Biceps: ${data.rBicep || 'N/A'} cm`;
+    document.querySelector('.measurement-label.l-forearm').textContent = `L Antebraț: ${data.lForearm || 'N/A'} cm`;
+    document.querySelector('.measurement-label.r-forearm').textContent = `R Antebraț: ${data.rForearm || 'N/A'} cm`;
+    document.querySelector('.measurement-label.l-thigh').textContent = `L Coapsă: ${data.lThigh || 'N/A'} cm`;
+    document.querySelector('.measurement-label.r-thigh').textContent = `R Coapsă: ${data.rThigh || 'N/A'} cm`;
+    document.querySelector('.measurement-label.l-calf').textContent = `L Gambă: ${data.lCalf || 'N/A'} cm`;
+    document.querySelector('.measurement-label.r-calf').textContent = `R Gambă: ${data.rCalf || 'N/A'} cm`;
+    document.querySelector('.measurement-label.shoulders').textContent = `Umeri: ${data.shoulders || 'N/A'} cm`;
+    document.querySelector('.measurement-label.chest').textContent = `Piept: ${data.bust || 'N/A'} cm`;
+    document.querySelector('.measurement-label.weight').textContent = `Greutate: ${data.weight || 'N/A'} kg`;
+    document.querySelector('.measurement-label.height').textContent = `Înălțime: ${data.height || 'N/A'} cm`;
 
     } else {
         alert('Nu există măsurători pentru data selectată.');
@@ -707,16 +723,12 @@ async function deleteDataByDate(dateToDelete, collectionPath) {
 
     try {
         await Promise.all(deletePromises);
-        document.getElementById('deletionStatusMessage').style.display = 'block';
-        document.getElementById('deletionStatusMessage').innerHTML = `Datele din ${dateToDelete} au fost șterse cu succes.`;
-        document.getElementById('deletionStatusMessage').className = 'success-message'; 
+        updateStatusMessage(`Datele din ${dateToDelete} au fost șterse cu succes.`, true, 'deletion');
     } catch (error) {
         console.error(`Eroare la ștergerea datelor din ${dateToDelete}:`, error);
-        document.getElementById('deletionStatusMessage').style.display = 'block';
-        document.getElementById('deletionStatusMessage').innerHTML = `Eroare la ștergerea datelor din ${dateToDelete}.`;
-        document.getElementById('deletionStatusMessage').className = 'error-message';
+        updateStatusMessage(`Eroare la ștergerea datelor din ${dateToDelete}.`, false, 'deletion');
     }
-}
+}    
 
 document.addEventListener('DOMContentLoaded', function() {
     const toggleFormButton = document.getElementById('toggleFormButton');

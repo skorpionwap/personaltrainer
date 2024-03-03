@@ -574,29 +574,29 @@ body.modal-open .angle-selector button {
 
 .measurement-label {
     position: absolute;
-    font-size: 14px;
+    font-size: 13px;
     color: #fff; /* Schimbată culoarea textului în alb */
     background-color: #93beec; /* Adăugată culoare de fundal albastră */
     border-radius: 10px; /* Adăugată rotunjire a colțurilor */
-    padding: 2px 8px; /* Adăugat padding pentru a lărgi etichetele */
+    padding: 2px 10px; /* Adăugat padding pentru a lărgi etichetele */
     box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Adăugată umbră pentru efect de elevație */
     white-space: nowrap; /* Asigură că textul rămâne pe o singură linie */
 }
-  .shoulders { top: -1%; left: -12%; }
-  .chest { top: 13%; left: -10%; }
-  .waist { top: 68%; left: -10%; }
-  .hips { top: 68%; right: -10%; }
-  .l-bicep { top: 29%; left: -10%; }
-  .r-bicep { top: 29%; right: -10%; }
-  .l-forearm { top: 47%; left: -10%; }
-  .r-forearm { top: 47%; right: -10%; }
-  .l-thigh { top: 84%; left: -10%; }
-  .r-thigh { top: 84%; right: -10%; }
-  .l-calf { top: 100%; left: -10%; }
-  .r-calf { top: 100%; right: -10%; }
-  .weight { top: 2%; right: -10%; }
-  .fat { top: 10%; right: -10%; }
-  .height { top: 18%; right: -10%; }
+  .shoulders { top: -1%; left: -17%; }
+  .chest { top: 13%; left: -17%; }
+  .waist { top: 68%; left: -17%; }
+  .hips { top: 68%; right: -17%; }
+  .l-bicep { top: 29%; left: -17%; }
+  .r-bicep { top: 29%; right: -17%; }
+  .l-forearm { top: 47%; left: -17%; }
+  .r-forearm { top: 47%; right: -17%; }
+  .l-thigh { top: 84%; left: -17%; }
+  .r-thigh { top: 84%; right: -17%; }
+  .l-calf { top: 100%; left: -17%; }
+  .r-calf { top: 100%; right: -17%; }
+  .weight { top: 2%; right: -17%; }
+  .fat { top: 10%; right: -17%; }
+  .height { top: 18%; right: -17%; }
   
   .date-selector {
     margin: 0 auto; /* Centrare orizontală */
