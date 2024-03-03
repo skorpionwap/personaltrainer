@@ -53,41 +53,7 @@ async function getUserRole(userId) {
         return null;
     }
 }
-
-function updateStatusMessage(message, isSuccess, messageType) {
-    let elementId = '';
-
-    switch (messageType) {
-        case 'measurements':
-            elementId = 'measurementsStatusMessage';
-            break;
-        case 'progressPictures':
-            elementId = 'progressPicturesStatusMessage';
-            break;
-        case 'deletion':
-            elementId = 'deletionStatusMessage';
-            break;
-        default:
-            console.error('Invalid message type');
-            return;
-    }
-
-    var statusMessage = document.getElementById(elementId);
-
-    if (statusMessage) {
-        statusMessage.innerText = message;
-        if (isSuccess) {
-            statusMessage.classList.add('success');
-            statusMessage.classList.remove('error');
-        } else {
-            statusMessage.classList.add('error');
-            statusMessage.classList.remove('success');
-        }
-    }
-}
-
-
-  
+ 
 // Obiect pentru a stoca instanțele graficelor pentru fiecare client
 let clientCharts = {};
 
@@ -309,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 await setDoc(doc(firestore, `users/${auth.currentUser.uid}/personalCollection/personalData/records/${dateInput || new Date().toISOString()}`), personalData);
                 console.log('Personal data successfully saved.');
-                updateStatusMessage('Datele personale au fost salvate cu succes.', true, 'measurements');
+                alert('Datele personale au fost salvate cu succes.');
     
                 // Resetează formularul de date personale după salvare
                 document.getElementById('date-input').value = '';
@@ -330,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('fat').value = '';
             } catch (error) {
                 console.error('Error saving personal data:', error);
-                updateStatusMessage('Eroare la salvarea datelor personale.', false, 'measurements');
+                alert('Eroare la salvarea datelor personale.');
             }
         }
     });
@@ -386,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
             await setDoc(firestoreRef, progressData, { merge: true });
     
             console.log("Progress pictures successfully uploaded and metadata saved.");
-            updateStatusMessage('Pozele de progres au fost încărcate cu succes și metadatele salvate în Firestore.', true, 'progressPictures');
+            alert('Pozele de progres au fost încărcate cu succes și metadatele salvate în Firestore.');
     
             // Resetează formularul
             document.getElementById('front-image').value = '';
@@ -400,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
            updateSelectedImage('Imaginea din spate');
         } catch (error) {
             console.error('Error uploading progress pictures or saving metadata:', error);
-            updateStatusMessage('Eroare la încărcarea pozelor de progres sau la salvarea metadatelor.', false, 'progressPictures');
+            alert('Eroare la încărcarea pozelor de progres sau la salvarea metadatelor.');
         }
     });
 });
@@ -723,10 +689,10 @@ async function deleteDataByDate(dateToDelete, collectionPath) {
 
     try {
         await Promise.all(deletePromises);
-        updateStatusMessage(`Datele din ${dateToDelete} au fost șterse cu succes.`, true, 'deletion');
+        alert(`Datele din ${dateToDelete} au fost șterse cu succes.`);
     } catch (error) {
         console.error(`Eroare la ștergerea datelor din ${dateToDelete}:`, error);
-        updateStatusMessage(`Eroare la ștergerea datelor din ${dateToDelete}.`, false, 'deletion');
+        alert(`Eroare la ștergerea datelor din ${dateToDelete}.`);
     }
 }    
 
