@@ -90,60 +90,7 @@
     <!-- ***** Main Banner Area End ***** -->
 <!-- ***** Features Item Start ***** -->
 <section id="profile-info">
-    <button id="toggleFormButton">Adăugare date personale și poze de progres</button>
-    <div class="data-container">
-        <h2>Date Personale</h2>
-        
-        <div class="measurements-diagram-form">
-            <img src="./assets/images/BodyO.png" alt="Body Silhouette">
-            <!-- Asociem fiecare măsurătoare cu un câmp de intrare -->
-            <input type="text" id="shoulders-input" class="measurement-input" placeholder="Umeri (cm)" />
-            <input type="text" id="chest-input" class="measurement-input" placeholder="Piept (cm)" />
-            <input type="text" id="waist-input" class="measurement-input" placeholder="Talie (cm)" />
-            <input type="text" id="hips-input" class="measurement-input" placeholder="Șolduri (cm)" />
-            <input type="text" id="l-bicep-input" class="measurement-input" placeholder="Biceps St. (cm)" />
-            <input type="text" id="r-bicep-input" class="measurement-input" placeholder="Biceps Dr. (cm)" />
-            <input type="text" id="l-forearm-input" class="measurement-input" placeholder="Antebraț St. (cm)" />
-            <input type="text" id="r-forearm-input" class="measurement-input" placeholder="Antebraț Dr. (cm)" />
-            <input type="text" id="l-thigh-input" class="measurement-input" placeholder="Coapsă St. (cm)" />
-            <input type="text" id="r-thigh-input" class="measurement-input" placeholder="Coapsă Dr. (cm)" />
-            <input type="text" id="l-calf-input" class="measurement-input" placeholder="Gamba St. (cm)" />
-            <input type="text" id="r-calf-input" class="measurement-input" placeholder="Gamba Dr. (cm)" />
-            <input type="text" id="weight" class="measurement-input" placeholder="Greutate" />
-            <input type="text" id="fat" class="measurement-input" placeholder="Procent grăsime" />
-            <input type="text" id="height" class="measurement-input" placeholder="Înălțime" />
-            <input type="date" id="date-input" class="measurement-input date-input" placeholder="Data"/>
-            <button id="save-measurements" class="btn btn-primary save-measurements-button">Salvează Măsurătorile</button>
-          </div>
-          <br>
-          <br>
-          <br>
-          <br>
-         
-            <!-- Formularul pentru încărcarea pozelor de progres -->
-            <h2>Poze de progres</h2>
-            <form id="progress-pictures-form" class="form-modal">
-                <div class="form-group">
-                    <input type="file" id="front-image" accept="image/*" class="form-control-file">Fotografie din față
-                </div>
-                <div class="form-group">
-                    <input type="file" id="side-image" accept="image/*" class="form-control-file">Fotografie din lateral
-                </div>
-                <div class="form-group">
-                    <input type="file" id="back-image" accept="image/*" class="form-control-file">Fotografie din spate
-                </div>
-                <div class="form-group">
-                    <label for="progress-date-input">Data:</label>
-                    <input type="date" id="progress-date-input" class="form-control" name="date">
-                </div>
-                <div class="form-group">
-                    <button type="submit" class="btn btn-primary">Încarcă Pozele de Progres</button>
-                </div>
-            </form>
-            
-        
-    </div>
-    <br>
+    
     <div class="date-selector">
         <label for="measurement-date">Selectează data:</label>
         <input type="date" id="measurement-date" name="measurement-date">
@@ -196,20 +143,6 @@
           </select>
         </div>
       </div>
-    
-
-    <h3>Ștergere Date Personale și Poze de Progres</h3>
-    <p>Șterge datele personale și pozele de progres pentru o anumită dată:</p>
-
-      <div class="form-group">
-        <input type="date" id="deletePersonalDataDate" class="form-control">
-        <button id="deletePersonalDataButton" class="btn btn-secondary">Șterge Măsurătorile</button>
-    </div>
-    <div class="form-group">
-        <input type="date" id="deleteProgressPicturesDate" class="form-control">
-        <button id="deleteProgressPicturesButton" class="btn btn-secondary">Șterge Pozele de Progres</button>
-    </div>
-
 <br>
 <br>
  <!-- Date Personale Client -->
@@ -276,6 +209,101 @@
     </div>
 </div>
   
+<br>
+<br>
+<section id="dataDeletionSection">
+        
+    <button id="toggleFormButton">Adăugare date personale sau poze de progres</button>
+    <div class="data-container">
+        <h2>Date Personale</h2>
+        
+        <div class="measurements-diagram-form">
+            <img src="./assets/images/BodyO.png" alt="Body Silhouette">
+            <!-- Asociem fiecare măsurătoare cu un câmp de intrare -->
+            <input type="text" id="shoulders-input" class="measurement-input" placeholder="Umeri (cm)" />
+            <input type="text" id="chest-input" class="measurement-input" placeholder="Piept (cm)" />
+            <input type="text" id="waist-input" class="measurement-input" placeholder="Talie (cm)" />
+            <input type="text" id="hips-input" class="measurement-input" placeholder="Șolduri (cm)" />
+            <input type="text" id="l-bicep-input" class="measurement-input" placeholder="Biceps St. (cm)" />
+            <input type="text" id="r-bicep-input" class="measurement-input" placeholder="Biceps Dr. (cm)" />
+            <input type="text" id="l-forearm-input" class="measurement-input" placeholder="Antebraț St. (cm)" />
+            <input type="text" id="r-forearm-input" class="measurement-input" placeholder="Antebraț Dr. (cm)" />
+            <input type="text" id="l-thigh-input" class="measurement-input" placeholder="Coapsă St. (cm)" />
+            <input type="text" id="r-thigh-input" class="measurement-input" placeholder="Coapsă Dr. (cm)" />
+            <input type="text" id="l-calf-input" class="measurement-input" placeholder="Gamba St. (cm)" />
+            <input type="text" id="r-calf-input" class="measurement-input" placeholder="Gamba Dr. (cm)" />
+            <input type="text" id="weight" class="measurement-input" placeholder="Greutate" />
+            <input type="text" id="fat" class="measurement-input" placeholder="Procent grăsime" />
+            <input type="text" id="height" class="measurement-input" placeholder="Înălțime" />
+            <input type="date" id="date-input" class="measurement-input date-input" placeholder="Data"/>
+            <button id="save-measurements" class="btn btn-primary save-measurements-button">Salvează Măsurătorile</button>
+            <div id="measurementsStatusMessage" class="status-message"></div>
+          </div>
+          <br>
+          <br>
+          <br>
+          <br>
+         
+    <!-- Formularul pentru încărcarea pozelor de progres -->
+    <div class="progress-pictures-form-container form-container">
+    <h2>Poze de progres</h2>
+    <p class="instructions">Adaugă pozele tale de progres. Asigură-te că imaginile sunt clare și bine luminate pentru o evaluare precisă.</p>
+    <form id="progress-pictures-form" class="form-modal">
+      <!-- Fotografie din față -->
+      <div class="form-group file-input-group">
+        <label for="front-image" class="file-label">Fotografie din față:</label>
+        <input type="file" id="front-image" accept="image/*" class="form-control-file">
+      </div>
+      <!-- Fotografie din lateral -->
+      <div class="form-group file-input-group">
+        <label for="side-image" class="file-label">Fotografie din lateral:</label>
+        <input type="file" id="side-image" accept="image/*" class="form-control-file">
+      </div>
+      <!-- Fotografie din spate -->
+      <div class="form-group file-input-group">
+        <label for="back-image" class="file-label">Fotografie din spate:</label>
+        <input type="file" id="back-image" accept="image/*" class="form-control-file">
+      </div>
+      <!-- Data -->
+      <div class="form-group progress-date-input">
+        <label for="progress-date-input" >Data:</label>
+        <input type="date" id="progress-date-input" class="form-control progress-date-input">
+      </div>
+      <!-- Buton de încărcare -->
+      <div class="form-group">
+        <button type="submit" class="btn btn-primary upload-button">Încarcă Pozele de Progres</button>
+      </div>
+    </form>
+    <div id="progressPicturesStatusMessage" class="status-message"></div>
+  </div>
+  <button id="closeButton">Închide</button>   
+    </div>
+
+    <br>
+    
+    <div class="form-container">
+        <h4>Administrare date personale</h4><br>
+        <div class="data-deletion-block">
+            <h4>Ștergere Măsurători Personale</h4>
+            <p>Selectează data pentru care dorești să ștergi măsurătorile personale și apasă pe butonul de mai jos.</p>
+            <div class="date-picker-container">
+                <input type="date" id="deletePersonalDataDate" class="form-control">
+                <button id="deletePersonalDataButton" class="btn btn-danger">Șterge Măsurătorile</button>
+            </div>
+        </div>
+
+        <div class="data-deletion-block">
+            <h4>Ștergere Poze de Progres</h4>
+            <p>Selectează data pentru care dorești să ștergi pozele de progres și apasă pe butonul de mai jos.</p>
+            <div class="date-picker-container">
+                <input type="date" id="deleteProgressPicturesDate" class="form-control">
+                <button id="deleteProgressPicturesButton" class="btn btn-warning">Șterge Pozele de Progres</button>
+            </div>
+        </div>
+
+        <div id="deletionStatusMessage" style="display: none;"></div>
+    </div>
+</section>
 </section>
 
    <!-- My Account if user is trainer -->
@@ -306,6 +334,7 @@
             <!-- Aici vor fi adăugate articolele dinamic -->
         </div>
     </div>
+    <button id="closeButton">Închide formularul</button>
     </div>
 
     <h2 style="text-align: center;">Date Clienti</h2><br>

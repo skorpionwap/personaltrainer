@@ -54,6 +54,24 @@ async function getUserRole(userId) {
     }
 }
 
+function updateStatusMessage(message, isSuccess) {
+    const messageElement = document.getElementById('statusMessage');
+    messageElement.textContent = message;
+    
+    // Setează clasa în funcție de tipul de mesaj
+    if (isSuccess) {
+      messageElement.className = 'status-message success';
+    } else {
+      messageElement.className = 'status-message error';
+    }
+  
+    // Afișează mesajul și îl ascunde după un timp
+    messageElement.style.display = 'block';
+    setTimeout(() => {
+      messageElement.style.display = 'none';
+    }, 5000);
+  }
+  
 // Obiect pentru a stoca instanțele graficelor pentru fiecare client
 let clientCharts = {};
 
@@ -213,18 +231,17 @@ async function displayProgressPictures(clientUID, containerId) {
 
         progressPicturesSnapshot.forEach((docSnapshot) => {
             const date = docSnapshot.id; // This is the user-selected date
-            const imageSets = docSnapshot.data();
+            const imageSet = docSnapshot.data();
 
-            Object.entries(imageSets).forEach(([setId, imageSet]) => {
-                tableHTML += `
-                    <tr>
-                        <td>${date}</td> <!-- Display the user-selected date -->
-                        <td><img src="${imageSet.frontImage || '#'}" alt="Față" style="width: 100px;"></td>
-                        <td><img src="${imageSet.backImage || '#'}" alt="Spate" style="width: 100px;"></td>
-                        <td><img src="${imageSet.sideImage || '#'}" alt="Lateral" style="width: 100px;"></td>
-                    </tr>
-                `;
-            });
+            // Here we directly access the images without iterating through sets
+            tableHTML += `
+                <tr>
+                    <td>${date}</td> <!-- Display the user-selected date -->
+                    <td><img src="${imageSet.frontImage || '#'}" alt="Față" style="width: 100px;"></td>
+                    <td><img src="${imageSet.backImage || '#'}" alt="Spate" style="width: 100px;"></td>
+                    <td><img src="${imageSet.sideImage || '#'}" alt="Lateral" style="width: 100px;"></td>
+                </tr>
+            `;
         });
 
         tableHTML += '</tbody></table>';
@@ -233,6 +250,7 @@ async function displayProgressPictures(clientUID, containerId) {
         progressContainer.innerHTML = 'Nicio poză de progres disponibilă';
     }
 }
+
 
 
 
@@ -275,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 await setDoc(doc(firestore, `users/${auth.currentUser.uid}/personalCollection/personalData/records/${dateInput || new Date().toISOString()}`), personalData);
                 console.log('Personal data successfully saved.');
-                alert('Datele personale au fost salvate cu succes.');
+                updateStatusMessage('Datele personale au fost salvate cu succes.', true);
     
                 // Resetează formularul de date personale după salvare
                 document.getElementById('date-input').value = '';
@@ -296,11 +314,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('fat').value = '';
             } catch (error) {
                 console.error('Error saving personal data:', error);
-                alert('Eroare la salvarea datelor personale.');
+                updateStatusMessage('Eroare la salvarea datelor personale.', false);
             }
         }
     });
-    
     
     
     document.getElementById('progress-pictures-form').addEventListener('submit', async function(event) {
@@ -319,9 +336,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Utilizăm data selectată pentru numele documentului
         const documentPath = `users/${auth.currentUser.uid}/progressPictures/${dateInput}`;
         const firestoreRef = doc(firestore, documentPath);
-    
-        const uniqueId = `progress_${new Date().getTime()}`;
-        const storagePath = `users/${auth.currentUser.uid}/progressPictures/${dateInput}/${uniqueId}`;
+
+        const storagePath = `users/${auth.currentUser.uid}/progressPictures/${dateInput}`;
     
         const imageRefs = [
             { ref: ref(storage, `${storagePath}/frontImage`), file: frontImage },
@@ -342,13 +358,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
             // Pregătim obiectul cu datele pozelor de progres
             const progressData = {
-                [uniqueId]: {
                     frontImage: frontImageUrl,
                     sideImage: sideImageUrl,
                     backImage: backImageUrl,
                     // Setăm uploadDate la data aleasă de utilizator în loc de serverTimestamp
                     uploadDate: dateInput ? new Date(dateInput) : new Date()
-                }
             };
             
     
@@ -356,16 +370,21 @@ document.addEventListener('DOMContentLoaded', function() {
             await setDoc(firestoreRef, progressData, { merge: true });
     
             console.log("Progress pictures successfully uploaded and metadata saved.");
-            alert('Pozele de progres au fost încărcate cu succes și metadatele salvate în Firestore.');
+            updateStatusMessage('Pozele de progres au fost încărcate cu succes și metadatele salvate în Firestore.', true);
     
             // Resetează formularul
             document.getElementById('front-image').value = '';
             document.getElementById('side-image').value = '';
             document.getElementById('back-image').value = '';
             document.getElementById('progress-date-input').value = '';
+
+            // Update the labels to show the selected file names
+           updateSelectedImage('Imaginea din față');
+           updateSelectedImage('Imaginea laterală');
+           updateSelectedImage('Imaginea din spate');
         } catch (error) {
             console.error('Error uploading progress pictures or saving metadata:', error);
-            alert('Eroare la încărcarea pozelor de progres sau la salvarea metadatelor.');
+            updateStatusMessage('Eroare la încărcarea pozelor de progres sau la salvarea metadatelor.', false);
         }
     });
 });
@@ -504,11 +523,11 @@ function updateModalImages() {
     document.body.classList.add('modal-open'); // Adăugăm clasa când deschidem modalul
 }
 
-function showModal(date, setId, imageKey) {
+function showModal(date, imageKey) {
     const captionText = document.getElementById('modalCaption'); // Asigurați-vă că acest ID există în HTML
 
-    const angle = imageKey.replace('Image', ''); // Asigurați-vă că imageKey este unul dintre 'frontImage', 'sideImage', 'backImage'
-    const currentImageSet = progressImageSets.find(set => set.setId === setId && set.date === date);
+    const angle = imageKey.replace('Image', ''); // Transformă 'frontImage' în 'front', de exemplu
+    const currentImageSet = progressImageSets.find(set => set.date === date);
     
     if (!currentImageSet) {
         console.error('Setul de imagini nu a fost găsit.');
@@ -517,10 +536,10 @@ function showModal(date, setId, imageKey) {
     
     // Actualizăm indexul curent și unghiul bazat pe setul găsit
     currentSetIndex = progressImageSets.indexOf(currentImageSet);
-    compareSetIndex = currentSetIndex === 0 ? 1 : 0; // Setăm un index diferit pentru comparație
-    currentAngle = angle;
+    compareSetIndex = currentSetIndex === 0 ? 1 : 0; // Setăm un index diferit pentru comparație, dacă este posibil
+    currentAngle = angle; // Setăm unghiul curent
 
-    updateModalImages();
+    updateModalImages(); // Actualizăm imaginile în modal
 }
 
 function navigateImageSet(direction) {
@@ -556,20 +575,25 @@ async function getAndDisplayProgressPictures() {
     const progressPicturesRef = collection(firestore, `users/${auth.currentUser.uid}/progressPictures`);
     const querySnapshot = await getDocs(progressPicturesRef);
 
-    progressImageSets = []; // Resetăm array-ul pentru a evita duplicarea
+    // Resetăm array-ul pentru a evita duplicarea
+    progressImageSets = [];
 
-    for (const doc of querySnapshot.docs) {
-        const date = doc.id;
-        const sets = doc.data(); // Obținem seturile de imagini pentru acea dată
-
-        for (const setId of Object.keys(sets)) {
-            const imageData = sets[setId];
-            if (imageData && imageData.uploadDate) {
-                const uploadDate = imageData.uploadDate.toDate(); // Convertim timestamp-ul Firestore într-o dată JavaScript
-                progressImageSets.push({ setId, date, ...imageData, uploadDate }); // Asigurați-vă că setId este atribuit aici
-            }
+    // Parcurgem fiecare document din colecția de poze de progres
+    querySnapshot.forEach((doc) => {
+        const imageData = doc.data();
+        // Asigurăm că avem datele imaginilor și data de încărcare
+        if (imageData && imageData.uploadDate) {
+            const uploadDate = imageData.uploadDate.toDate(); // Convertim timestamp-ul Firestore într-o dată JavaScript
+            // Adăugăm setul de imagini în array
+            progressImageSets.push({
+                date: doc.id,
+                frontImage: imageData.frontImage,
+                sideImage: imageData.sideImage,
+                backImage: imageData.backImage,
+                uploadDate
+            });
         }
-    }
+    });
 
     // Sortăm array-ul de seturi de imagini după uploadDate în ordine descrescătoare
     progressImageSets.sort((a, b) => b.uploadDate - a.uploadDate);
@@ -581,7 +605,7 @@ async function getAndDisplayProgressPictures() {
     });
 }
 
-function displayImageRow(imageSet, uploadDate, container) {
+function displayImageRow(imageSet, formattedDate, container) {
     const imageRow = document.createElement('div');
     imageRow.className = 'progress-image-row';
 
@@ -592,26 +616,17 @@ function displayImageRow(imageSet, uploadDate, container) {
         if (imageSet[imageKey]) {
             const img = document.createElement('img');
             img.src = imageSet[imageKey];
-            img.alt = `Imagine ${imageKey} din data ${uploadDate}`;
+            img.alt = `Imagine ${imageKey.replace('Image', '').toLowerCase()} din data ${formattedDate}`;
             img.className = 'progress-image';
-            
-            img.addEventListener('click', () => {
-                // Accesăm date și setId direct din obiectul imageSet
-                const date = imageSet.date;
-                const setId = imageSet.setId;
-                const imageKeyCorrected = imageKey; // Nu este nevoie să modificăm imageKey, funcția showModal va gestiona asta intern
-            
-                // Apelăm showModal cu parametrii corecți
-                showModal(date, setId, imageKeyCorrected);
-            });
-            
-            
-            
+
+            // Nu este nevoie să modificăm event listener-ul, funcția showModal va gestiona asta intern
+            img.addEventListener('click', () => showModal(imageSet.date, imageKey));
+
             imageContainer.appendChild(img);
 
             const dateLabel = document.createElement('div');
             dateLabel.className = 'date-label';
-            dateLabel.innerText = uploadDate;
+            dateLabel.innerText = formattedDate;
             imageContainer.appendChild(dateLabel);
         } else {
             imageContainer.textContent = `Nu există imagine pentru ${imageKey.replace('Image', '').toLowerCase()}`;
@@ -623,6 +638,7 @@ function displayImageRow(imageSet, uploadDate, container) {
 
     container.appendChild(imageRow);
 }
+
 
     // Event listener pentru DOMContentLoaded pentru a asigura că DOM-ul este încărcat
     document.addEventListener('DOMContentLoaded', function () {
@@ -691,35 +707,45 @@ async function deleteDataByDate(dateToDelete, collectionPath) {
 
     try {
         await Promise.all(deletePromises);
-        alert(`Datele din ${dateToDelete} au fost șterse cu succes.`);
+        document.getElementById('deletionStatusMessage').style.display = 'block';
+        document.getElementById('deletionStatusMessage').innerHTML = `Datele din ${dateToDelete} au fost șterse cu succes.`;
+        document.getElementById('deletionStatusMessage').className = 'success-message'; 
     } catch (error) {
         console.error(`Eroare la ștergerea datelor din ${dateToDelete}:`, error);
-        alert(`Eroare la ștergerea datelor din ${dateToDelete}.`);
+        document.getElementById('deletionStatusMessage').style.display = 'block';
+        document.getElementById('deletionStatusMessage').innerHTML = `Eroare la ștergerea datelor din ${dateToDelete}.`;
+        document.getElementById('deletionStatusMessage').className = 'error-message';
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    const toggleButton = document.getElementById('toggleFormButton');
+    const toggleFormButton = document.getElementById('toggleFormButton');
     const formContainer = document.querySelector('.data-container'); // Presupunând că formularul este într-un container cu această clasă
 
-    toggleButton.addEventListener('click', function() {
-        if (formContainer.style.display === 'none') {
-            formContainer.style.display = 'block'; // Schimbă display-ul la "block" pentru a afișa formularul
-        } else {
-            formContainer.style.display = 'none'; // Schimbă display-ul la "none" pentru a ascunde formularul
-        }
+    const toggleArticlesFormButton = document.getElementById('toggleArticlesFormButton');
+    const articlesContainer = document.querySelector('.adm-articole'); // Containerul pentru articole
+
+    const closeButton = document.getElementById('closeButton');
+
+    toggleFormButton.addEventListener('click', function() {
+        toggleSection(formContainer);
     });
+
+    toggleArticlesFormButton.addEventListener('click', function() {
+        toggleSection(articlesContainer);
+    });
+
+    closeButton.addEventListener('click', function() {
+        formContainer.style.display = 'none';
+        articlesContainer.style.display = 'none';
+    });
+
+    function toggleSection(section) {
+        if (section.style.display === 'none') {
+            section.style.display = 'block'; // Schimbă display-ul la "block" pentru a afișa secțiunea
+        } else {
+            section.style.display = 'none'; // Schimbă display-ul la "none" pentru a ascunde secțiunea
+        }
+    }
 });
 
-document.addEventListener('DOMContentLoaded', function() {
-    const toggleButton = document.getElementById('toggleArticlesFormButton');
-    const container = document.querySelector('.adm-articole'); // Asigură-te că acesta selectează containerul corect
-
-    toggleButton.addEventListener('click', function() {
-        if (container.style.display === 'none') {
-            container.style.display = 'block'; // Schimbă display-ul la "block" pentru a afișa conținutul
-        } else {
-            container.style.display = 'none'; // Schimbă display-ul la "none" pentru a ascunde conținutul
-        }
-    });
-});

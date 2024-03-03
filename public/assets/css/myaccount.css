@@ -455,7 +455,7 @@ body.modal-open .angle-selector button {
     width: 100%; /* Asigură că containerul se extinde pe toată lățimea disponibilă */
 }
 
-#toggleFormButton {
+#toggleFormButton, #closeButton {
     display: block; /* Asigură că butonul este tratat ca un bloc, permițând centrarea */
     margin: 20px auto; /* Adaugă un spațiu de sus și jos și îl centrează orizontal */
     padding: 10px 20px; /* Adaugă padding pentru a mări dimensiunea butonului */
@@ -470,7 +470,7 @@ body.modal-open .angle-selector button {
     transition: background-color 0.3s; /* Adaugă o tranzitie pentru hover */
 }
 
-#toggleFormButton:hover {
+#toggleFormButton:hover, #closeButton:hover {
     background-color: #0056b3; /* Schimbă culoarea de fundal la hover pentru feedback */
 }
 
@@ -722,5 +722,158 @@ body.modal-open .angle-selector button {
             max-width: 90%;
             margin: 20px auto;
         }
+    }
+    
+    .data-deletion-block {
+        margin-bottom: 30px; /* Adaugă spațiu între blocuri */
+    }
+    
+    .data-deletion-block h4 {
+        color: #0056b3; /* O culoare distinctă pentru titlul fiecărei secțiuni */
+        margin-bottom: 10px; /* Spațiu sub titlu */
+    }
+    
+    .data-deletion-block p {
+        margin-bottom: 20px; /* Spațiu sub paragraf */
+    }
+    
+    .date-picker-container {
+        display: flex;
+        justify-content: start;
+        align-items: center;
+        gap: 10px; /* Spațiu între input și buton */
+    }
+    
+    .date-picker-container .form-control {
+        flex: 1; /* Permite input-ului să se extindă */
+        max-width: 200px; /* Limitează lățimea maximă a input-ului */
+    }
+    
+    .btn-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+    
+    .btn-danger:hover {
+        background-color: #c82333;
+        border-color: #bd2130;
+    }
+    
+    .btn-warning {
+        background-color: #ffc107;
+        border-color: #ffc107;
+        color: #212529; /* Asigură un contrast suficient */
+    }
+    
+    .btn-warning:hover {
+        background-color: #e0a800;
+        border-color: #d39e00;
+    }
+    
+    @media (max-width: 768px) {
+        .date-picker-container {
+            flex-direction: column;
+            align-items: stretch; /* Asigură că input-urile și butoanele se extind pe toată lățimea */
+        }
+    
+        .date-picker-container .form-control,
+        .date-picker-container .btn {
+            width: 100%; /* Butonul și input-ul vor umple containerul pe dispozitivele mobile */
+        }
+    
+        .data-deletion-block {
+            margin-bottom: 20px; /* Spațiu mai mic între blocuri pentru ecrane mici */
+        }
+    }
+    
+    .status-message {
+        margin: 20px 0;
+        padding: 15px;
+        border-radius: 5px;
+        display: none; /* Inițial, mesajele sunt ascunse */
+        text-align: center;
+        font-size: 16px;
+      }
+      
+      .status-message.success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      
+      .status-message.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+      
+      .progress-pictures-form-container {
+        background: #f7f7f7;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+    
+    .progress-pictures-form-container h2 {
+        color: #0056b3;
+        margin-bottom: 15px;
+    }
+    
+    .progress-pictures-form-container p {
+        font-size: 16px;
+        color: #333;
+        margin-bottom: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .file-input-group {
+        display: flex;
+        align-items: center;
+        justify-content: start;
+    }
+    
+    .file-label {
+        flex-basis: 20%;
+        margin-right: 10px;
+    }
+    
+    .form-control-file {
+        flex-grow: 1;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+    }
+
+    .upload-button {
+        width: 100%;
+        padding: 12px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    
+    .upload-button:hover {
+        background-color: #45a049;
+    }
+
+    .progress-date-input {
+        width: auto; /* Sau o valoare specifică, de ex. 200px */
+        max-width: 100%; /* Asigură-te că nu depășește lățimea containerului */
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        box-sizing: border-box; /* Asigură-te că padding-ul nu adaugă la lățime */
+    }
+    .selected-file {
+        font-size: 14px;
+        color: #333;
+        margin-top: 5px;
     }
     
