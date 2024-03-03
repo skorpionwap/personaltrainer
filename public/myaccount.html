@@ -145,38 +145,58 @@
       </div>
 <br>
 <br>
- <!-- Date Personale Client -->
-<!-- <div class="table-scroll">
- <div class="container">
-    <table id="profileDataContainer" class="table">
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th>Înălțime</th>
-                <th>Greutate</th>
-                <th>Procent Grăsime</th>
-                <th>Umeri</th>
-                <th>Piept</th>
-                <th>Biceps St.</th>
-                <th>Biceps Dr.</th>
-                <th>Antebraț St.</th>
-                <th>Antebraț Dr.</th>
-                <th>Talie</th>
-                <th>Șolduri</th>
-                <th>Coapsă St.</th>
-                <th>Coapsă Dr.</th>               
-                <th>Gamba St.</th>
-                <th>Gamba Dr.</th>
-            </tr>
-        </thead>
-        <tbody> -->
-            <!-- Randuri adaugate dinamic -->
-        <!-- </tbody>
-    </table>
-</div>
-</div>
- -->
 
+<div id="calculator">
+    <div id="results">
+            <h3 class="suggestions-heading">Sugestii de buget caloric:</h3>
+        <div id="macronutrient-ratios" class="macronutrient-section">
+            <h3 class="macronutrient-heading">Distribuția Macronutrienților</h3>
+            <p class="macronutrient-explanation">O distribuție echilibrată a macronutrienților este esențială pentru o dietă sănătoasă. Iată o sugestie de împărțire a caloriilor:</p>
+            <div class="macronutrient-details">
+                <div class="macronutrient-item protein">
+                    <h4>Proteine</h4>
+                    <p>30% din totalul caloric</p>
+                </div>
+                <div class="macronutrient-item fats">
+                    <h4>Grăsimi</h4>
+                    <p>25% din totalul caloric</p>
+                </div>
+                <div class="macronutrient-item carbs">
+                    <h4>Carbohidrați</h4>
+                    <p>45% din totalul caloric</p>
+                </div>
+            </div>
+        </div>
+        <br>
+        <div id="caloric-suggestions" class="caloric-suggestions">
+            <!-- Sugestiile de buget caloric vor fi adăugate aici dinamic -->
+        </div><br>
+        <p class="explanation">Sugestiile de buget caloric sunt orientative și trebuie adaptate nevoilor și obiectivelor individuale. Fiecare sugestie este bazată pe un anumit nivel de activitate fizică. Iată ce reprezintă fiecare nivel:</p>
+        
+        <ul class="activity-levels">
+            <li><strong>Sedentar:</strong> Stil de viață care implică puțină sau nicio mișcare, predispus la statul pe scaun la locul de muncă sau acasă.</li>
+            <li><strong>Ușor activ:</strong> Includerea unor activități fizice ușoare cum ar fi mersul pe jos sau exerciții de intensitate scăzută de 1-3 ori pe săptămână.</li>
+            <li><strong>Moderat activ:</strong> Angajamentul în exerciții de intensitate moderată precum jogging, înot sau ciclism 3-5 ori pe săptămână.</li>
+            <li><strong>Foarte activ:</strong> Participarea regulată în exerciții de intensitate înaltă sau antrenamente sportive majoritatea zilelor săptămânii.</li>
+            <li><strong>Extrem de activ:</strong> Exerciții de intensitate foarte înaltă sau activitate fizică prelungită zilnic, adecvată pentru atleți de performanță sau munci fizice grele.</li>
+        </ul>
+        <p class="explanation">Pentru fiecare nivel de activitate, sugestiile de buget caloric indică numărul aproximativ de calorii pe care ar trebui să le consumi zilnic pentru a-ți menține greutatea actuală. Pentru a pierde sau a câștiga în greutate, poți ajusta aceste cifre în funcție de obiectivele tale individuale și de recomandările profesionale.</p>
+        <p class="result-label">BMR (Rata Metabolică Bazală): <span id="bmr-result"></span></p>
+        <p class="explanation">BMR (Rata Metabolică Bazală) reprezintă energia pe care corpul tău o arde în repaus complet, pentru a menține funcțiile vitale, cum ar fi respirația și circulația sângelui. Este o măsură esențială în determinarea necesarului de calorii zilnice.</p>
+        <p class="result-label">TDEE (Total Daily Energy Expenditure - Cheltuiala Energetică Zilnică):</p>
+        <ul id="tdee-results" class="tdee-list">
+            <!-- Rezultatele TDEE vor fi adăugate aici dinamic -->
+        </ul>
+        <p class="explanation">TDEE (Total Daily Energy Expenditure - Cheltuiala Energetică Zilnică) este suma totală a caloriilor pe care le arzi într-o zi, luând în considerare nivelul tău de activitate fizică. Aceasta este o măsură utilă pentru a determina câte calorii ar trebui să consumi zilnic pentru a atinge obiectivele tale de fitness sau de pierdere în greutate.</p>
+        
+    </div>
+</div>
+
+
+
+
+<br>
+<br>
 <!--  Pozele de Progres Client -->
 <div class="table-scroll">
 <div id="progressPicturesContainer" class="container">
@@ -404,6 +424,7 @@
 <script type="module" src="assets/js/articole.js"></script>
 <script type="module" src="assets/js/contact.js"></script>
 <script type="module" src="assets/js/deleteprofile.js"></script>
+<script type="module" src="assets/js/calculator.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="module" src="assets/js/chart-data.js"></script>
 

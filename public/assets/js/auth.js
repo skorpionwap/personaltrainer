@@ -24,11 +24,11 @@ registrationForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = document.getElementById("registration-email").value;
     const password = document.getElementById("registration-password").value;
-     // Validează parola înainte de a continua
-     if (!validatePassword(password)) {
+    // Validează parola înainte de a continua
+    if (!validatePassword(password)) {
       document.getElementById("registration-error-message").textContent = "Parola trebuie să aibă minim 8 caractere, inclusiv o literă mare, un număr și un caracter special.";
       return; // Oprește executarea ulterioară a codului
-  }
+    }
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -37,13 +37,16 @@ registrationForm.addEventListener("submit", async (e) => {
       // Datele suplimentare din formular
       const firstName = document.getElementById("registration-first-name").value;
       const lastName = document.getElementById("registration-last-name").value;
+      const birthdateString = document.getElementById("registration-birthdate").value; // Preluarea șirului de caractere pentru data nașterii
+      const birthdate = new Date(birthdateString); // Convertirea șirului de caractere într-un obiect Date
       const gender = document.getElementById("registration-gender").value;
       const role = document.getElementById("registration-role").value;
-
+    
       // Salvarea datelor în Firestore
       await setDoc(doc(db, "users", userId), {
         firstName,
         lastName,
+        birthdate, // Salvarea obiectului Date pentru data nașterii
         gender,
         email, // Opțional
         role
@@ -54,6 +57,7 @@ registrationForm.addEventListener("submit", async (e) => {
       document.getElementById("registration-error-message").textContent = "Eroare la înregistrare: " + error.message;
     }
 });
+
 
 // Formularul de autentificare
 const loginForm = document.getElementById("login-form");

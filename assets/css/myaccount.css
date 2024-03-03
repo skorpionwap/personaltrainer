@@ -877,3 +877,171 @@ body.modal-open .angle-selector button {
         margin-top: 5px;
     }
     
+
+
+/* Reset stiluri generale pentru a îmbunătăți claritatea și consistența */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #e7e7e7;
+}
+
+/* Stiluri pentru containerul calculatorului */
+#calculator {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Stiluri pentru titlul calculatorului */
+.calculator-heading {
+    text-align: center;
+    font-size: 32px;
+    color: #0d6efd;
+    margin-bottom: 30px;
+}
+
+/* Stiluri pentru rezultate și explicații */
+.result-label {
+    font-weight: bold;
+    font-size: 18px;
+    color: #0d6efd;
+    margin: 20px 0 10px;
+}
+
+.explanation {
+    font-size: 16px;
+    background: #f2f2f2;
+    border-left: 4px solid #0d6efd;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+/* Stiluri pentru sugestii de buget caloric */
+.suggestions-heading {
+    font-size: 24px;
+    color: #0d6efd;
+    margin-bottom: 20px;
+    text-align: center;
+    border-bottom: 2px solid #0d6efd;
+    padding-bottom: 10px;
+}
+
+.caloric-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 20px; /* Acest stil înlocuiește nevoia de margini negative și calcule complexe */
+}
+
+.caloric-suggestion {
+    flex: 1 1 calc(33% - 20px);
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+/* Stiluri pentru lista TDEE și nivelurile de activitate */
+.tdee-list,
+.activity-levels {
+    list-style: none;
+    margin: 20px 0;
+}
+
+.tdee-list li,
+.activity-levels li {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Stiluri responsive pentru a menține aspectul pe dispozitivele mobile */
+@media (max-width: 768px) {
+    #calculator {
+        width: calc(100% - 40px);
+        margin: 20px auto;
+    }
+
+    .caloric-suggestions {
+        flex-direction: column;
+    }
+
+    .caloric-suggestion,
+    .tdee-item {
+        flex-basis: 100%;
+        max-width: 100%;
+    }
+}
+.macronutrient-section {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-top: 40px;
+}
+
+.macronutrient-heading {
+    text-align: center;
+    font-size: 24px;
+    color: #0d6efd;
+    margin-bottom: 20px;
+}
+
+.macronutrient-explanation {
+    font-size: 16px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.macronutrient-details {
+    display: flex;
+    justify-content: space-between;
+}
+
+.macronutrient-item {
+    flex-basis: calc(33.33% - 20px);
+    text-align: center;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin: 10px;
+}
+
+@media (max-width: 768px) {
+    .macronutrient-details {
+        flex-direction: column;
+    }
+
+    .macronutrient-item {
+        flex-basis: 100%;
+    }
+}
+.macro-suggestion h4 {
+    color: #0d6efd;
+    font-size: 20px;
+    margin-bottom: 5px;
+}
+
+.macro-suggestion p {
+    font-size: 16px;
+    color: #333;
+    margin: 5px 0;
+}
+
