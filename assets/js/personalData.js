@@ -3,6 +3,8 @@
 // Importuri Firestore
 import { firestore, auth } from './firebase-config.js';
 import { doc, setDoc, deleteDoc, getDoc, serverTimestamp, collection, query, orderBy, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
 // Importuri Firebase Storage
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 import { deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
@@ -722,3 +724,116 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+
+
+
+// Path: assets/js/subscription.js
+async function loadTrainers() {
+    const trainers = await getDocs(query(collection(firestore, "users"), where("role", "==", "trainer")));
+    const trainerSelect = document.getElementById('trainer-selection');
+    trainers.forEach(trainer => {
+      const option = document.createElement('option');
+      option.value = trainer.id;
+      const firstName = trainer.data().firstName;
+      const lastName = trainer.data().lastName;
+      option.textContent = `${firstName} ${lastName}`; // Combinația pentru a afișa numele complet
+      trainerSelect.appendChild(option);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadTrainers();
+});
+
+document.getElementById('subscription-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const subscriptionType = document.getElementById('subscription-type').value;
+    const trainerId = document.getElementById('trainer-selection').value;
+    const userId = auth.currentUser.uid;
+
+    let duration = subscriptionType.includes('3-months') ? 90 : 30;
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + duration);
+
+    await setDoc(doc(firestore, "subscriptions", userId), {
+        subscriptionType: subscriptionType,
+        trainerId: trainerId,
+        startDate: serverTimestamp(),
+        endDate: Timestamp.fromDate(endDate),
+        isActive: true
+    });
+
+    // Actualizarea elementului HTML cu data de expirare
+    document.getElementById('expiration-date').textContent = endDate.toLocaleDateString("ro-RO");
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadTrainers();
+    await updateExpirationDateDisplay();
+
+    // Logica pentru prelungirea abonamentului
+    document.getElementById('renew-subscription').addEventListener('click', async () => {
+        // Aici adăugați logica pentru prelungirea abonamentului
+    });
+});
+
+async function updateExpirationDateDisplay() {
+    const userId = auth.currentUser.uid;
+    const docRef = doc(firestore, "subscriptions", userId);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists() && docSnap.data().isActive) {
+        const subscriptionData = docSnap.data();
+        const endDate = subscriptionData.endDate.toDate();
+        document.getElementById('expiration-date').textContent = endDate.toLocaleDateString("ro-RO");
+        document.getElementById('subscription-type-display').textContent = subscriptionData.subscriptionType;
+
+        if (subscriptionData.trainerId) {
+            const trainerRef = doc(firestore, "users", subscriptionData.trainerId);
+            const trainerSnap = await getDoc(trainerRef);
+            if (trainerSnap.exists()) {
+                document.getElementById('trainer-name-display').textContent = `${trainerSnap.data().firstName} ${trainerSnap.data().lastName}`;
+            }
+        }
+
+        // Ascunde formularul de subscriere dacă abonamentul este activ
+        document.getElementById('subscription-form').style.display = 'none';
+
+        const today = new Date();
+        const daysUntilExpiration = (endDate - today) / (1000 * 3600 * 24);
+        if (daysUntilExpiration <= 7) {
+            document.getElementById('renew-subscription').style.display = 'block';
+        }
+    } else {
+        console.log("No active subscription found or subscription is expired.");
+        document.getElementById('subscription-form').style.display = 'block';
+        document.getElementById('renew-subscription').style.display = 'none';
+    }
+}
+
+
+async function verifyAndUpdateSubscriptions() {
+    const subscriptionsRef = collection(firestore, "subscriptions");
+    const snapshot = await getDocs(subscriptionsRef);
+    
+    snapshot.forEach(async (doc) => {
+      const subscription = doc.data();
+      const today = new Date();
+      const endDate = subscription.endDate.toDate();
+  
+      if (endDate < today && subscription.isActive) {
+        // Abonamentul este expirat
+        await updateDoc(doc.ref, {
+          isActive: false,
+          // Elimină asocierea cu trainerul, dacă este necesar
+          trainerId: null 
+        });
+  
+        // Aici puteți adăuga orice logică suplimentară necesară pentru a gestiona expirarea abonamentului
+      }
+    });
+  }
+  
+  // Apelează funcția periodic, de exemplu, la încărcarea paginii sau printr-un cron job
+  document.addEventListener('DOMContentLoaded', verifyAndUpdateSubscriptions);
+  

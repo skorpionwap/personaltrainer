@@ -1045,3 +1045,40 @@ body {
     margin: 5px 0;
 }
 
+.subscription-form, .subscription-details {
+    background-color: #f7f7f7;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    margin: auto;
+  }
+  
+  .subscription-type, .trainer-selection {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+  }
+  
+  .save-subscription-btn, .renew-subscription-btn {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .save-subscription-btn:hover, .renew-subscription-btn:hover {
+    background-color: #0056b3;
+  }
+  
+  .expiration-date-text {
+    text-align: center;
+    margin-top: 20px;
+  }
+  

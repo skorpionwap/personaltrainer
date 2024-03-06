@@ -146,6 +146,30 @@
 <br>
 <br>
 
+<form id="subscription-form" class="subscription-form">
+    <!-- Selecție tip abonament -->
+    <select id="subscription-type" class="subscription-type">
+      <option value="1-month-in-person">1 Lună (Fizic)</option>
+      <option value="1-month-online">1 Lună (Online)</option>
+      <option value="3-months-in-person">3 Luni (Fizic)</option>
+      <option value="3-months-online">3 Luni (Online)</option>
+    </select>
+    <!-- Selecție antrenor -->
+    <select id="trainer-selection" class="trainer-selection"></select>
+    <button type="submit" class="save-subscription-btn">Salvează Abonamentul</button>
+  </form>
+  <div id="subscription-expiration-date" class="subscription-details">
+    <p>Tip abonament: <span id="subscription-type-display">N/A</span></p>
+    <p>Trainer ales: <span id="trainer-name-display">N/A</span></p>
+    <p>Data expirării: <span id="expiration-date">N/A</span></p>
+  </div>
+  
+  <!-- Buton pentru prelungirea abonamentului -->
+  <button id="renew-subscription" class="renew-subscription-btn" style="display: none;">Prelungește Abonamentul</button>
+  
+<br>
+<br>
+
 <div id="calculator">
     <div id="results">
             <h3 class="suggestions-heading">Sugestii de buget caloric:</h3>
