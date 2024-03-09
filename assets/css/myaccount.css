@@ -60,10 +60,16 @@ body {
 /* Stiluri pentru tabelul de date personale */
 #profileDataContainer,
 #progressPicturesContainer {
-    width: 90%;
-    max-width: 800px;
-    margin: 20px auto;
+    max-width: 800px; /* Stabilește o lățime maximă pentru container */
+    margin: 40px auto; /* Centrarea pe verticală și orizontală */
+    background-color: #fff; /* Fundal alb pentru claritate */
+    padding: 20px; /* Spațiu în interiorul containerului */
+    border-radius: 10px; /* Colturi rotunjite */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Umbre pentru un efect ușor de elevație */
+    font-family: 'Poppins', sans-serif; /* Font modern și curat */
+    color: #333; /* Culoare de text întunecată pentru contrast bun */
 }
+
 
 #profileDataContainer thead {
     background: #0056b3;
@@ -94,11 +100,15 @@ body {
 
 /* Stiluri pentru containerul de date ale clientului */
 #clientsDataContainer .client-data {
+    width: 100%;       /* Asigură că containerul se extinde pe toată lățimea disponibilă până la max-width */
+    max-width: 1000px; /* Lățimea maximă a containerului pentru a menține designul consistent */
+    margin: 20px auto; /* Spațiu sus și jos și centrat orizontal */
+    padding: 20px;     /* Spațiu în interiorul containerului */
+    box-sizing: border-box; /* Include padding și border în lățimea totală */
     background: #ffffff;
-    padding: 20px;
-    margin-bottom: 20px;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ddd;
 }
 
 #clientsDataContainer .client-data h3 {
@@ -449,7 +459,7 @@ body.modal-open .angle-selector button {
     display: none;
 }
 .table-scroll {
-    max-height: 400px; /* Ajustează înălțimea conform nevoilor tale */
+    max-height: none; /* Ajustează înălțimea conform nevoilor tale */
     overflow-y: auto; /* Permite scroll-ul vertical */
     overflow-x: auto; /* Permite scroll-ul orizontal */
     width: 100%; /* Asigură că containerul se extinde pe toată lățimea disponibilă */

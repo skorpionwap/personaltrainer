@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="assets/css/modal.css">
     <link rel="stylesheet" href="assets/css/myaccount.css">
     <link rel="stylesheet" href="assets/css/articole.css">
+    <link rel="stylesheet" href="assets/css/planandtask.css">
     <!-- Include stilurile CSS pentru Quill -->
 <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
   
@@ -216,6 +217,25 @@
     </div>
 </div>
 
+<div id="clientAccount" class="client-account">
+    <h2 class="section-heading">Planul Meu de Antrenament</h2>
+    <div id="clientTrainingPlanDisplay" class="training-plan-display"></div>
+
+    <h2 class="section-heading">Planul Meu de Nutriție</h2>
+    <div id="clientNutritionPlanDisplay" class="nutrition-plan-display"></div>
+
+    <h2 class="section-heading">Task-urile Mele</h2>
+    <div id="clientTasksDisplay" class="tasks-display">
+        <!-- Exemplu de task cu checkbox -->
+        <div class="task-item">
+            <input type="checkbox" id="task1" name="task1" class="task-checkbox">
+            <label for="task1">Numele task-ului</label>
+        </div>
+        <!-- Aici se vor adăuga alte task-uri dinamic prin JavaScript -->
+    </div>
+</div>
+
+
 
 
 
@@ -385,6 +405,55 @@
     <div class="table-scroll">
         <div id="clientsDataContainer" class="container"></div>
     </div>
+
+    <section id="antrenor-app">
+    <h1>Aplicație Antrenor</h1>
+    <label for="clientsLists">Selectează clientul:</label>
+    <select id="clientsLists"></select>
+
+    <div class="container">
+        <div class="left-column">
+            <div id="trainingPlan">
+                <h2>Plan de Antrenament</h2>
+                <div id="trainingPlanEditor" style="height: 300px;"></div>
+                <button id="editTrainingPlanButton">Editează Planul</button>
+                <button id="saveTrainingPlanButton">Salvează Planul</button>
+                <button id="deleteTrainingPlanButton">Șterge Planul</button>
+            </div>
+
+            <div id="nutritionPlan">
+                <h2>Plan de Nutriție</h2>
+                <div id="nutritionPlanEditor" style="height: 300px;"></div>
+                <button id="editNutritionPlanButton">Editează Planul</button>
+                <button id="saveNutritionPlanButton">Salvează Planul</button>
+                <button id="deleteNutritionPlanButton">Șterge Planul</button>
+            </div>
+
+            <div id="task">
+                <h2>Sarcină pentru Client</h2>
+                <div id="taskEditor" style="height: 150px;"></div>
+                <button id="editTaskButton">Editează Sarcina</button>
+                <button id="saveTaskButton">Salvează Sarcina</button>
+                <button id="deleteTaskButton">Șterge Sarcina</button>
+            </div>
+        </div>
+
+        <div class="right-column">
+            <div id="trainingPlanDisplay"></div>
+            <div id="nutritionPlanDisplay"></div>
+            <div id="taskDisplay"></div>
+        </div>
+    </div>
+    </section>
+    
+    
+    <!-- Include Quill library -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    
+
+
+
     <h2 style="text-align: center;">Mesaje prin formular</h2><br>
     <div class="table-scroll">
         <div id="messagesContainer" class="container"></div>
@@ -451,6 +520,7 @@
 <script type="module" src="assets/js/calculator.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="module" src="assets/js/chart-data.js"></script>
+<script type="module" src="assets/js/plansAndTasks.js"></script>
 
 
 

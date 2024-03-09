@@ -1,0 +1,109 @@
+import { firestore, auth } from './firebase-config.js';
+import { collection, query, where, getDocs, doc, getDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+let quillTrainingPlan, quillNutritionPlan, quillTaskDescription;
+
+document.addEventListener('DOMContentLoaded', () => {
+    initializeQuillEditors();
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            console.log("Utilizator autentificat.");
+            displayClients(user.uid).then(() => {
+                attachEventListeners(user.uid);
+            });
+        } else {
+            console.log("Niciun utilizator autentificat.");
+        }
+    });
+});
+
+function initializeQuillEditors() {
+    quillTrainingPlan = new Quill('#trainingPlanEditor', {
+        theme: 'snow'
+    });
+    quillNutritionPlan = new Quill('#nutritionPlanEditor', {
+        theme: 'snow'
+    });
+    quillTaskDescription = new Quill('#taskDescriptionEditor', {
+        theme: 'snow'
+    });
+}
+
+async function displayClients(trainerId) {
+    const clientsList = document.getElementById('clientsLists');
+    clientsList.innerHTML = ''; // Golește lista actuală înainte de a adăuga noi clienți
+
+    try {
+        // Interoghează colecția de subscripții pentru a găsi toți clienții antrenorului
+        const q = query(collection(firestore, "subscriptions"), where("trainerId", "==", trainerId), where("isActive", "==", true));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            console.log("Nu s-au găsit abonamente active pentru acest antrenor.");
+            return;
+        }
+
+        // Preluăm informații despre fiecare client bazat pe ID-ul lor stocat în documentele de subscripție
+        for (const subscriptionDoc of querySnapshot.docs) {
+            const clientId = subscriptionDoc.id; // ID-ul documentului este ID-ul clientului
+
+            // Acum preluăm documentul clientului specific din colecția 'users'
+            const clientRef = doc(firestore, "users", clientId);
+            const clientDoc = await getDoc(clientRef);
+
+            if (clientDoc.exists()) {
+                // Presupunem că avem câmpurile 'firstName' și 'lastName' în documentul 'users'
+                const clientData = clientDoc.data();
+                const option = document.createElement('option');
+                option.value = clientId;
+                option.textContent = `${clientData.firstName} ${clientData.lastName}`;
+                clientsList.appendChild(option);
+            } else {
+                console.log(`Nu există un document pentru clientul cu ID-ul ${clientId}`);
+            }
+        }
+    } catch (error) {
+        console.error("Eroare la afișarea clienților:", error);
+    }
+}
+
+function attachEventListeners(uid) {
+    const clientsListElement = document.getElementById('clientsLists');
+    if (clientsListElement) {
+        clientsListElement.addEventListener('change', async (e) => {
+            const clientId = e.target.value;
+            if (clientId) {
+                await loadClientData(clientId);
+            }
+        });
+
+        document.getElementById('saveTrainingPlanButton').addEventListener('click', () => saveTrainingPlan(user.uid));
+        document.getElementById('saveNutritionPlanButton').addEventListener('click', () => saveNutritionPlan(user.uid));
+        document.getElementById('addTaskButton').addEventListener('click', () => addTask(user.uid));
+        document.getElementById('editTrainingPlanButton').addEventListener('click', () => {
+        editPlan('training');
+        });
+
+        document.getElementById('deleteTrainingPlanButton').addEventListener('click', () => {
+        deletePlan(selectedClientId, 'training');
+        });
+
+        document.getElementById('editNutritionPlanButton').addEventListener('click', () => {
+        editPlan('nutrition');
+        });
+
+        document.getElementById('deleteNutritionPlanButton').addEventListener('click', () => {
+        deletePlan(selectedClientId, 'nutrition');
+        });
+        document.getElementById('editTaskButton').addEventListener('click', () => {
+
+        editTask(selectedClientId, currentTaskId);
+        });
+
+        document.getElementById('deleteTaskButton').addEventListener('click', () => {
+        deleteTask(selectedClientId, currentTaskId);
+        });
+    }
+}
+

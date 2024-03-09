@@ -56,16 +56,39 @@ async function getUserRole(userId) {
     }
 }
  
+
+async function getLoggedInTrainerId() {
+    const user = auth.currentUser;
+    if (user) {
+        const userRole = await getUserRole(user.uid);
+        if (userRole === "trainer") {
+            return user.uid;
+        } else {
+            throw new Error("The logged in user is not a trainer");
+        }
+    } else {
+        throw new Error("No user is logged in");
+    }
+}
+
+
 // Obiect pentru a stoca instanțele graficelor pentru fiecare client
 let clientCharts = {};
 
+// Funcția care afișează datele clienților care au o subscripție la antrenorul logat
 async function getAllClientsData() {
-    const clientsRef = collection(firestore, "users");
-    const q = query(clientsRef, where("role", "==", "client"));
-    const querySnapshot = await getDocs(q);
-    const container = document.getElementById('clientsDataContainer');
-    container.innerHTML = ''; // Curăță containerul înainte de a adăuga noi elemente
-    
+    try {
+        // Obține id-ul antrenorului logat
+        const trainerId = await getLoggedInTrainerId();
+
+        // Interoghează Firestore pentru abonamentele active ale antrenorului
+        const q = query(collection(firestore, "subscriptions"), where("trainerId", "==", trainerId), where("isActive", "==", true));
+        const querySnapshot = await getDocs(q);
+        
+        // Selectează containerul din DOM pentru a afișa datele clienților
+        const container = document.getElementById('clientsDataContainer');
+        container.innerHTML = ''; // Golește containerul
+
     // Definirea mapării etichetelor prietenoase
     const measurementLabels = {
         weight: 'Greutate',
@@ -84,9 +107,13 @@ async function getAllClientsData() {
         fat: 'Procent Grăsime'
     };
 
-    querySnapshot.forEach((doc) => {
-        const clientUID = doc.id;
-        const clientData = doc.data();
+ // Iterează prin snapshot-ul interogării
+ for (const subscriptionDoc of querySnapshot.docs) {
+    const clientUID = subscriptionDoc.id; // ID-ul clientului este ID-ul documentului în acest caz
+    const clientDocSnapshot = await getDoc(doc(firestore, "users", clientUID));
+
+    if (clientDocSnapshot.exists()) {
+        const clientData = clientDocSnapshot.data();
         const clientDiv = document.createElement('div');
         clientDiv.className = 'client-data';
         clientDiv.innerHTML = `
@@ -96,40 +123,47 @@ async function getAllClientsData() {
             </div>
         `;
 
-        // Crearea și adăugarea selectorului de măsurători
-        const selectContainer = document.createElement('div');
-        selectContainer.className = 'select-container';
-        const selectElement = document.createElement('select');
-        selectElement.id = `measurement-select-${clientUID}`;
-        const measurements = ['weight', 'shoulders', 'chest', 'waist', 'hips', 'l-bicep', 'r-bicep', 'l-forearm', 'r-forearm', 'l-thigh', 'r-thigh', 'l-calf', 'r-calf', 'fat'];
-        measurements.forEach(measurement => {
-            const option = document.createElement('option');
-            option.value = measurement;
-            // Convertirea codurilor în etichete prietenoase folosind maparea
-            option.textContent = measurementLabels[measurement] || measurement;
-            selectElement.appendChild(option);
-        });
-        selectContainer.appendChild(selectElement);
-        clientDiv.appendChild(selectContainer);
+            // Crearea și adăugarea selectorului de măsurători
+            const selectContainer = document.createElement('div');
+            selectContainer.className = 'select-container';
+            const selectElement = document.createElement('select');
+            selectElement.id = `measurement-select-${clientUID}`;
+            const measurements = ['weight', 'shoulders', 'chest', 'waist', 'hips', 'l-bicep', 'r-bicep', 'l-forearm', 'r-forearm', 'l-thigh', 'r-thigh', 'l-calf', 'r-calf', 'fat'];
+            measurements.forEach(measurement => {
+                const option = document.createElement('option');
+                option.value = measurement;
+                // Convertirea codurilor în etichete prietenoase folosind maparea
+                option.textContent = measurementLabels[measurement] || measurement;
+                selectElement.appendChild(option);
+            });
+            selectContainer.appendChild(selectElement);
+            clientDiv.appendChild(selectContainer);
 
-        // Event listener pentru schimbarea selecției
-        selectElement.addEventListener('change', function() {
-            populateChartForClient(`chart-${clientUID}`, clientUID, this.value);
-        });
+            // Event listener pentru schimbarea selecției
+            selectElement.addEventListener('change', function() {
+                populateChartForClient(`chart-${clientUID}`, clientUID, this.value);
+            });
 
-        container.appendChild(clientDiv);
+            // Adaugă elementul div la containerul HTML
+            container.appendChild(clientDiv);
 
-        // Crearea containerului pentru pozele de progres
-        const progressPicturesContainer = document.createElement('div');
-        progressPicturesContainer.className = 'progress-pictures';
-        progressPicturesContainer.id = `progress-pictures-${clientUID}`;
-        clientDiv.appendChild(progressPicturesContainer);
+            // Crearea containerului pentru pozele de progres
+            const progressPicturesContainer = document.createElement('div');
+            progressPicturesContainer.className = 'progress-pictures';
+            progressPicturesContainer.id = `progress-pictures-${clientUID}`;
+            clientDiv.appendChild(progressPicturesContainer);
 
-        // Apelurile inițiale
-        populateChartForClient(`chart-${clientUID}`, clientUID, 'weight');
-        displayProgressPictures(clientUID, progressPicturesContainer.id);
-    });
+            // Apelurile inițiale
+            populateChartForClient(`chart-${clientUID}`, clientUID, 'weight');
+            displayProgressPictures(clientUID, progressPicturesContainer.id);
+        }
+    }
+} catch (error) {
+    console.error("Error getting clients data: ", error);
+    // Handle the error appropriately
 }
+}
+
 
 // Obiect pentru maparea selecției utilizatorului la numele câmpurilor Firestore
 const measurementMapping = {

@@ -1,0 +1,179 @@
+#antrenor-app {
+    width: 100%;       /* Asigură că containerul se extinde pe toată lățimea disponibilă până la max-width */
+    max-width: 1000px; /* Lățimea maximă a containerului pentru a menține designul consistent */
+    margin: 20px auto; /* Spațiu sus și jos și centrat orizontal */
+    padding: 20px;     /* Spațiu în interiorul containerului */
+    box-sizing: border-box; /* Include padding și border în lățimea totală */
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ddd;
+}
+
+
+#antrenor-app h1 {
+    text-align: center;
+    color: #2c3e50; /* Poți să ajustezi culoarea dacă este necesar */
+    margin-bottom: 20px;
+}
+
+#antrenor-app .container {
+    display: flex;
+    justify-content: space-between;
+}
+
+#antrenor-app .left-column,
+#antrenor-app .right-column {
+    flex: 1;
+    padding: 10px;
+}
+
+#antrenor-app .left-column {
+    margin-right: 20px;
+}
+
+#antrenor-app .right-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+#antrenor-app label,
+#antrenor-app select {
+    display: block;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+#antrenor-app select {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+
+#antrenor-app .container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px; /* Adaugă spațiu între selector și coloane */
+}
+
+/* Ascunde chenarele implicit puse de browser */
+#antrenor-app .container, #antrenor-app .container * {
+    box-sizing: border-box; /* Asigură-te că padding-ul și border-ul nu adaugă la lățimea totală */
+    
+}
+
+/* Specific pentru toolbar-ul editorului, adăugăm stiluri pentru a-l afișa corect */
+#antrenor-app .toolbar {
+    display: flex; /* sau orice alt stil necesar pentru toolbar */
+    justify-content: space-around;
+    padding: 10px;
+    border: 1px solid #ddd; /* dacă vrei să ai un chenar pentru toolbar */
+    border-radius: 4px; /* dacă vrei colțuri rotunjite */
+}
+
+#antrenor-app .editor {
+    /* Stilurile anterioare rămân la fel */
+    position: relative; /* asigură-te că editorii sunt poziționați relativ pentru poziționarea absolută a toolbar-ului */
+}
+
+#antrenor-app .editor-toolbar {
+    position: absolute;
+    top: -40px; /* ajustează asta pentru a muta toolbar-ul unde este necesar */
+    left: 0;
+    right: 0;
+    margin: 0 auto; /* centrează-l */
+}
+
+/* Poate fi necesar să adaugi stiluri pentru a ascunde sau stiliza chenarele din .left-column dacă acestea nu sunt necesare */
+#antrenor-app .left-column > div:not(#trainingPlan, #nutritionPlan, #task) {
+    display: none; /* Ascunde orice div-uri care nu sunt #trainingPlan, #nutritionPlan sau #task */
+}
+
+/* Dacă dorești să ai un chenar și pe coloanele din interior, poți adăuga: */
+#antrenor-app .left-column > div, 
+#antrenor-app .right-column > div {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.client-account {
+    max-width: 1000px; /* O lățime maximă pentru a păstra conținutul lizibil */
+    margin: 40px auto; /* Centrează containerul pe pagină */
+    padding: 30px; /* Spațiu în interior pentru a nu lipi conținutul de margini */
+    background-color: #fff; /* Fundal alb pentru claritate */
+    border-radius: 8px; /* Colturi rotunjite pentru estetică */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Umbre subtile */
+    overflow: hidden; /* Ascunde overflow-ul */
+}
+
+.section-heading {
+    text-align: center; /* Centrează titlurile */
+    font-size: 24px; /* Mărime adecvată pentru titluri */
+    color: #0d6efd; /* Culoarea pentru a contrasta cu fundalul */
+    margin-bottom: 30px; /* Spațiu dedesubtul titlurilor */
+}
+
+/* Stilurile specifice fiecărui display */
+.training-plan-display,
+.nutrition-plan-display,
+.tasks-display {
+    background: #f8f8f8; /* O culoare de fundal deschisă, pentru contrast subtil */
+    padding: 20px; /* Spațiu interior pentru conținut */
+    margin-bottom: 20px; /* Spațiu între sectiuni */
+    border: 1px solid #eaeaea; /* Bordură subtilă */
+    border-radius: 8px; /* Colturi rotunjite */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Umbre subtile pentru elevație */
+    overflow-y: auto; /* Permite scroll vertical dacă conținutul depășește înălțimea */
+}
+
+/* Stiluri pentru textul afișat dinamic */
+.training-plan-display p,
+.nutrition-plan-display p,
+.tasks-display > div { /* presupunem că fiecare task este înfășurat într-un div */
+    font-size: 16px; /* Mărimea fontului pentru lizibilitate */
+    color: #333; /* Culoarea textului */
+    background: #fff; /* Fundal alb pentru a evidenția fiecare segment de text */
+    margin-bottom: 15px; /* Spațiu între paragrafe sau div-uri */
+    padding: 10px; /* Spațiu în jurul textului */
+    border-left: 4px solid #0d6efd; /* Linie pe partea stângă pentru un accent de design */
+    border-radius: 4px; /* Colturi rotunjite pentru fiecare paragraf sau div de task */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Umbre subtile pentru text */
+}
+
+@media (max-width: 768px) {
+    .client-account {
+        width: calc(100% - 20px); /* Micșorăm padding-ul pentru dispozitive mai mici */
+        margin: 20px auto; /* Margini mai mici pe dispozitive mobile */
+    }
+
+    .section-heading {
+        font-size: 20px; /* Titlu mai mic pe dispozitive mobile */
+    }
+
+    /* Adaptează conținutul pe dispozitive mobile */
+    .training-plan-display,
+    .nutrition-plan-display,
+    .tasks-display {
+        padding: 15px; /* Mai puțin spațiu interior pentru ecrane mai mici */
+    }
+}
+.task-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.task-checkbox {
+    margin-right: 10px;
+}
+
+/* Stilizează eticheta când task-ul este bifat */
+.task-checkbox:checked + label {
+    text-decoration: line-through;
+    color: #a5a5a5;
+}
