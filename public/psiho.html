@@ -109,25 +109,52 @@
         }
     }
 
-        function adaugaCard(rowData) {
-            const cardViewContainer = document.getElementById("cardViewContainer");
+    function adaugaCard(rowData) {
+    const cardViewContainer = document.getElementById("cardViewContainer");
 
-            const card = document.createElement("div");
-            card.className = "response-card";
+    const card = document.createElement("div");
+    card.className = "response-card";
 
-            card.innerHTML = `
-                <div class="card-header">Data: ${rowData.date}</div>
-                <div class="card-content">
-                    <p><strong>Care este situația?</strong> ${rowData.situatie || ''}</p>
-                    <p><strong>Ce îmi trece prin minte?</strong> ${rowData.ganduri || ''}</p>
-                    <!-- Adaugă restul răspunsurilor aici -->
-                    <button class="delete-button">Șterge</button>
-                </div>
-            `;
+    // Creăm conținutul cardului cu toate câmpurile disponibile în rowData
+    card.innerHTML = `
+        <div class="card-header">Data: ${rowData.date || ''}</div>
+        <div class="card-content">
+            <p><strong>Care este situația?</strong> ${rowData.situatie || ''}</p>
+            <p><strong>Ce îmi trece prin minte?</strong> ${rowData.ganduri || ''}</p>
+            <p><strong>Cum mă face acel gând să mă simt?</strong> ${rowData.emotii || ''}</p>
+            <p><strong>Ce mă face să cred că gândul automat este adevărat?</strong> ${rowData.dovezi_adevar || ''}</p>
+            <p><strong>Ce mă face să cred că nu este adevărat?</strong> ${rowData.dovezi_fals || ''}</p>
+            <p><strong>Există o explicație alternativă?</strong> ${rowData.explicatie_alternativa || ''}</p>
+            <p><strong>Care este cel mai rău lucru care s-ar putea întâmpla?</strong> ${rowData.scenariu_negativ || ''}</p>
+            <p><strong>Care este cel mai bun lucru care s-ar putea întâmpla?</strong> ${rowData.scenariu_optimist || ''}</p>
+            <p><strong>Care este cel mai realist rezultat?</strong> ${rowData.rezultat_realist || ''}</p>
+            <p><strong>Ce s-ar întâmpla dacă mi-aș schimba modul de gândire?</strong> ${rowData.schimbare_gandire || ''}</p>
+            <p><strong>Ce i-aș spune unui prieten dacă ar fi în aceeași situație?</strong> ${rowData.sfat_prieten || ''}</p>
+            <p><strong>Ce mod este activ?</strong> ${rowData.mod_activ || ''}</p>
+            <p><strong>Ce comportament simți că adopți?</strong> ${rowData.comportament || ''}</p>
+            <p><strong>Care sunt nevoile tale mai profunde?</strong> ${rowData.nevoi_profunde || ''}</p>
+            <p><strong>Mă ajută comportamentul meu să îndeplinesc aceste nevoi?</strong> ${rowData.ajutor_comportament || ''}</p>
+            <p><strong>Cum ar gândi și cum s-ar comporta Adultul Sănătos?</strong> ${rowData.adult_sanatos || ''}</p>
+            <p><strong>Ce aș putea face diferit?</strong> ${rowData.actiuni_diferite || ''}</p>
+            <p><strong>Văd doar partea rea a lucrurilor?</strong> ${rowData.partea_rea || ''}</p>
+            <p><strong>Îmi asum responsabilitatea pentru lucruri care nu au stat în puterea mea?</strong> ${rowData.responsabilitate || ''}</p>
+            <p><strong>Mă condamn în baza unui singur eveniment?</strong> ${rowData.condamnare || ''}</p>
+            <p><strong>Privesc situația în termeni extremi?</strong> ${rowData.termeni_extremi || ''}</p>
+            <p><strong>Exagerez situația?</strong> ${rowData.exagerare || ''}</p>
+            <p><strong>Există și alți factori responsabili?</strong> ${rowData.factori_responsabili || ''}</p>
+            <p><strong>Am sărit direct la concluzii?</strong> ${rowData.concluzii || ''}</p>
+            <p><strong>Îmi pun întrebări fără răspuns?</strong> ${rowData.intrebari_fara_raspuns || ''}</p>
+            <p><strong>Mă concentrez doar asupra slăbiciunilor mele?</strong> ${rowData.slabiciuni || ''}</p>
+            <p><strong>Mă zbat prea mult gândind la cum ar trebui să fie lucrurile?</strong> ${rowData.cum_ar_trebui || ''}</p>
+            <p><strong>Mă aștept să fiu perfect?</strong> ${rowData.perfectiune || ''}</p>
+            <button class="delete-button">Șterge</button>
+        </div>
+    `;
 
-            card.querySelector('.delete-button').addEventListener('click', () => stergeCard(rowData.id, card));
-            cardViewContainer.appendChild(card);
-        }
+    card.querySelector('.delete-button').addEventListener('click', () => stergeCard(rowData.id, card));
+    cardViewContainer.appendChild(card);
+}
+
 
         async function loadTableData() {
             try {
