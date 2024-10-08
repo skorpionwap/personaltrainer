@@ -48,7 +48,7 @@
         if (exportButton) {
             exportButton.addEventListener("click", exportToCSV);
         }
-          
+
         // Verifică dacă utilizatorul este autentificat
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -150,6 +150,12 @@
             <button class="delete-button">Șterge</button>
         </div>
     `;
+
+    // Adaugă evenimentul de extindere/restrângere la click pe antetul cardului
+    const cardHeader = card.querySelector('.card-header');
+    cardHeader.addEventListener('click', () => {
+        card.classList.toggle('open');
+    });
 
     card.querySelector('.delete-button').addEventListener('click', () => stergeCard(rowData.id, card));
     cardViewContainer.appendChild(card);
