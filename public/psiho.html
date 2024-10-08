@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Fișă Monitorizare</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // Importăm SDK-ul Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBn2bojEoV4_icF4fVVKFdJN1YjDhtlG98",
+            authDomain: "personaltrainer-74ea4.firebaseapp.com",
+            projectId: "personaltrainer-74ea4",
+            storageBucket: "personaltrainer-74ea4.appspot.com",
+            messagingSenderId: "591778567441",
+            appId: "1:591778567441:web:bbaeac19a3fb0f190668b0",
+            measurementId: "G-WLWNGNDK5V",
+        };
+
+        // Initializează Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let currentStep = 1;
+        let totalSteps = 0;
+
+        window.onload = function () {
+            totalSteps = document.querySelectorAll('.form-step').length;
+            loadTableData();
+            updateProgressBar();
+
+            document.getElementById("nextButton").addEventListener("click", nextStep);
+            document.getElementById("prevButton").addEventListener("click", previousStep);
+            document.getElementById("addButton").addEventListener("click", adaugaInTabel);
+            document.getElementById("exportButton").addEventListener("click", exportToCSV);
+        };
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                document.getElementById(`step-${currentStep}`).classList.remove('form-step-active');
+                currentStep++;
+                document.getElementById(`step-${currentStep}`).classList.add('form-step-active');
+                updateProgressBar();
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 1) {
+                document.getElementById(`step-${currentStep}`).classList.remove('form-step-active');
+                currentStep--;
+                document.getElementById(`step-${currentStep}`).classList.add('form-step-active');
+                updateProgressBar();
+            }
+        }
+
+        function updateProgressBar() {
+            const progress = document.getElementById('progress');
+            const progressPercentage = (currentStep / totalSteps) * 100;
+            progress.style.width = progressPercentage + '%';
+        }
+
+        async function adaugaInTabel() {
+            const form = document.getElementById("exercitiuForm");
+            const formData = new FormData(form);
+            const rowData = { date: new Date().toLocaleDateString() };
+
+            formData.forEach((value, key) => {
+                rowData[key] = value;
+            });
+
+            try {
+                const docRef = await addDoc(collection(db, "raspunsuri"), rowData);
+                rowData.id = docRef.id; // Salvăm id-ul generat
+                adaugaCard(rowData);
+                form.reset();
+                currentStep = 1;
+                document.querySelector('.form-step-active').classList.remove('form-step-active');
+                document.getElementById('step-1').classList.add('form-step-active');
+                updateProgressBar();
+            } catch (error) {
+                console.error("Eroare la salvarea în Firestore:", error);
+            }
+        }
+
+        function adaugaCard(rowData) {
+            const cardViewContainer = document.getElementById("cardViewContainer");
+
+            const card = document.createElement("div");
+            card.className = "response-card";
+
+            card.innerHTML = `
+                <div class="card-header">Data: ${rowData.date}</div>
+                <div class="card-content">
+                    <p><strong>Care este situația?</strong> ${rowData.situatie || ''}</p>
+                    <p><strong>Ce îmi trece prin minte?</strong> ${rowData.ganduri || ''}</p>
+                    <!-- Adaugă restul răspunsurilor aici -->
+                    <button class="delete-button">Șterge</button>
+                </div>
+            `;
+
+            card.querySelector('.delete-button').addEventListener('click', () => stergeCard(rowData.id, card));
+            cardViewContainer.appendChild(card);
+        }
+
+        async function loadTableData() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "raspunsuri"));
+                querySnapshot.forEach((doc) => {
+                    const rowData = { id: doc.id, ...doc.data() };
+                    adaugaCard(rowData);
+                });
+            } catch (error) {
+                console.error("Eroare la încărcarea din Firestore:", error);
+            }
+        }
+
+        async function stergeCard(id, card) {
+            try {
+                await deleteDoc(doc(db, "raspunsuri", id));
+                card.remove();
+            } catch (error) {
+                console.error("Eroare la ștergerea din Firestore:", error);
+            }
+        }
+
+        async function exportToCSV() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "raspunsuri"));
+                let csvContent = "data:text/csv;charset=utf-8,";
+
+                // Adaugăm header-ul pentru coloanele CSV (primul rând va conține datele, restul întrebările)
+                csvContent += ["Întrebări", ...querySnapshot.docs.map((_, index) => `Răspuns ${index + 1}`)].join(",") + "\n";
+
+                // Întrebările care vor apărea pe rânduri
+                const questions = [
+                    "Care este situația?", "Ce îmi trece prin minte?", "Cum mă face acel gând să mă simt?",
+                    "Ce mă face să cred că gândul automat este adevărat?", "Ce mă face să cred că nu este adevărat?",
+                    "Există o explicație alternativă?", "Care este cel mai rău lucru care s-ar putea întâmpla?",
+                    "Care este cel mai bun lucru care s-ar putea întâmpla?", "Care este cel mai realist rezultat?",
+                    "Ce s-ar întâmpla dacă mi-aș schimba modul de gândire?", "Ce i-aș spune unui prieten dacă ar fi în aceeași situație?",
+                    "Ce mod este activ?", "Ce comportament simți că adopți?", "Care sunt nevoile tale mai profunde?",
+                    "Mă ajută comportamentul meu să îndeplinesc aceste nevoi?", "Cum ar gândi și cum s-ar comporta Adultul Sănătos?",
+                    "Ce aș putea face diferit?", "Văd doar partea rea a lucrurilor?", "Întmi asum responsabilitatea pentru lucruri care nu au stat în puterea mea?",
+                    "Mă condamn în baza unui singur eveniment?", "Privesc situația în termeni extremi?", "Exagerez situația?",
+                    "Există și alți factori responsabili?", "Am sărit direct la concluzii?", "Întmi pun întrebări fără răspuns?",
+                    "Mă concentrez doar asupra slăbiciunilor mele?", "Mă zbat prea mult gândind la cum ar trebui să fie lucrurile?", "Mă aștept să fiu perfect?"
+                ];
+
+                // Creăm conținutul CSV pe baza întrebărilor și răspunsurilor
+                questions.forEach((question, index) => {
+                    const rowContent = [
+                        question,
+                        ...querySnapshot.docs.map(doc => {
+                            const data = doc.data();
+                            return [
+                                data.situatie, data.ganduri, data.emotii, data.dovezi_adevar, data.dovezi_fals,
+                                data.explicatie_alternativa, data.scenariu_negativ, data.scenariu_optimist,
+                                data.rezultat_realist, data.schimbare_gandire, data.sfat_prieten, data.mod_activ,
+                                data.comportament, data.nevoi_profunde, data.ajutor_comportament, data.adult_sanatos,
+                                data.actiuni_diferite, data.partea_rea, data.responsabilitate, data.condamnare,
+                                data.termeni_extremi, data.exagerare, data.factori_responsabili, data.concluzii,
+                                data.intrebari_fara_raspuns, data.slabiciuni, data.cum_ar_trebui, data.perfectiune
+                            ][index];
+                        })
+                    ].map(value => `"${value ? value.replace(/"/g, '""') : ''}"`).join(",");
+
+                    csvContent += rowContent + "\n";
+                });
+
+                // Creăm link-ul pentru descărcare
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "raspunsuri.csv");
+
+                // Trigger descărcare
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (error) {
+                console.error("Eroare la exportul datelor:", error);
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Roboto', 'Montserrat', sans-serif;
+            margin: 20px;
+            background: linear-gradient(to right, #ece9e6, #ffffff);
+            color: #333;
+        }
+        .form-container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            box-shadow: 0 16px 24px rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            border: 3px solid #87CEFA;
+            transition: transform 0.3s ease;
+        }
+        .form-container:hover {
+            transform: scale(1.02);
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 25px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .progress {
+            height: 20px;
+            width: 0;
+            background-color: #87CEFA;
+            transition: width 0.4s ease;
+        }
+        .question-card {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+        }
+        .question-card:hover {
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+        .question-card h3 {
+            font-weight: 700;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        .question-card p {
+            font-weight: 300;
+            font-size: 0.95em;
+            margin-bottom: 15px;
+            color: #555;
+        }
+        textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            resize: vertical;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: border-color 0.3s;
+        }
+        textarea:focus {
+            border-color: #87CEFA;
+            box-shadow: 0 2px 8px rgba(135, 206, 250, 0.5);
+        }
+        input[type="submit"], button {
+            margin-top: 20px;
+            padding: 12px 25px;
+            font-size: 18px;
+            background: linear-gradient(to right, #87CEFA, #6bb9e7);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.3s;
+        }
+        input[type="submit"]:hover, button:hover {
+            background: linear-gradient(to right, #6bb9e7, #4A90E2);
+            transform: translateY(-3px);
+        }
+        .form-step {
+            display: none;
+        }
+        .form-step-active {
+            display: block;
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        .step-navigation {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .step-navigation button {
+            margin: 0 10px;
+        }
+
+        .table-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            max-height: 400px;
+            overflow: auto;
+        }
+
+        .card-view {
+            margin-top: 30px;
+            max-width: 900px;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .response-card {
+            background: #f9f9ff;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            width: calc(80% - 10px);
+            transition: all 0.3s;
+            margin: 0 auto;
+            margin-bottom: 0px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .response-card:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .response-card .card-header {
+            font-weight: 700;
+            cursor: pointer;
+            background: #87CEFA;
+            padding: 15px;
+            border-radius: 10px;
+            color: #fff;
+            text-align: center;
+            position: relative;
+        }
+
+        .response-card .card-header::after {
+            content: '▼';
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: transform 0.3s;
+        }
+
+        .response-card.open .card-header::after {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .response-card .card-content {
+            max-height: 0;
+            margin-top: 15px;
+            padding: 0;
+            background: #f9f9f9;
+            border-radius: 10px;
+            line-height: 1.5;
+            overflow: auto;
+            transition: max-height 0.5s ease, padding 0.5s ease;
+        }
+
+        .response-card.open .card-content {
+            max-height: 800px;
+            padding: 15px;
+        }
+
+        .response-card .card-content p {
+            margin-bottom: 15px;
+            border-left: 3px solid #87CEFA;
+            padding-left: 10px;
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+
+        .response-card h4 {
+            text-align: center;
+            color: #4A90E2;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .response-card button {
+            display: block;
+            margin: 20px auto 0;
+        }
+
+        table {
+            width: max-content;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            table-layout: fixed;
+            display: none;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background: linear-gradient(to right, #6bb9e7, #87CEFA);
+            color: white;
+            font-size: 11px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            padding: 8px;
+            white-space: normal;
+            line-height: 1.2;
+            min-width: 100px;
+            max-width: 150px;
+            overflow-wrap: break-word;
+        }
+
+        td {
+            padding: 10px;
+            text-align: left;
+            min-width: 120px;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .delete-button {
+            padding: 8px 15px;
+            font-size: 14px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .delete-button:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+
+
+
+    <div class="form-container">
+        <h2>Fișă Monitorizare</h2>
+        <p>Completează fiecare întrebare pentru a încțlege mai bine situațiile tale. Fiecare rând reprezintă o parte importantă a reflecției tale. În acest exercițiu, îți voi ghida fiecare pas, astfel încât să poți explora în profunzime gândurile, emoțiile și comportamentele tale.</p>
+    
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+    
+        <form id="exercitiuForm">
+            <div class="question-card form-step form-step-active" id="step-1">
+                <h3>Care este situația?</h3>
+                <p>Te rog să descrii contextul care a declanșat emoțiile sau comportamentul tău. Încearcă să fii cât mai specific și detaliat. Aceasta poate fi o situație concretă din viața de zi cu zi în care te-ai simțit copleșit, stresat sau într-o altă stare emoțională intensă.</p>
+                <textarea name="situatie" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-2">
+                <h3>Ce îmi trece prin minte?</h3>
+                <p>Îți cer să identifici gândurile automate care au apărut în această situație. Acestea sunt gânduri rapide, involuntare, care îți trec prin minte în momentele de stres. Ce îți spui în acel moment? Este un gând critic sau îngrijorător?</p>
+                <textarea name="ganduri" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-3">
+                <h3>Cum mă face acel gând să mă simt?</h3>
+                <p>Te rog să notezi emoțiile pe care le simți în urma acelui gând. Ce simți? Frică, tristețe, furie? Dă o intensitate emoției (de la 0 la 100) pentru a vedea cât de puternică este.</p>
+                <textarea name="emotii" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-4">
+                <h3>Ce mă face să cred că gândul automat este adevărat?</h3>
+                <p>Explorează motivele pentru care crezi că acest gând este adevărat. Ce dovezi ai care îți confirmă acest lucru? De multe ori, ne bazăm pe experiențe trecute sau frici pentru a justifica un gând.</p>
+                <textarea name="dovezi_adevar" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-5">
+                <h3>Ce mă face să cred că nu este adevărat?</h3>
+                <p>Acum, să ne uităm la dovezile împotriva gândului tău. Există argumente sau experiențe care contrazic acest gând? Poate există o altă perspectivă pe care nu ai luat-o în considerare?</p>
+                <textarea name="dovezi_fals" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-6">
+                <h3>Există o explicație alternativă?</h3>
+                <p>Uneori, există mai multe explicații pentru ceea ce se întâmplă. Ce alte interpretări ai putea avea pentru această situație? Gândește-te la alte posibilități care ar putea explica contextul.</p>
+                <textarea name="explicatie_alternativa" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-7">
+                <h3>Care este cel mai rău lucru care s-ar putea întâmpla?</h3>
+                <p>Ce este cel mai rău care ar putea avea loc în această situație? Să identificăm acele frici catastrofale care adesea ne alimentează gândurile negative.</p>
+                <textarea name="scenariu_negativ" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-8">
+                <h3>Care este cel mai bun lucru care s-ar putea întâmpla?</h3>
+                <p>Pe de altă parte, care ar fi cel mai pozitiv scenariu? Uneori uităm să ne gândim și la posibilitățile bune. Cum ar arăta cel mai bun rezultat al acestei situații?</p>
+                <textarea name="scenariu_optimist" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-9">
+                <h3>Care este cel mai realist rezultat?</h3>
+                <p>După ce am explorat extremele, ce crezi că este cel mai probabil să se întâmple? Cum ar arăta un rezultat realist, ținând cont de toate perspectivele?</p>
+                <textarea name="rezultat_realist" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-10">
+                <h3>Ce s-ar întâmpla dacă mi-aș schimba modul de gândire?</h3>
+                <p>Întreabă-te cum ar fi dacă ai aborda situația cu un alt tip de gândire. Cum ar influența asta emoțiile și comportamentele tale?</p>
+                <textarea name="schimbare_gandire" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-11">
+                <h3>Ce i-aș spune unui prieten dacă ar fi în aceeași situație?</h3>
+                <p>Gândește-te la cum ai reacționa dacă un prieten drag ar avea aceleași gânduri. Ce i-ai spune pentru a-l sprijini? Cum ai încerca să-l încurajezi?</p>
+                <textarea name="sfat_prieten" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-12">
+                <h3>Ce mod este activ?</h3>
+                <p>Identifică modul în care te afli în această situație. Este un mod de copil vulnerabil, critic interior, sau poate adultul sănătos? Conștientizarea modului îți poate oferi o mai bună întțelegere a reacțiilor tale.</p>
+                <textarea name="mod_activ" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-13">
+                <h3>Ce comportament simți că adopți?</h3>
+                <p>Descrie comportamentul pe care îl manifești în această situație. Este un comportament de evitare, de confruntare, de sacrificiu de sine? Recunoașterea comportamentului te ajută să întelegi mai bine cum reacționezi.</p>
+                <textarea name="comportament" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-14">
+                <h3>Care sunt nevoile tale mai profunde?</h3>
+                <p>Ce nevoi stau la baza acestor emoții și comportamente? Poate fi nevoia de siguranță, de validare, de acceptare? Identificarea acestor nevoi te poate ajuta să găsești strategii mai sănătoase pentru a le îndeplini.</p>
+                <textarea name="nevoi_profunde" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-15">
+                <h3>Mă ajută comportamentul meu să îndeplinesc aceste nevoi?</h3>
+                <p>Reflectează dacă felul în care reacționezi te ajută cu adevărat să îți îndeplinești nevoile. Poate fi util să te gândești dacă există alternative mai eficiente.</p>
+                <textarea name="ajutor_comportament" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-16">
+                <h3>Cum ar gândi și cum s-ar comporta Adultul Sănătos?</h3>
+                <p>Gândește-te la cum ar reacționa partea ta Adultă Sănătoasă în această situație. Cum ai putea să abordezi diferit pentru a avea grijă de tine și de nevoile tale?</p>
+                <textarea name="adult_sanatos" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-17">
+                <h3>Ce aș putea face diferit?</h3>
+                <p>Notează acțiunile concrete pe care le poți lua pentru a gestiona mai bine situația și emoțiile tale. Care ar fi primul pas spre schimbare?</p>
+                <textarea name="actiuni_diferite" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-18">
+                <h3>Văd doar partea rea a lucrurilor?</h3>
+                <p>Este posibil să fii prins într-un tipar negativ de gândire, concentrându-te doar pe aspectele negative. Încearcă să observi dacă există și aspecte pozitive pe care le-ai ignorat.</p>
+                <textarea name="partea_rea" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-19">
+                <h3>Întmi asum responsabilitatea pentru lucruri care nu au stat în puterea mea?</h3>
+                <p>Reflectează dacă îți asumi responsabilitatea pentru situații asupra cărora nu aveai control. Este important să îți dai seama de limitele influenței tale.</p>
+                <textarea name="responsabilitate" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-20">
+                <h3>Mă condamn în baza unui singur eveniment?</h3>
+                <p>Îți evaluezi valoarea personală bazându-te pe un singur eveniment negativ? Amintește-ți că un eveniment nu definește cine ești în totalitate.</p>
+                <textarea name="condamnare" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-21">
+                <h3>Privesc situația în termeni extremi?</h3>
+                <p>Verifică dacă vezi situația doar în alb sau negru, fără nuanțe de gri. Gândirea extremă poate distorsiona realitatea.</p>
+                <textarea name="termeni_extremi" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-22">
+                <h3>Exagerez situația?</h3>
+                <p>Îți amplifici reacțiile față de o situație? Încearcă să te gândești dacă ceea ce percepi este realist sau dacă exagerezi impactul situației.</p>
+                <textarea name="exagerare" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-23">
+                <h3>Există și alți factori responsabili?</h3>
+                <p>Există alți factori care contribuie la această situație, pe lângă tine? Este important să ai o perspectivă completă asupra cauzelor unei situații.</p>
+                <textarea name="factori_responsabili" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-24">
+                <h3>Am sărit direct la concluzii?</h3>
+                <p>Te-ai grăbit să ajungi la o concluzie fără suficiente dovezi? Încearcă să observi dacă există alte posibilități care ar putea explica situația.</p>
+                <textarea name="concluzii" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-25">
+                <h3>Întmi pun întrăbări fără răspuns?</h3>
+                <p>Te frământă întrăbări care nu au un răspuns clar sau realist? Aceste întrăbări pot fi o sursă majoră de anxietate.</p>
+                <textarea name="intrebari_fara_raspuns" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-26">
+                <h3>Mă concentrez doar asupra slăbiciunilor mele?</h3>
+                <p>Ai tendința să te focalizezi doar pe slăbiciuni și să ignori punctele tale forte? Încearcă să îți recunoști și punctele pozitive.</p>
+                <textarea name="slabiciuni" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-27">
+                <h3>Mă zbat prea mult gândind la cum ar trebui să fie lucrurile?</h3>
+                <p>Ai tendința să te gândești mereu la cum ar trebui să fie lucrurile, în loc să accepți situația așa cum este? Acceptarea poate reduce stresul și anxietatea.</p>
+                <textarea name="cum_ar_trebui" rows="3" required></textarea>
+            </div>
+            <div class="question-card form-step" id="step-28">
+                <h3>Mă aștept să fiu perfect?</h3>
+                <p>Îți setezi standarde foarte înalte, imposibil de atins? Perfecționismul poate fi o sursă majoră de frustrare și descurajare.</p>
+                <textarea name="perfectiune" rows="3" required></textarea>
+            </div>
+    
+            <div class="step-navigation">
+                <button type="button" onclick="previousStep()">&Icirc;napoi</button>
+                <button type="button" onclick="nextStep()">&Icirc;nainte</button>
+            </div>
+            <button type="button" onclick="adaugaInTabel()">Adaugă în tabel</button>
+        </form>
+    </div>
+    
+    <h3 style="text-align: center;">Răspunsurile tale:</h3>
+    <br/>
+    <button type="button" onclick="exportToCSV()">Exportă răspunsurile în Excel (CSV)</button>
+    
+    <div class="card-view" id="cardViewContainer"></div>
+    
+</body>
+</html>
