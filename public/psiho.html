@@ -1,4 +1,10 @@
-<script type="module">
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fișă Monitorizare</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
@@ -356,14 +362,13 @@
         }
 
         .card-view {
-            margin-top: 30px;
-            max-width: 900px;
-            margin: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            align-items: center;
-        }
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      max-width: 900px;
+      margin: auto;
+      margin-top: 30px;
+      }
 
         .response-card {
             background: #f9f9ff;
@@ -666,9 +671,9 @@
     
     <h3 style="text-align: center;">Răspunsurile tale:</h3>
     <br/>
-    <button type="button" id="exportButton">Exportă răspunsurile în Excel (CSV)</button>
-    
     <div class="card-view" id="cardViewContainer"></div>
+    <br/>
+    <button type="button" id="exportButton">Exportă răspunsurile în Excel (CSV)</button>
     
 </body>
 </html>
