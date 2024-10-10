@@ -117,7 +117,7 @@
 
     // Creăm conținutul cardului cu toate câmpurile disponibile în rowData
     card.innerHTML = `
-        <div class="card-header">Data: ${rowData.date || ''}</div>
+        <div class="card-header"> Data: ${rowData.date || ''} - Situația: ${rowData.situatie || ''}</div>
         <div class="card-content">
             <p><strong>Care este situația?</strong> ${rowData.situatie || ''}</p>
             <p><strong>Ce îmi trece prin minte?</strong> ${rowData.ganduri || ''}</p>
