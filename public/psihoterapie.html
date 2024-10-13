@@ -211,13 +211,29 @@
     }
 
       // Funcționalitate de colaborare
-      async function generateCollaborationLink() {
+    async function generateCollaborationLink() {
         const user = auth.currentUser;
         if (!user) {
             alert("Trebuie să fiți autentificat pentru a genera un link de colaborare.");
             return;
         }
 
+        // Caută dacă există deja o colaborare creată de utilizator
+        const existingCollabQuery = query(
+            collection(db, "collaborations"),
+            where("owner", "==", user.uid)
+        );
+
+        const querySnapshot = await getDocs(existingCollabQuery);
+        if (!querySnapshot.empty) {
+            // Dacă există deja o colaborare, folosește-o
+            const collabDoc = querySnapshot.docs[0];
+            const collaborationLink = `${window.location.origin}/psihoterapie.html?collabId=${collabDoc.id}`;
+            prompt("Link de colaborare existent. Distribuiți acest link și codul PIN pentru acces:", collaborationLink);
+            return;
+        }
+
+        // Dacă nu există, creează una nouă
         const pinCode = prompt("Introduceți un cod PIN pentru acces:");
         if (!pinCode) {
             alert("Cod PIN necesar pentru generarea link-ului.");
@@ -238,8 +254,9 @@
             console.error("Eroare la generarea link-ului de colaborare:", error);
         }
     }
+
     let currentCollabId = null;
-let currentPin = null;
+    let currentPin = null;
 
 window.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
