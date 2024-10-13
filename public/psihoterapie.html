@@ -183,17 +183,22 @@
         cardViewContainer.appendChild(card);
     }
 
-    async function loadTableData() {
-        try {
-            const querySnapshot = await getDocs(collection(db, "raspunsuri"));
-            querySnapshot.forEach((doc) => {
-                const rowData = { id: doc.id, ...doc.data() };
-                adaugaCard(rowData);
-            });
-        } catch (error) {
-            console.error("Eroare la încărcarea din Firestore:", error);
-        }
+    async function loadTableData(collabId, pin) {
+    try {
+        const querySnapshot = await getDocs(collection(db, "raspunsuri"), {
+            params: {
+                collabId: collabId,
+                pin: pin
+            }
+        });
+        querySnapshot.forEach((doc) => {
+            const rowData = { id: doc.id, ...doc.data() };
+            adaugaCard(rowData);
+        });
+    } catch (error) {
+        console.error("Eroare la încărcarea din Firestore:", error);
     }
+}
 
     async function stergeCard(id, card) {
         try {
@@ -232,42 +237,50 @@
             console.error("Eroare la generarea link-ului de colaborare:", error);
         }
     }
-     // Verifică dacă pagina este accesată printr-un link de colaborare
-     window.addEventListener('DOMContentLoaded', async () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const collabId = urlParams.get('collabId');
+    let currentCollabId = null;
+let currentPin = null;
 
-        if (collabId) {
-            const pin = prompt("Introduceți codul PIN pentru accesul la colaborare:");
-            if (!pin) {
-                alert("Cod PIN necesar pentru accesul la colaborare.");
-                return;
-            }
+window.addEventListener('DOMContentLoaded', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const collabId = urlParams.get('collabId');
 
-            try {
-                const collabDocRef = doc(db, "collaborations", collabId);
-                const collabSnapshot = await getDoc(collabDocRef);
+    if (collabId) {
+        const pin = prompt("Introduceți codul PIN pentru accesul la colaborare:");
+        if (!pin) {
+            alert("Cod PIN necesar pentru accesul la colaborare.");
+            return;
+        }
 
-                if (collabSnapshot.exists()) {
-                    const collabData = collabSnapshot.data();
-                    if (collabData.pin === pin) {
-                        alert("Acces la colaborare permis.");
-                        // Poți implementa funcționalități suplimentare pentru colaborare aici
-                    } else {
-                        alert("Cod PIN incorect.");
-                        window.location.href = "login.html";
-                    }
+        try {
+            const collabDocRef = doc(db, "collaborations", collabId);
+            const collabSnapshot = await getDoc(collabDocRef);
+
+            if (collabSnapshot.exists()) {
+                const collabData = collabSnapshot.data();
+                if (collabData.pin === pin) {
+                    alert("Acces la colaborare permis.");
+                    // Salvăm collabId și pin pentru utilizare ulterioară
+                    currentCollabId = collabId;
+                    currentPin = pin;
+
+                    // Încărcăm datele utilizând collabId și pin
+                    loadTableData(currentCollabId, currentPin);
                 } else {
-                    alert("Colaborare inexistentă.");
+                    alert("Cod PIN incorect.");
                     window.location.href = "login.html";
                 }
-            } catch (error) {
-                console.error("Eroare la accesarea colaborării:", error);
-                alert("Eroare la accesarea colaborării.");
+            } else {
+                alert("Colaborare inexistentă.");
                 window.location.href = "login.html";
             }
+        } catch (error) {
+            console.error("Eroare la accesarea colaborării:", error);
+            alert("Eroare la accesarea colaborării.");
+            window.location.href = "login.html";
         }
-    });
+    }
+});
+
     </script>
     <style>
         body {
