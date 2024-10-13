@@ -261,44 +261,51 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const collabId = urlParams.get('collabId');
+    const urlParams = new URLSearchParams(window.location.search);
+    const collabId = urlParams.get('collabId');
 
-        if (collabId) {
-            const pin = prompt("Introduceți codul PIN pentru accesul la colaborare:");
-            if (!pin) {
-                alert("Cod PIN necesar pentru accesul la colaborare.");
-                return;
-            }
-
-            try {
-                const collabDocRef = doc(db, "collaborations", collabId);
-                const collabSnapshot = await getDoc(collabDocRef);
-
-                if (collabSnapshot.exists()) {
-                    const collabData = collabSnapshot.data();
-                    if (collabData.pin === pin) {
-                        alert("Acces la colaborare permis.");
-                        // Salvăm collabId pentru utilizare ulterioară
-                        currentCollabId = collabId;
-
-                        // Încărcăm datele utilizând collabId
-                        loadTableData(currentCollabId);
-                    } else {
-                        alert("Cod PIN incorect.");
-                        window.location.href = "login.html";
-                    }
-                } else {
-                    alert("Colaborare inexistentă.");
-                    window.location.href = "login.html";
-                }
-            } catch (error) {
-                console.error("Eroare la accesarea colaborării:", error);
-                alert("Eroare la accesarea colaborării.");
-                window.location.href = "login.html";
-            }
+    if (collabId) {
+        const pin = prompt("Introduceți codul PIN pentru accesul la colaborare:");
+        if (!pin) {
+            alert("Cod PIN necesar pentru accesul la colaborare.");
+            return;
         }
-    });
+
+        try {
+            const collabDocRef = doc(db, "collaborations", collabId);
+            const collabSnapshot = await getDoc(collabDocRef);
+
+            if (collabSnapshot.exists()) {
+                const collabData = collabSnapshot.data();
+                if (collabData.pin === pin) {
+                    // Dacă PIN-ul este corect, permite accesul la colaborare
+                    alert("Acces la colaborare permis.");
+                    currentCollabId = collabId;
+                    // Încărcăm datele utilizând collabId
+                    loadTableData(currentCollabId);
+                } else {
+                    alert("Cod PIN incorect.");
+                }
+            } else {
+                alert("Colaborare inexistentă.");
+            }
+        } catch (error) {
+            console.error("Eroare la accesarea colaborării:", error);
+        }
+    } else {
+        // Aici poți adăuga logica pentru utilizatorii autentificați dacă este necesar.
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("Utilizator autentificat:", user.uid);
+                // Permite accesul la funcționalități specifice doar dacă este autentificat
+            } else {
+                console.log("Utilizator neautentificat");
+            }
+        });
+    }
+});
+
+
     </script>
     <style>
         body {
