@@ -226,7 +226,7 @@
 
         try {
             const docRef = await addDoc(collection(db, "collaborations"), collaborationData);
-            const collaborationLink = `${window.location.origin}/psiho.html?collabId=${docRef.id}`;
+            const collaborationLink = `${window.location.origin}/psihoterapie.html?collabId=${docRef.id}`;
             prompt("Link de colaborare generat. Distribuiți acest link și codul PIN pentru acces:", collaborationLink);
         } catch (error) {
             console.error("Eroare la generarea link-ului de colaborare:", error);
