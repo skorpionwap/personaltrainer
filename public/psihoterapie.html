@@ -6,17 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { 
-        getFirestore, 
-        collection, 
-        addDoc, 
-        getDocs, 
-        deleteDoc, 
-        doc, 
-        getDoc, 
-        query, 
-        where 
-    } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
     // Configurarea Firebase
@@ -37,10 +28,10 @@
 
     let currentStep = 1;
     let totalSteps = 0;
-    let currentCollabId = null;
 
     window.onload = function () {
         totalSteps = document.querySelectorAll('.form-step').length;
+        loadTableData();
         updateProgressBar();
         const urlParams = new URLSearchParams(window.location.search);
         const collabId = urlParams.get('collabId');
@@ -64,8 +55,8 @@
             generateLinkButton.addEventListener("click", generateCollaborationLink);
         }
 
-        // Verifică dacă utilizatorul este autentificat doar dacă nu există un collabId
-        if (!collabId) {
+       // Verifică dacă utilizatorul este autentificat doar dacă nu există un collabId
+       if (!collabId) {
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     console.log("Utilizator autentificat:", user.uid);
@@ -78,6 +69,7 @@
             });
         }
     };
+
 
     function nextStep() {
         if (currentStep < totalSteps) {
@@ -113,7 +105,7 @@
         });
 
         try {
-            const docRef = await addDoc(collection(db, `collaborations/${currentCollabId}/raspunsuri`), rowData);
+            const docRef = await addDoc(collection(db, "raspunsuri"), rowData);
             rowData.id = docRef.id; // Salvăm id-ul generat
             adaugaCard(rowData);
             form.reset();
@@ -192,53 +184,40 @@
         cardViewContainer.appendChild(card);
     }
 
-    async function loadTableData(collabId) {
-        if (!collabId) return;
-        try {
-            const q = query(collection(db, `collaborations/${collabId}/raspunsuri`));
-            const querySnapshot = await getDocs(q);
-            querySnapshot.forEach((doc) => {
-                const rowData = { id: doc.id, ...doc.data() };
-                adaugaCard(rowData);
-            });
-        } catch (error) {
-            console.error("Eroare la încărcarea din Firestore:", error);
-        }
+    async function loadTableData(collabId, pin) {
+    try {
+        const querySnapshot = await getDocs(collection(db, "raspunsuri"), {
+            params: {
+                collabId: collabId,
+                pin: pin
+            }
+        });
+        querySnapshot.forEach((doc) => {
+            const rowData = { id: doc.id, ...doc.data() };
+            adaugaCard(rowData);
+        });
+    } catch (error) {
+        console.error("Eroare la încărcarea din Firestore:", error);
     }
+}
 
     async function stergeCard(id, card) {
         try {
-            await deleteDoc(doc(db, `collaborations/${currentCollabId}/raspunsuri`, id));
+            await deleteDoc(doc(db, "raspunsuri", id));
             card.remove();
         } catch (error) {
             console.error("Eroare la ștergerea din Firestore:", error);
         }
     }
 
-    // Funcționalitate de colaborare
-    async function generateCollaborationLink() {
+      // Funcționalitate de colaborare
+      async function generateCollaborationLink() {
         const user = auth.currentUser;
         if (!user) {
             alert("Trebuie să fiți autentificat pentru a genera un link de colaborare.");
             return;
         }
 
-        // Caută dacă există deja o colaborare creată de utilizator
-        const existingCollabQuery = query(
-            collection(db, "collaborations"),
-            where("owner", "==", user.uid)
-        );
-
-        const querySnapshot = await getDocs(existingCollabQuery);
-        if (!querySnapshot.empty) {
-            // Dacă există deja o colaborare, folosește-o
-            const collabDoc = querySnapshot.docs[0];
-            const collaborationLink = `${window.location.origin}/psihoterapie.html?collabId=${collabDoc.id}`;
-            prompt("Link de colaborare existent. Distribuiți acest link și codul PIN pentru acces:", collaborationLink);
-            return;
-        }
-
-        // Dacă nu există, creează una nouă
         const pinCode = prompt("Introduceți un cod PIN pentru acces:");
         if (!pinCode) {
             alert("Cod PIN necesar pentru generarea link-ului.");
@@ -259,8 +238,10 @@
             console.error("Eroare la generarea link-ului de colaborare:", error);
         }
     }
+    let currentCollabId = null;
+let currentPin = null;
 
-    window.addEventListener('DOMContentLoaded', async () => {
+window.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const collabId = urlParams.get('collabId');
 
@@ -278,33 +259,28 @@
             if (collabSnapshot.exists()) {
                 const collabData = collabSnapshot.data();
                 if (collabData.pin === pin) {
-                    // Dacă PIN-ul este corect, permite accesul la colaborare
                     alert("Acces la colaborare permis.");
+                    // Salvăm collabId și pin pentru utilizare ulterioară
                     currentCollabId = collabId;
-                    // Încărcăm datele utilizând collabId
-                    loadTableData(currentCollabId);
+                    currentPin = pin;
+
+                    // Încărcăm datele utilizând collabId și pin
+                    loadTableData(currentCollabId, currentPin);
                 } else {
                     alert("Cod PIN incorect.");
+                    window.location.href = "login.html";
                 }
             } else {
                 alert("Colaborare inexistentă.");
+                window.location.href = "login.html";
             }
         } catch (error) {
             console.error("Eroare la accesarea colaborării:", error);
+            alert("Eroare la accesarea colaborării.");
+            window.location.href = "login.html";
         }
-    } else {
-        // Aici poți adăuga logica pentru utilizatorii autentificați dacă este necesar.
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                console.log("Utilizator autentificat:", user.uid);
-                // Permite accesul la funcționalități specifice doar dacă este autentificat
-            } else {
-                console.log("Utilizator neautentificat");
-            }
-        });
     }
 });
-
 
     </script>
     <style>
