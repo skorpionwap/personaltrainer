@@ -4,8 +4,6 @@
     <title>Fișă Monitorizare - Psiho</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <!-- Include jsPDF library for PDF export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -34,7 +32,8 @@
         totalSteps = document.querySelectorAll('.form-step').length;
         loadTableData();
         updateProgressBar();
-
+        const urlParams = new URLSearchParams(window.location.search);
+        const collabId = urlParams.get('collabId');
         const nextButton = document.getElementById("nextButton");
         if (nextButton) {
             nextButton.addEventListener("click", nextStep);
@@ -50,28 +49,26 @@
             addButton.addEventListener("click", adaugaInTabel);
         }
 
-        const exportButton = document.getElementById("exportButton");
-        if (exportButton) {
-            exportButton.addEventListener("click", exportToPDF);
-        }
-
         const generateLinkButton = document.getElementById("generateLinkButton");
         if (generateLinkButton) {
             generateLinkButton.addEventListener("click", generateCollaborationLink);
         }
 
-        // Verifică dacă utilizatorul este autentificat
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                console.log("Utilizator autentificat:", user.uid);
-                // Permite accesul la funcționalități specifice doar dacă este autentificat
-            } else {
-                console.log("Utilizator neautentificat");
-                // Redirecționează la o pagină de login sau afișează o notificare
-                window.location.href = "login.html";
-            }
-        });
+       // Verifică dacă utilizatorul este autentificat doar dacă nu există un collabId
+       if (!collabId) {
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    console.log("Utilizator autentificat:", user.uid);
+                    // Permite accesul la funcționalități specifice doar dacă este autentificat
+                } else {
+                    console.log("Utilizator neautentificat");
+                    // Redirecționează la o pagină de login sau afișează o notificare
+                    window.location.href = "login.html";
+                }
+            });
+        }
     };
+
 
     function nextStep() {
         if (currentStep < totalSteps) {
@@ -207,107 +204,8 @@
         }
     }
 
-    async function exportToPDF() {
-        try {
-            const { jsPDF } = window.jspdf;
-            const docPDF = new jsPDF();
-
-            const querySnapshot = await getDocs(collection(db, "raspunsuri"));
-            let yOffset = 10;
-
-            querySnapshot.forEach((docData, index) => {
-                const data = docData.data();
-                docPDF.setFontSize(12);
-                docPDF.text(`Răspuns ${index + 1}:`, 10, yOffset);
-                yOffset += 10;
-
-                // Secțiunea 1
-                docPDF.setFont(undefined, 'bold');
-                docPDF.text("Explorarea situației și a nevoilor", 10, yOffset);
-                yOffset += 7;
-                docPDF.setFont(undefined, 'normal');
-                docPDF.text(`- Care este situația?: ${data.situatie || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Ce îmi trece prin minte?: ${data.ganduri || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Cum mă face acel gând să mă simt?: ${data.emotii || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Ce mod este activ?: ${data.mod_activ || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Ce comportament simți că adopți?: ${data.comportament || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Care sunt nevoile tale mai profunde?: ${data.nevoi_profunde || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Mă ajută comportamentul meu să îndeplinesc aceste nevoi?: ${data.ajutor_comportament || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Cum ar gândi și cum s-ar comporta Adultul Sănătos?: ${data.adult_sanatos || ''}`, 10, yOffset);
-                yOffset += 10;
-
-                // Secțiunea 2
-                docPDF.setFont(undefined, 'bold');
-                docPDF.text("Analiza gândurilor și a percepțiilor", 10, yOffset);
-                yOffset += 7;
-                docPDF.setFont(undefined, 'normal');
-                docPDF.text(`- Ce mă face să cred că gândul automat este adevărat?: ${data.dovezi_adevar || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Ce mă face să cred că nu este adevărat?: ${data.dovezi_fals || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Există o explicație alternativă?: ${data.explicatie_alternativa || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Care este cel mai rău lucru care s-ar putea întâmpla?: ${data.scenariu_negativ || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Care este cel mai bun lucru care s-ar putea întâmpla?: ${data.scenariu_optimist || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Care este cel mai realist rezultat?: ${data.rezultat_realist || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Ce s-ar întâmpla dacă mi-aș schimba modul de gândire?: ${data.schimbare_gandire || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Ce i-aș spune unui prieten dacă ar fi în aceeași situație?: ${data.sfat_prieten || ''}`, 10, yOffset);
-                yOffset += 10;
-
-                // Secțiunea 3
-                docPDF.setFont(undefined, 'bold');
-                docPDF.text("Întrebări pentru claritate și reflecție suplimentară", 10, yOffset);
-                yOffset += 7;
-                docPDF.setFont(undefined, 'normal');
-                docPDF.text(`- Văd doar partea rea a lucrurilor?: ${data.partea_rea || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Îmi asum responsabilitatea pentru lucruri care nu au stat în puterea mea?: ${data.responsabilitate || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Mă condamn în baza unui singur eveniment?: ${data.condamnare || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Privesc situația în termeni extremi?: ${data.termeni_extremi || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Exagerez situația?: ${data.exagerare || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Există și alți factori responsabili?: ${data.factori_responsabili || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Am sărit direct la concluzii?: ${data.concluzii || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Îmi pun întrebări fără răspuns?: ${data.intrebari_fara_raspuns || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Mă concentrez doar asupra slăbiciunilor mele?: ${data.slabiciuni || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Mă zbat prea mult gândind la cum ar trebui să fie lucrurile?: ${data.cum_ar_trebui || ''}`, 10, yOffset);
-                yOffset += 7;
-                docPDF.text(`- Mă aștept să fiu perfect?: ${data.perfectiune || ''}`, 10, yOffset);
-                yOffset += 10;
-
-                // Adaugă o pagină nouă dacă spațiul este insuficient
-                if (yOffset > 270) {
-                    docPDF.addPage();
-                    yOffset = 10;
-                }
-            });
-
-            docPDF.save("raspunsuri.pdf");
-        } catch (error) {
-            console.error("Eroare la exportul datelor:", error);
-        }
-    }
-
-    // Funcționalitate de colaborare
-    async function generateCollaborationLink() {
+      // Funcționalitate de colaborare
+      async function generateCollaborationLink() {
         const user = auth.currentUser;
         if (!user) {
             alert("Trebuie să fiți autentificat pentru a genera un link de colaborare.");
@@ -334,23 +232,38 @@
             console.error("Eroare la generarea link-ului de colaborare:", error);
         }
     }
-
-    // Verifică dacă pagina este accesată printr-un link de colaborare
-    window.addEventListener('DOMContentLoaded', async () => {
+     // Verifică dacă pagina este accesată printr-un link de colaborare
+     window.addEventListener('DOMContentLoaded', async () => {
         const urlParams = new URLSearchParams(window.location.search);
         const collabId = urlParams.get('collabId');
 
         if (collabId) {
             const pin = prompt("Introduceți codul PIN pentru accesul la colaborare:");
-            const collabDoc = await doc(db, "collaborations", collabId);
-            const collabSnapshot = await getDocs(collection(db, "collaborations"));
-            const collabData = collabSnapshot.docs.find(doc => doc.id === collabId)?.data();
+            if (!pin) {
+                alert("Cod PIN necesar pentru accesul la colaborare.");
+                return;
+            }
 
-            if (collabData && collabData.pin === pin) {
-                alert("Acces la colaborare permis.");
-                // Poți implementa funcționalități suplimentare pentru colaborare aici
-            } else {
-                alert("Cod PIN incorect sau colaborare inexistentă.");
+            try {
+                const collabDocRef = doc(db, "collaborations", collabId);
+                const collabSnapshot = await getDoc(collabDocRef);
+
+                if (collabSnapshot.exists()) {
+                    const collabData = collabSnapshot.data();
+                    if (collabData.pin === pin) {
+                        alert("Acces la colaborare permis.");
+                        // Poți implementa funcționalități suplimentare pentru colaborare aici
+                    } else {
+                        alert("Cod PIN incorect.");
+                        window.location.href = "login.html";
+                    }
+                } else {
+                    alert("Colaborare inexistentă.");
+                    window.location.href = "login.html";
+                }
+            } catch (error) {
+                console.error("Eroare la accesarea colaborării:", error);
+                alert("Eroare la accesarea colaborării.");
                 window.location.href = "login.html";
             }
         }
@@ -817,7 +730,6 @@
     <br/>
     <div class="card-view" id="cardViewContainer"></div>
     <br/>
-    <button type="button" id="exportButton">Exportă răspunsurile în PDF</button>
     
 </body>
 </html>
