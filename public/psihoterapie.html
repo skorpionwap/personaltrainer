@@ -291,12 +291,16 @@
         console.log("Este un colaborator. Ascundem formularul și butonul de generare link.");
         const formElement = document.getElementById("exercitiuForm");
         const generateLinkButton = document.getElementById("generateLinkButton");
+        const topSection = document.querySelector('.form-container'); 
         
         if (formElement) {
             formElement.style.display = 'none';
         }
         if (generateLinkButton) {
             generateLinkButton.style.display = 'none';
+        }
+        if (topSection) {
+            topSection.style.display = 'none'; 
         }
         
         const pin = prompt("Introduceți codul PIN pentru accesul la colaborare:");
