@@ -188,7 +188,16 @@
         cardViewContainer.appendChild(card);
     }
 
-    async function loadTableData(collabId, pin) {
+    let dataAlreadyLoaded = false; // Adăugăm această variabilă pentru a urmări starea
+
+async function loadTableData(collabId, pin) {
+    if (dataAlreadyLoaded) {
+        console.log("Datele au fost deja încărcate, nu le încărcăm din nou.");
+        return; // Ieșim din funcție dacă datele au fost deja încărcate
+    }
+
+    console.log("Funcția loadTableData a fost apelată");
+    
     try {
         const querySnapshot = await getDocs(collection(db, "raspunsuri"), {
             params: {
@@ -196,14 +205,18 @@
                 pin: pin
             }
         });
+
         querySnapshot.forEach((doc) => {
             const rowData = { id: doc.id, ...doc.data() };
             adaugaCard(rowData);
         });
+
+        dataAlreadyLoaded = true; // Setăm variabila pentru a preveni încărcarea repetată
     } catch (error) {
-        console.error("Eroare la încărcarea din Firestore:", error);
+        console.error("Eroare la încărcarea din Firestore:", error.message);
     }
 }
+
 
     async function stergeCard(id, card) {
         try {
