@@ -190,13 +190,13 @@
 
     let dataAlreadyLoaded = false; // Adăugăm această variabilă pentru a urmări starea
 
-async function loadTableData(collabId, pin) {
+    async function loadTableData(collabId, pin) {
     if (dataAlreadyLoaded) {
-        console.log("Datele au fost deja încărcate, nu le încărcăm din nou.");
-        return; // Ieșim din funcție dacă datele au fost deja încărcate
+        console.log("Datele au fost deja încărcate.");
+        return;
     }
 
-    console.log("Funcția loadTableData a fost apelată");
+    console.log("Apel funcție loadTableData o singură dată pentru colaborator.");
     
     try {
         const querySnapshot = await getDocs(collection(db, "raspunsuri"), {
@@ -211,11 +211,12 @@ async function loadTableData(collabId, pin) {
             adaugaCard(rowData);
         });
 
-        dataAlreadyLoaded = true; // Setăm variabila pentru a preveni încărcarea repetată
+        dataAlreadyLoaded = true;  // Setează starea pentru a preveni alte apeluri
     } catch (error) {
         console.error("Eroare la încărcarea din Firestore:", error.message);
     }
 }
+
 
 
     async function stergeCard(id, card) {
@@ -275,14 +276,23 @@ async function loadTableData(collabId, pin) {
     let currentCollabId = null;
     let currentPin = null;
 
-window.addEventListener('DOMContentLoaded', async () => {
+    window.addEventListener('DOMContentLoaded', async () => {
+    console.log("DOMContentLoaded a fost apelat");
     const urlParams = new URLSearchParams(window.location.search);
     const collabId = urlParams.get('collabId');
 
     if (collabId) {
-        // Ascundem formularul și butonul de generare link pentru colaboratori
-        document.getElementById("exercitiuForm").style.display = 'none';
-        document.getElementById("generateLinkButton").style.display = 'none';
+        console.log("Este un colaborator. Ascundem formularul și butonul de generare link.");
+        const formElement = document.getElementById("exercitiuForm");
+        const generateLinkButton = document.getElementById("generateLinkButton");
+        
+        if (formElement) {
+            formElement.style.display = 'none';
+        }
+        if (generateLinkButton) {
+            generateLinkButton.style.display = 'none';
+        }
+        
         const pin = prompt("Introduceți codul PIN pentru accesul la colaborare:");
         if (!pin) {
             alert("Cod PIN necesar pentru accesul la colaborare.");
@@ -290,19 +300,17 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
 
         try {
+            console.log("Încerc să accesez documentul de colaborare.");
             const collabDocRef = doc(db, "collaborations", collabId);
             const collabSnapshot = await getDoc(collabDocRef);
 
             if (collabSnapshot.exists()) {
                 const collabData = collabSnapshot.data();
                 if (collabData.pin === pin) {
-                    alert("Acces la colaborare permis.");
-                    // Salvăm collabId și pin pentru utilizare ulterioară
-                    currentCollabId = collabId;
-                    currentPin = pin;
-
-                    // Încărcăm datele utilizând collabId și pin
-                    loadTableData(currentCollabId, currentPin);
+                    console.log("PIN corect. Încărcăm datele colaboratorului o singură dată.");
+                    if (!dataAlreadyLoaded) {  // Asigură-te că datele nu au fost deja încărcate
+                        loadTableData(collabId, pin);  // Apelăm doar o singură dată pentru colaborator
+                    }
                 } else {
                     alert("Cod PIN incorect.");
                     window.location.href = "login.html";
@@ -318,6 +326,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
 });
+
 
     </script>
     <style>
