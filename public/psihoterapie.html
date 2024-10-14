@@ -282,13 +282,21 @@
     let currentCollabId = null;
     let currentPin = null;
     
-    // Adaugă Jurnal Personal
-document.getElementById("addJurnalButton").addEventListener("click", function() {
+// Adaugă Jurnal Personal și salvează în Firebase
+document.getElementById("addJurnalButton").addEventListener("click", async function() {
     const jurnalInput = document.querySelector('[name="jurnal_personal"]').value;
     if (jurnalInput) {
         const rowData = { jurnal_personal: jurnalInput, date: new Date().toLocaleDateString() };
-        adaugaCardJurnal(rowData);
-        document.getElementById("jurnalPersonalForm").reset();
+        
+        try {
+            // Salvează în colecția "jurnal_personal" din Firestore
+            const docRef = await addDoc(collection(db, "jurnal_personal"), rowData);
+            rowData.id = docRef.id; // Salvăm id-ul generat
+            adaugaCardJurnal(rowData);
+            document.getElementById("jurnalPersonalForm").reset();
+        } catch (error) {
+            console.error("Eroare la salvarea în Firestore:", error);
+        }
     }
 });
 
@@ -305,13 +313,21 @@ function adaugaCardJurnal(rowData) {
     jurnalViewContainer.appendChild(card);
 }
 
-// Adaugă Motive de Recunoștință
-document.getElementById("addRecunostintaButton").addEventListener("click", function() {
+// Adaugă Motive de Recunoștință și salvează în Firebase
+document.getElementById("addRecunostintaButton").addEventListener("click", async function() {
     const recunostintaInput = document.querySelector('[name="motive_recunostinta"]').value;
     if (recunostintaInput) {
         const rowData = { motive_recunostinta: recunostintaInput, date: new Date().toLocaleDateString() };
-        adaugaCardRecunostinta(rowData);
-        document.getElementById("recunostintaForm").reset();
+
+        try {
+            // Salvează în colecția "motive_recunostinta" din Firestore
+            const docRef = await addDoc(collection(db, "motive_recunostinta"), rowData);
+            rowData.id = docRef.id; // Salvăm id-ul generat
+            adaugaCardRecunostinta(rowData);
+            document.getElementById("recunostintaForm").reset();
+        } catch (error) {
+            console.error("Eroare la salvarea în Firestore:", error);
+        }
     }
 });
 
