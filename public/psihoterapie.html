@@ -38,8 +38,6 @@
     // Apelăm loadTableData doar dacă nu este colaborator
     if (!collabId) {
         loadTableData();
-        loadJurnalData(); 
-        loadRecunostintaData();
     }
 
     const nextButton = document.getElementById("nextButton");
@@ -224,60 +222,9 @@
         console.error("Eroare la încărcarea din Firestore:", error.message);
     }
 }
- 
-     // Încărcăm datele din colecția "jurnal_personal" și le afișăm în carduri
-async function loadJurnalData() {
-    try {
-        const querySnapshot = await getDocs(collection(db, "jurnal_personal"));
-        querySnapshot.forEach((doc) => {
-            const rowData = { id: doc.id, ...doc.data() };
-            adaugaCardJurnal(rowData); // Funcția pentru a crea cardurile pentru jurnal
-        });
-    } catch (error) {
-        console.error("Eroare la încărcarea datelor din jurnal_personal:", error);
-    }
-}
 
-// Încărcăm datele din colecția "motive_recunostinta" și le afișăm în carduri
-async function loadRecunostintaData() {
-    try {
-        const querySnapshot = await getDocs(collection(db, "motive_recunostinta"));
-        querySnapshot.forEach((doc) => {
-            const rowData = { id: doc.id, ...doc.data() };
-            adaugaCardRecunostinta(rowData); // Funcția pentru a crea cardurile pentru motive de recunoștință
-        });
-    } catch (error) {
-        console.error("Eroare la încărcarea datelor din motive_recunostinta:", error);
-    }
-}
 
-function adaugaCardJurnal(rowData) {
-    const jurnalViewContainer = document.getElementById("jurnalPersonalView");
-    const card = document.createElement("div");
-    card.className = "response-card";
-    card.innerHTML = `
-        <div class="card-header">Data: ${rowData.date}</div>
-        <div class="card-content">
-            <p>${rowData.jurnal_personal}</p>
-        </div>
-    `;
-    jurnalViewContainer.appendChild(card);
-}
 
-function adaugaCardRecunostinta(rowData) {
-    const recunostintaViewContainer = document.getElementById("recunostintaView");
-    const card = document.createElement("div");
-    card.className = "response-card";
-    card.innerHTML = `
-        <div class="card-header">Data: ${rowData.date}</div>
-        <div class="card-content">
-            <p>${rowData.motive_recunostinta}</p>
-        </div>
-    `;
-    recunostintaViewContainer.appendChild(card);
-}
-
- 
     async function stergeCard(id, card) {
         try {
             await deleteDoc(doc(db, "raspunsuri", id));
@@ -334,68 +281,6 @@ function adaugaCardRecunostinta(rowData) {
 
     let currentCollabId = null;
     let currentPin = null;
-    
-// Adaugă Jurnal Personal și salvează în Firebase
-document.getElementById("addJurnalButton").addEventListener("click", async function() {
-    const jurnalInput = document.querySelector('[name="jurnal_personal"]').value;
-    if (jurnalInput) {
-        const rowData = { jurnal_personal: jurnalInput, date: new Date().toLocaleDateString() };
-        
-        try {
-            // Salvează în colecția "jurnal_personal" din Firestore
-            const docRef = await addDoc(collection(db, "jurnal_personal"), rowData);
-            rowData.id = docRef.id; // Salvăm id-ul generat
-            adaugaCardJurnal(rowData);
-            document.getElementById("jurnalPersonalForm").reset();
-        } catch (error) {
-            console.error("Eroare la salvarea în Firestore:", error);
-        }
-    }
-});
-
-function adaugaCardJurnal(rowData) {
-    const jurnalViewContainer = document.getElementById("jurnalPersonalView");
-    const card = document.createElement("div");
-    card.className = "response-card";
-    card.innerHTML = `
-        <div class="card-header">Data: ${rowData.date}</div>
-        <div class="card-content">
-            <p>${rowData.jurnal_personal}</p>
-        </div>
-    `;
-    jurnalViewContainer.appendChild(card);
-}
-
-// Adaugă Motive de Recunoștință și salvează în Firebase
-document.getElementById("addRecunostintaButton").addEventListener("click", async function() {
-    const recunostintaInput = document.querySelector('[name="motive_recunostinta"]').value;
-    if (recunostintaInput) {
-        const rowData = { motive_recunostinta: recunostintaInput, date: new Date().toLocaleDateString() };
-
-        try {
-            // Salvează în colecția "motive_recunostinta" din Firestore
-            const docRef = await addDoc(collection(db, "motive_recunostinta"), rowData);
-            rowData.id = docRef.id; // Salvăm id-ul generat
-            adaugaCardRecunostinta(rowData);
-            document.getElementById("recunostintaForm").reset();
-        } catch (error) {
-            console.error("Eroare la salvarea în Firestore:", error);
-        }
-    }
-});
-
-function adaugaCardRecunostinta(rowData) {
-    const recunostintaViewContainer = document.getElementById("recunostintaView");
-    const card = document.createElement("div");
-    card.className = "response-card";
-    card.innerHTML = `
-        <div class="card-header">Data: ${rowData.date}</div>
-        <div class="card-content">
-            <p>${rowData.motive_recunostinta}</p>
-        </div>
-    `;
-    recunostintaViewContainer.appendChild(card);
-}
 
     window.addEventListener('DOMContentLoaded', async () => {
     console.log("DOMContentLoaded a fost apelat");
@@ -904,54 +789,16 @@ function adaugaCardRecunostinta(rowData) {
         <div id="confirmationMessage">
             Formularul a fost trimis cu succes! Mulțumim pentru răspunsuri.
         </div>
+
         <!-- Secțiunea de colaborare -->
         <div class="collaboration-section">
             <button type="button" id="generateLinkButton">Generează Link de Colaborare</button>
         </div>
     </div>
+    
+    <h3 style="text-align: center;">Răspunsurile tale:</h3>
     <br/>
-    <div class="form-container">
-       <!-- Formular Jurnal Personal -->
-       <form id="jurnalPersonalForm">
-        <div class="question-card form-step form-step-active" id="jurnal-personal-step">
-            <h3>Jurnal Personal</h3>
-            <p>Împărtășește gândurile și reflecțiile tale zilnice. Acesta este locul în care poți nota orice simți sau gândești în legătură cu ziua ta.</p>
-            <textarea name="jurnal_personal" rows="3" required></textarea>
-        </div>
-        <button type="button" id="addJurnalButton">Salvează în jurnal</button>
-        <!-- Mesaj de confirmare după trimiterea formularului -->
-        <div id="confirmationMessage">
-            Formularul a fost trimis cu succes! Mulțumim pentru răspunsuri.
-        </div>
-        </form>
-    </div>
-    <br/>
-    <div class="form-container">
-    <!-- Formular Motive de Recunoștință -->
-        <form id="recunostintaForm">
-        <div class="question-card form-step form-step-active" id="recunostinta-step">
-            <h3>Motive de Recunoștință</h3>
-            <p>Gândește-te la câteva lucruri pentru care ești recunoscător astăzi. Acest exercițiu te poate ajuta să-ți îmbunătățești starea de bine și să-ți dezvolți o atitudine pozitivă.</p>
-            <textarea name="motive_recunostinta" rows="3" required></textarea>
-        </div>
-        <button type="button" id="addRecunostintaButton">Adaugă motivele de recunoștință</button>
-        <!-- Mesaj de confirmare după trimiterea formularului -->
-        <div id="confirmationMessage">
-            Formularul a fost trimis cu succes! Mulțumim pentru răspunsuri.
-        </div>
-        </form>
-    </div>
-
-    <h3 style="text-align: center;">Fișă Monitorizare:</h3>
     <div class="card-view" id="cardViewContainer"></div>
-    <br/>
-    <br/>
-    <h3 style="text-align: center;">Jurnal Personal:</h3>
-    <div class="card-view" id="jurnalPersonalView"></div>
-    <br/>
-    <br/>
-    <h3 style="text-align: center;">Motive de Recunoștință:</h3>
-    <div class="card-view" id="recunostintaView"></div>
     <br/>
     
 </body>
