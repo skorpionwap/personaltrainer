@@ -29,77 +29,46 @@
     let currentStep = 1;
     let totalSteps = 0;
 
-    window.addEventListener('DOMContentLoaded', async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const collabId = urlParams.get('collabId');
-    const pin = urlParams.get('pin');
+    window.onload = function () {
+        totalSteps = document.querySelectorAll('.form-step').length;
+        loadTableData();
+        updateProgressBar();
+        const urlParams = new URLSearchParams(window.location.search);
+        const collabId = urlParams.get('collabId');
+        const nextButton = document.getElementById("nextButton");
+        if (nextButton) {
+            nextButton.addEventListener("click", nextStep);
+        }
 
-    // Verificăm dacă există collabId și pin (pentru utilizatorii neautentificați)
-    if (collabId && pin) {
-        // Cazul 2: Utilizator neautentificat cu collabId și pin
-        try {
-            const collabDocRef = doc(db, "collaborations", collabId);
-            const collabSnapshot = await getDoc(collabDocRef);
+        const prevButton = document.getElementById("prevButton");
+        if (prevButton) {
+            prevButton.addEventListener("click", previousStep);
+        }
 
-            if (collabSnapshot.exists()) {
-                const collabData = collabSnapshot.data();
-                if (collabData.pin === pin) {
-                    alert("Acces la colaborare permis.");
-                    currentCollabId = collabId;
-                    currentPin = pin;
+        const addButton = document.getElementById("addButton");
+        if (addButton) {
+            addButton.addEventListener("click", adaugaInTabel);
+        }
 
-                    // Încărcăm datele utilizând collabId și pin
-                    loadTableData(currentCollabId, currentPin);
+        const generateLinkButton = document.getElementById("generateLinkButton");
+        if (generateLinkButton) {
+            generateLinkButton.addEventListener("click", generateCollaborationLink);
+        }
+
+       // Verifică dacă utilizatorul este autentificat doar dacă nu există un collabId
+       if (!collabId) {
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    console.log("Utilizator autentificat:", user.uid);
+                    // Permite accesul la funcționalități specifice doar dacă este autentificat
                 } else {
-                    alert("Cod PIN incorect.");
+                    console.log("Utilizator neautentificat");
+                    // Redirecționează la o pagină de login sau afișează o notificare
                     window.location.href = "login.html";
                 }
-            } else {
-                alert("Colaborare inexistentă.");
-                window.location.href = "login.html";
-            }
-        } catch (error) {
-            console.error("Eroare la accesarea colaborării:", error);
-            alert("Eroare la accesarea colaborării.");
-            window.location.href = "login.html";
+            });
         }
-    } else {
-        // Cazul 1: Utilizator autentificat fără collabId și pin
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                console.log("Utilizator autentificat:", user.uid);
-
-                // Caută dacă există deja o colaborare creată de utilizator
-                const existingCollabQuery = query(
-                    collection(db, "collaborations"),
-                    where("owner", "==", user.uid)
-                );
-
-                const querySnapshot = await getDocs(existingCollabQuery);
-
-                if (!querySnapshot.empty) {
-                    // Dacă există o colaborare, oferă linkul colaborării
-                    const collabDoc = querySnapshot.docs[0];
-                    const collaborationLink = `${window.location.origin}/psihoterapie.html?collabId=${collabDoc.id}&pin=${collabDoc.data().pin}`;
-                    alert(`Colaborarea ta este deja creată. Poți folosi acest link: ${collaborationLink}`);
-                } else {
-                    // Afișează opțiunea de a crea o colaborare nouă
-                    const generateLinkButton = document.getElementById("generateLinkButton");
-                    if (generateLinkButton) {
-                        generateLinkButton.style.display = 'block';
-                        generateLinkButton.addEventListener('click', generateCollaborationLink);
-                    }
-                }
-            } else {
-                // Dacă utilizatorul nu este autentificat și nu are collabId și pin, redirecționează la login
-                alert("Trebuie să fii autentificat pentru a accesa această pagină.");
-                window.location.href = "login.html";
-            }
-        });
-    }
-});
-
-
+    };
 
 
     function nextStep() {
@@ -129,10 +98,7 @@
     async function adaugaInTabel() {
         const form = document.getElementById("exercitiuForm");
         const formData = new FormData(form);
-        const rowData = { 
-              date: new Date().toLocaleDateString(), 
-              collabId: currentCollabId // Asigură-te că ai acest id la salvare
-    };
+        const rowData = { date: new Date().toLocaleDateString() };
 
         formData.forEach((value, key) => {
             rowData[key] = value;
@@ -219,9 +185,6 @@
     }
 
     async function loadTableData(collabId, pin) {
-    console.log("collabId:", collabId); // Adaugă acest mesaj
-    console.log("pin:", pin); // Adaugă acest mesaj
-
     try {
         const querySnapshot = await getDocs(collection(db, "raspunsuri"), {
             params: {
@@ -234,7 +197,7 @@
             adaugaCard(rowData);
         });
     } catch (error) {
-        console.error("Eroare la încărcarea din Firestore:", error); // Mesaj de eroare detaliat
+        console.error("Eroare la încărcarea din Firestore:", error);
     }
 }
 
@@ -247,50 +210,50 @@
         }
     }
 
+      // Funcționalitate de colaborare
     async function generateCollaborationLink() {
-    const user = auth.currentUser;
-    if (!user) {
-        alert("Trebuie să fiți autentificat pentru a genera un link de colaborare.");
-        return;
+        const user = auth.currentUser;
+        if (!user) {
+            alert("Trebuie să fiți autentificat pentru a genera un link de colaborare.");
+            return;
+        }
+
+        // Caută dacă există deja o colaborare creată de utilizator
+        const existingCollabQuery = query(
+            collection(db, "collaborations"),
+            where("owner", "==", user.uid)
+        );
+
+        const querySnapshot = await getDocs(existingCollabQuery);
+        if (!querySnapshot.empty) {
+            // Dacă există deja o colaborare, folosește-o
+            const collabDoc = querySnapshot.docs[0];
+            const collaborationLink = `${window.location.origin}/psihoterapie.html?collabId=${collabDoc.id}`;
+            prompt("Link de colaborare existent. Distribuiți acest link și codul PIN pentru acces:", collaborationLink);
+            return;
+        }
+
+        // Dacă nu există, creează una nouă
+        const pinCode = prompt("Introduceți un cod PIN pentru acces:");
+        if (!pinCode) {
+            alert("Cod PIN necesar pentru generarea link-ului.");
+            return;
+        }
+
+        const collaborationData = {
+            owner: user.uid,
+            pin: pinCode,
+            createdAt: new Date(),
+        };
+
+        try {
+            const docRef = await addDoc(collection(db, "collaborations"), collaborationData);
+            const collaborationLink = `${window.location.origin}/psihoterapie.html?collabId=${docRef.id}`;
+            prompt("Link de colaborare generat. Distribuiți acest link și codul PIN pentru acces:", collaborationLink);
+        } catch (error) {
+            console.error("Eroare la generarea link-ului de colaborare:", error);
+        }
     }
-
-    // Caută dacă există deja o colaborare creată de utilizator
-    const existingCollabQuery = query(
-        collection(db, "collaborations"),
-        where("owner", "==", user.uid)
-    );
-
-    const querySnapshot = await getDocs(existingCollabQuery);
-    if (!querySnapshot.empty) {
-        // Dacă există deja o colaborare, folosește-o
-        const collabDoc = querySnapshot.docs[0];
-        const collaborationLink = `${window.location.origin}/psihoterapie.html?collabId=${collabDoc.id}&pin=${collabDoc.data().pin}`;
-        prompt("Link de colaborare existent. Distribuiți acest link și codul PIN pentru acces:", collaborationLink);
-        return;
-    }
-
-    // Dacă nu există, creează una nouă
-    const pinCode = prompt("Introduceți un cod PIN pentru acces:");
-    if (!pinCode) {
-        alert("Cod PIN necesar pentru generarea link-ului.");
-        return;
-    }
-
-    const collaborationData = {
-        owner: user.uid,
-        pin: pinCode,
-        createdAt: new Date(),
-    };
-
-    try {
-        const docRef = await addDoc(collection(db, "collaborations"), collaborationData);
-        const collaborationLink = `${window.location.origin}/psihoterapie.html?collabId=${docRef.id}&pin=${pinCode}`;
-        prompt("Link de colaborare generat. Distribuiți acest link și codul PIN pentru acces:", collaborationLink);
-    } catch (error) {
-        console.error("Eroare la generarea link-ului de colaborare:", error);
-    }
-}
-
 
     let currentCollabId = null;
     let currentPin = null;
