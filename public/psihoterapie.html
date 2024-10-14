@@ -281,7 +281,8 @@
 
     let currentCollabId = null;
     let currentPin = null;
-    / Adaugă Jurnal Personal
+    
+    // Adaugă Jurnal Personal
 document.getElementById("addJurnalButton").addEventListener("click", function() {
     const jurnalInput = document.querySelector('[name="jurnal_personal"]').value;
     if (jurnalInput) {
@@ -834,43 +835,44 @@ function adaugaCardRecunostinta(rowData) {
         <div id="confirmationMessage">
             Formularul a fost trimis cu succes! Mulțumim pentru răspunsuri.
         </div>
-        
-         <!-- Formular Jurnal Personal -->
-    <form id="jurnalPersonalForm">
-    <div class="question-card form-step form-step-active" id="jurnal-personal-step">
-        <h3>Jurnal Personal</h3>
-        <p>Împărtășește gândurile și reflecțiile tale zilnice. Acesta este locul în care poți nota orice simți sau gândești în legătură cu ziua ta.</p>
-        <textarea name="jurnal_personal" rows="3" required></textarea>
-    </div>
-    <button type="button" id="addJurnalButton">Salvează în jurnal</button>
-    </form>
-
-<!-- Formular Motive de Recunoștință -->
-    <form id="recunostintaForm">
-    <div class="question-card form-step form-step-active" id="recunostinta-step">
-        <h3>Motive de Recunoștință</h3>
-        <p>Gândește-te la câteva lucruri pentru care ești recunoscător astăzi. Acest exercițiu te poate ajuta să-ți îmbunătățești starea de bine și să-ți dezvolți o atitudine pozitivă.</p>
-        <textarea name="motive_recunostinta" rows="3" required></textarea>
-    </div>
-    <button type="button" id="addRecunostintaButton">Adaugă motivele de recunoștință</button>
-    </form>
-
-<h3 style="text-align: center;">Jurnal Personal:</h3>
-<div class="card-view" id="jurnalPersonalView"></div>
-
-<h3 style="text-align: center;">Motive de Recunoștință:</h3>
-<div class="card-view" id="recunostintaView"></div>
-
-
         <!-- Secțiunea de colaborare -->
         <div class="collaboration-section">
             <button type="button" id="generateLinkButton">Generează Link de Colaborare</button>
         </div>
     </div>
     
-    <h3 style="text-align: center;">Răspunsurile tale:</h3>
-    <br/>
+       <!-- Formular Jurnal Personal -->
+       <form id="jurnalPersonalForm">
+        <div class="question-card form-step form-step-active" id="jurnal-personal-step">
+            <h3>Jurnal Personal</h3>
+            <p>Împărtășește gândurile și reflecțiile tale zilnice. Acesta este locul în care poți nota orice simți sau gândești în legătură cu ziua ta.</p>
+            <textarea name="jurnal_personal" rows="3" required></textarea>
+        </div>
+        <button type="button" id="addJurnalButton">Salvează în jurnal</button>
+        </form>
+    
+    <!-- Formular Motive de Recunoștință -->
+        <form id="recunostintaForm">
+        <div class="question-card form-step form-step-active" id="recunostinta-step">
+            <h3>Motive de Recunoștință</h3>
+            <p>Gândește-te la câteva lucruri pentru care ești recunoscător astăzi. Acest exercițiu te poate ajuta să-ți îmbunătățești starea de bine și să-ți dezvolți o atitudine pozitivă.</p>
+            <textarea name="motive_recunostinta" rows="3" required></textarea>
+        </div>
+        <button type="button" id="addRecunostintaButton">Adaugă motivele de recunoștință</button>
+        </form>
+        
+    <h3 style="text-align: center;">Fișă Monitorizare:</h3>
     <div class="card-view" id="cardViewContainer"></div>
+    <br/>
+    <br/>
+    <h3 style="text-align: center;">Jurnal Personal:</h3>
+    <div class="card-view" id="jurnalPersonalView"></div>
+    <br/>
+    <br/>
+    <h3 style="text-align: center;">Motive de Recunoștință:</h3>
+    <div class="card-view" id="recunostintaView"></div>
+
+    
     <br/>
     
 </body>
