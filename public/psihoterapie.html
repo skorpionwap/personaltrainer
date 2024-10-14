@@ -34,54 +34,71 @@
     const collabId = urlParams.get('collabId');
     const pin = urlParams.get('pin');
 
-    // Verificăm dacă utilizatorul este autentificat
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            console.log("Utilizator autentificat:", user.uid);
+    // Verificăm dacă există collabId și pin (pentru utilizatorii neautentificați)
+    if (collabId && pin) {
+        // Cazul 2: Utilizator neautentificat cu collabId și pin
+        try {
+            const collabDocRef = doc(db, "collaborations", collabId);
+            const collabSnapshot = await getDoc(collabDocRef);
 
-            if (collabId && pin) {
-                // Dacă avem collabId și pin, continuăm cu verificarea colaborării
-                try {
-                    const collabDocRef = doc(db, "collaborations", collabId);
-                    const collabSnapshot = await getDoc(collabDocRef);
+            if (collabSnapshot.exists()) {
+                const collabData = collabSnapshot.data();
+                if (collabData.pin === pin) {
+                    alert("Acces la colaborare permis.");
+                    currentCollabId = collabId;
+                    currentPin = pin;
 
-                    if (collabSnapshot.exists()) {
-                        const collabData = collabSnapshot.data();
-                        if (collabData.pin === pin) {
-                            alert("Acces la colaborare permis.");
-                            currentCollabId = collabId;
-                            currentPin = pin;
-
-                            // Încărcăm datele utilizând collabId și pin
-                            loadTableData(currentCollabId, currentPin);
-                        } else {
-                            alert("Cod PIN incorect.");
-                            window.location.href = "login.html";
-                        }
-                    } else {
-                        alert("Colaborare inexistentă.");
-                        window.location.href = "login.html";
-                    }
-                } catch (error) {
-                    console.error("Eroare la accesarea colaborării:", error);
-                    alert("Eroare la accesarea colaborării.");
+                    // Încărcăm datele utilizând collabId și pin
+                    loadTableData(currentCollabId, currentPin);
+                } else {
+                    alert("Cod PIN incorect.");
                     window.location.href = "login.html";
                 }
             } else {
-                // Dacă nu avem collabId și pin, oferim utilizatorului opțiunea de a crea o colaborare nouă
-                console.log("Nu există collabId și pin în URL.");
-                const generateLinkButton = document.getElementById("generateLinkButton");
-                if (generateLinkButton) {
-                    generateLinkButton.style.display = 'block'; // Afișăm butonul de creare link colaborare
-                }
+                alert("Colaborare inexistentă.");
+                window.location.href = "login.html";
             }
-        } else {
-            // Dacă utilizatorul nu este autentificat, îl redirecționăm către pagina de login
-            alert("Trebuie să fii autentificat pentru a accesa această pagină.");
+        } catch (error) {
+            console.error("Eroare la accesarea colaborării:", error);
+            alert("Eroare la accesarea colaborării.");
             window.location.href = "login.html";
         }
-    });
+    } else {
+        // Cazul 1: Utilizator autentificat fără collabId și pin
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                console.log("Utilizator autentificat:", user.uid);
+
+                // Caută dacă există deja o colaborare creată de utilizator
+                const existingCollabQuery = query(
+                    collection(db, "collaborations"),
+                    where("owner", "==", user.uid)
+                );
+
+                const querySnapshot = await getDocs(existingCollabQuery);
+
+                if (!querySnapshot.empty) {
+                    // Dacă există o colaborare, oferă linkul colaborării
+                    const collabDoc = querySnapshot.docs[0];
+                    const collaborationLink = `${window.location.origin}/psihoterapie.html?collabId=${collabDoc.id}&pin=${collabDoc.data().pin}`;
+                    alert(`Colaborarea ta este deja creată. Poți folosi acest link: ${collaborationLink}`);
+                } else {
+                    // Afișează opțiunea de a crea o colaborare nouă
+                    const generateLinkButton = document.getElementById("generateLinkButton");
+                    if (generateLinkButton) {
+                        generateLinkButton.style.display = 'block';
+                        generateLinkButton.addEventListener('click', generateCollaborationLink);
+                    }
+                }
+            } else {
+                // Dacă utilizatorul nu este autentificat și nu are collabId și pin, redirecționează la login
+                alert("Trebuie să fii autentificat pentru a accesa această pagină.");
+                window.location.href = "login.html";
+            }
+        });
+    }
 });
+
 
 
 
