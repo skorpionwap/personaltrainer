@@ -189,6 +189,7 @@
     }
 
     async function loadTableData(collabId, pin) {
+        console.log("Funcția loadTableData a fost apelată");
     try {
         const querySnapshot = await getDocs(collection(db, "raspunsuri"), {
             params: {
@@ -268,9 +269,9 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     if (collabId) {
         // Ascundem formularul și butonul de generare link pentru colaboratori
-        document.getElementById("exercitiuForm").style.display = 'none';
+        document.getElementById("form-container").style.display = 'none';
         document.getElementById("generateLinkButton").style.display = 'none';
-        
+
         const pin = prompt("Introduceți codul PIN pentru accesul la colaborare:");
         if (!pin) {
             alert("Cod PIN necesar pentru accesul la colaborare.");
