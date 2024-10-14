@@ -30,45 +30,51 @@
     let totalSteps = 0;
 
     window.onload = function () {
-        totalSteps = document.querySelectorAll('.form-step').length;
+    totalSteps = document.querySelectorAll('.form-step').length;
+    updateProgressBar();
+    const urlParams = new URLSearchParams(window.location.search);
+    const collabId = urlParams.get('collabId');
+    
+    // Apelăm loadTableData doar dacă nu este colaborator
+    if (!collabId) {
         loadTableData();
-        updateProgressBar();
-        const urlParams = new URLSearchParams(window.location.search);
-        const collabId = urlParams.get('collabId');
-        const nextButton = document.getElementById("nextButton");
-        if (nextButton) {
-            nextButton.addEventListener("click", nextStep);
-        }
+    }
 
-        const prevButton = document.getElementById("prevButton");
-        if (prevButton) {
-            prevButton.addEventListener("click", previousStep);
-        }
+    const nextButton = document.getElementById("nextButton");
+    if (nextButton) {
+        nextButton.addEventListener("click", nextStep);
+    }
 
-        const addButton = document.getElementById("addButton");
-        if (addButton) {
-            addButton.addEventListener("click", adaugaInTabel);
-        }
+    const prevButton = document.getElementById("prevButton");
+    if (prevButton) {
+        prevButton.addEventListener("click", previousStep);
+    }
 
-        const generateLinkButton = document.getElementById("generateLinkButton");
-        if (generateLinkButton) {
-            generateLinkButton.addEventListener("click", generateCollaborationLink);
-        }
+    const addButton = document.getElementById("addButton");
+    if (addButton) {
+        addButton.addEventListener("click", adaugaInTabel);
+    }
 
-       // Verifică dacă utilizatorul este autentificat doar dacă nu există un collabId
-       if (!collabId) {
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    console.log("Utilizator autentificat:", user.uid);
-                    // Permite accesul la funcționalități specifice doar dacă este autentificat
-                } else {
-                    console.log("Utilizator neautentificat");
-                    // Redirecționează la o pagină de login sau afișează o notificare
-                    window.location.href = "login.html";
-                }
-            });
-        }
-    };
+    const generateLinkButton = document.getElementById("generateLinkButton");
+    if (generateLinkButton) {
+        generateLinkButton.addEventListener("click", generateCollaborationLink);
+    }
+
+    // Verifică dacă utilizatorul este autentificat doar dacă nu există un collabId
+    if (!collabId) {
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("Utilizator autentificat:", user.uid);
+                // Permite accesul la funcționalități specifice doar dacă este autentificat
+            } else {
+                console.log("Utilizator neautentificat");
+                // Redirecționează la o pagină de login sau afișează o notificare
+                window.location.href = "login.html";
+            }
+        });
+    }
+};
+
 
 
     function nextStep() {
