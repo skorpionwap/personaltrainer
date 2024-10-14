@@ -38,6 +38,8 @@
     // Apelăm loadTableData doar dacă nu este colaborator
     if (!collabId) {
         loadTableData();
+        loadJurnalData(); 
+        loadRecunostintaData();
     }
 
     const nextButton = document.getElementById("nextButton");
@@ -222,9 +224,60 @@
         console.error("Eroare la încărcarea din Firestore:", error.message);
     }
 }
+ 
+     // Încărcăm datele din colecția "jurnal_personal" și le afișăm în carduri
+async function loadJurnalData() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "jurnal_personal"));
+        querySnapshot.forEach((doc) => {
+            const rowData = { id: doc.id, ...doc.data() };
+            adaugaCardJurnal(rowData); // Funcția pentru a crea cardurile pentru jurnal
+        });
+    } catch (error) {
+        console.error("Eroare la încărcarea datelor din jurnal_personal:", error);
+    }
+}
 
+// Încărcăm datele din colecția "motive_recunostinta" și le afișăm în carduri
+async function loadRecunostintaData() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "motive_recunostinta"));
+        querySnapshot.forEach((doc) => {
+            const rowData = { id: doc.id, ...doc.data() };
+            adaugaCardRecunostinta(rowData); // Funcția pentru a crea cardurile pentru motive de recunoștință
+        });
+    } catch (error) {
+        console.error("Eroare la încărcarea datelor din motive_recunostinta:", error);
+    }
+}
 
+function adaugaCardJurnal(rowData) {
+    const jurnalViewContainer = document.getElementById("jurnalPersonalView");
+    const card = document.createElement("div");
+    card.className = "response-card";
+    card.innerHTML = `
+        <div class="card-header">Data: ${rowData.date}</div>
+        <div class="card-content">
+            <p>${rowData.jurnal_personal}</p>
+        </div>
+    `;
+    jurnalViewContainer.appendChild(card);
+}
 
+function adaugaCardRecunostinta(rowData) {
+    const recunostintaViewContainer = document.getElementById("recunostintaView");
+    const card = document.createElement("div");
+    card.className = "response-card";
+    card.innerHTML = `
+        <div class="card-header">Data: ${rowData.date}</div>
+        <div class="card-content">
+            <p>${rowData.motive_recunostinta}</p>
+        </div>
+    `;
+    recunostintaViewContainer.appendChild(card);
+}
+
+ 
     async function stergeCard(id, card) {
         try {
             await deleteDoc(doc(db, "raspunsuri", id));
