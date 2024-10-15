@@ -706,6 +706,92 @@ async function populateTableData() {
         .collaboration-section button:hover {
             background-color: #45a049;
         }
+
+        /* Adaptare pentru dispozitive mobile */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    .form-container {
+        padding: 15px;
+        border-width: 2px;
+    }
+    textarea {
+        font-size: 14px;
+        padding: 8px;
+    }
+    input[type="submit"], button {
+        font-size: 16px;
+        padding: 10px 20px;
+    }
+    .question-card h3 {
+        font-size: 1.1em;
+    }
+    .question-card p {
+        font-size: 0.9em;
+    }
+    .response-card {
+        width: 100%; /* Ajustare completă pentru lățimea pe mobil */
+        margin: 10px auto;
+    }
+    .response-card .card-header {
+        font-size: 1em;
+        padding: 10px;
+    }
+    .response-card .card-content {
+        padding: 10px;
+        font-size: 0.9em;
+    }
+    table, th, td {
+        font-size: 0.85em; /* Reducem dimensiunea fontului pentru vizibilitate */
+    }
+    .card-view {
+        gap: 15px;
+    }
+    .styled-detail-card {
+        width: 100%; /* Cardurile extinse să fie responsive */
+    }
+}
+
+/* Adaptare pentru ecrane foarte mici (sub 480px) */
+@media (max-width: 480px) {
+    .form-container {
+        padding: 10px;
+    }
+    .question-card h3 {
+        font-size: 1em;
+    }
+    .question-card p {
+        font-size: 0.85em;
+    }
+    textarea {
+        font-size: 12px;
+        padding: 6px;
+    }
+    input[type="submit"], button {
+        font-size: 14px;
+        padding: 8px 15px;
+    }
+    .response-card .card-header {
+        font-size: 0.9em;
+        padding: 8px;
+    }
+    .response-card .card-content {
+        font-size: 0.85em;
+        padding: 8px;
+    }
+    .card-view {
+        gap: 10px;
+    }
+    table, th, td {
+        font-size: 0.75em;
+        padding: 5px;
+    }
+    .styled-detail-card {
+        padding: 15px;
+    }
+}
+
     </style>
 </head>
 <body>
