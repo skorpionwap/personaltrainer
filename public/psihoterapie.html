@@ -413,382 +413,282 @@ async function populateTableData() {
 
     </script>
     <style>
-        body {
-            font-family: 'Roboto', 'Montserrat', sans-serif;
-            margin: 20px;
-            background: linear-gradient(to right, #ece9e6, #ffffff);
-            color: #333;
-        }
-        .form-container {
-            max-width: 900px;
-            margin: auto;
-            background: #fff;
-            padding: 30px;
-            box-shadow: 0 16px 24px rgba(0, 0, 0, 0.2);
-            border-radius: 15px;
-            border: 3px solid #87CEFA;
-            transition: transform 0.3s ease;
-        }
-        .form-container:hover {
-            transform: scale(1.02);
-        }
-        .progress-bar {
-            width: 100%;
-            background-color: #f3f3f3;
-            border-radius: 25px;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-        .progress {
-            height: 20px;
-            width: 0;
-            background-color: #87CEFA;
-            transition: width 0.4s ease;
-        }
-        .question-card {
-            margin-bottom: 20px;
-            padding: 20px;
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s;
-        }
-        .question-card:hover {
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
-        }
-        .question-card h3 {
-            font-weight: 700;
-            font-size: 1.2em;
-            margin-bottom: 10px;
-        }
-        .question-card p {
-            font-weight: 300;
-            font-size: 0.95em;
-            margin-bottom: 15px;
-            color: #555;
-        }
-        textarea {
-            width: calc(100% - 20px);
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            resize: vertical;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: border-color 0.3s;
-        }
-        textarea:focus {
-            border-color: #87CEFA;
-            box-shadow: 0 2px 8px rgba(135, 206, 250, 0.5);
-        }
-        input[type="submit"], button {
-            margin-top: 20px;
-            padding: 12px 25px;
-            font-size: 18px;
-            background: linear-gradient(to right, #87CEFA, #6bb9e7);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.3s, transform 0.3s;
-        }
-        input[type="submit"]:hover, button:hover {
-            background: linear-gradient(to right, #6bb9e7, #4A90E2);
-            transform: translateY(-3px);
-        }
-        .form-step {
-            display: none;
-        }
-        .form-step-active {
-            display: block;
-            animation: fadeIn 1s ease-in-out;
-        }
-        @keyframes fadeIn {
-            0% { opacity: 0; }
-            100% { opacity: 1; }
-        }
-        .step-navigation {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .step-navigation button {
-            margin: 0 10px;
-        }
-
-        .table-container {
-        margin-top: 30px;
-        padding: 20px;
-        background: #fff;
-        border-radius: 15px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        height: auto; /* Permite tabelului să se extindă */
-        overflow: auto;
-       }
-
-
-        .card-view {
-            display: flex;
-            flex-direction: column;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
-            max-width: 900px;
-            margin: auto;
-            margin-top: 30px;
-        }
-
-        .response-card {
-            background: #f9f9ff;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-            width: calc(80% - 10px);
-            transition: all 0.3s;
-            margin: 0 auto;
-            margin-bottom: 0px;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-        }
-
-        .response-card:hover {
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        }
-
-        .response-card .card-header {
-            font-weight: 700;
-            cursor: pointer;
-            background: #87CEFA;
-            padding: 15px;
-            border-radius: 10px;
-            color: #fff;
-            text-align: center;
-            position: relative;
-        }
-
-        .response-card .card-header::after {
-            content: '▼';
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            transition: transform 0.3s;
-        }
-
-        .response-card.open .card-header::after {
-            transform: translateY(-50%) rotate(180deg);
-        }
-
-        .response-card .card-content {
-            max-height: 0;
-            margin-top: 15px;
-            padding: 0;
-            background: #f9f9f9;
-            border-radius: 10px;
-            line-height: 1.5;
-            overflow: auto;
-            transition: max-height 0.5s ease, padding 0.5s ease;
-        }
-
-        .response-card.open .card-content {
-            max-height: 800px;
-            padding: 15px;
-        }
-
-        .response-card .card-content p {
-            margin-bottom: 15px;
-            border-left: 3px solid #87CEFA;
-            padding-left: 10px;
-            background: #fff;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 10px;
-        }
-
-        .response-card h4 {
-            text-align: center;
-            color: #4A90E2;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-
-        .response-card button {
-            display: block;
-            margin: 20px auto 0;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        th {
-            background: linear-gradient(to right, #6bb9e7, #87CEFA);
-            color: white;
-            text-align: center;
-            padding: 10px;
-            position: sticky;
-            top: 0;
-            z-index: 2;
-        }
-        td {
-            padding: 10px;
-            text-align: left;
-            border: 1px solid #ddd;
-        }
-        .detail-card {
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            margin-top: 10px;
-            transition: all 0.3s;
-        }
-        .styled-detail-card {
-            background: #f9f9ff;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-            width: calc(80% - 10px);
-            margin: 0 auto;
-            margin-bottom: 0px;
-            overflow: hidden;
-        }
-        .styled-detail-card h4 {
-            text-align: center;
-            color: #4A90E2;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-        .styled-detail-card p {
-            margin-bottom: 15px;
-            border-left: 3px solid #87CEFA;
-            padding-left: 10px;
-            background: #fff;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 10px;
-        }
-        .delete-button {
-            padding: 8px 15px;
-            font-size: 14px;
-            background-color: #f44336;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .delete-button:hover {
-            background-color: #d32f2f;
-        }
-
-        /* Stil pentru mesajul de confirmare */
-        #confirmationMessage {
-            display: none;
-            text-align: center;
-            padding: 15px;
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-
-        /* Stil pentru secțiunea de colaborare */
-        .collaboration-section {
-            text-align: center;
-            margin-top: 30px;
-        }
-        .collaboration-section button {
-            background-color: #4CAF50;
-        }
-        .collaboration-section button:hover {
-            background-color: #45a049;
-        }
-
-        /* Adaptare pentru dispozitive mobile */
+body {
+    font-family: 'Roboto', 'Montserrat', sans-serif;
+    margin: 10px;
+    background: linear-gradient(to right, #ece9e6, #ffffff);
+    color: #333;
+}
+.form-container {
+    max-width: 100%;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-radius: 15px;
+    border: 2px solid #87CEFA;
+    transition: transform 0.3s ease;
+}
+.form-container:hover {
+    transform: scale(1.02);
+}
+.progress-bar {
+    width: 100%;
+    background-color: #f3f3f3;
+    border-radius: 25px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+.progress {
+    height: 20px;
+    width: 0;
+    background-color: #87CEFA;
+    transition: width 0.4s ease;
+}
+.question-card {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+}
+.question-card:hover {
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+.question-card h3 {
+    font-weight: 700;
+    font-size: 1.1em;
+    margin-bottom: 10px;
+}
+.question-card p {
+    font-weight: 300;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+    color: #555;
+}
+textarea {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    resize: vertical;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.3s;
+}
+textarea:focus {
+    border-color: #87CEFA;
+    box-shadow: 0 2px 8px rgba(135, 206, 250, 0.5);
+}
+input[type="submit"], button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    background: linear-gradient(to right, #87CEFA, #6bb9e7);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.3s;
+}
+input[type="submit"]:hover, button:hover {
+    background: linear-gradient(to right, #6bb9e7, #4A90E2);
+    transform: translateY(-3px);
+}
+.form-step {
+    display: none;
+}
+.form-step-active {
+    display: block;
+    animation: fadeIn 1s ease-in-out;
+}
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+.step-navigation {
+    text-align: center;
+    margin-top: 20px;
+}
+.step-navigation button {
+    margin: 0 10px;
+}
+.table-container {
+    margin-top: 30px;
+    padding: 10px;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+}
+th {
+    background: linear-gradient(to right, #6bb9e7, #87CEFA);
+    color: white;
+    text-align: center;
+    padding: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+td {
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+.detail-card {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    margin-top: 10px;
+    transition: all 0.3s;
+}
+.styled-detail-card {
+    background: #f9f9ff;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    width: 100%;
+    margin: 10px auto;
+    overflow: hidden;
+}
+.styled-detail-card h4 {
+    text-align: center;
+    color: #4A90E2;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+.styled-detail-card p {
+    margin-bottom: 10px;
+    border-left: 3px solid #87CEFA;
+    padding-left: 10px;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 10px;
+}
+.delete-button {
+    padding: 8px 15px;
+    font-size: 14px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+.delete-button:hover {
+    background-color: #d32f2f;
+}
+#confirmationMessage {
+    display: none;
+    text-align: center;
+    padding: 15px;
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+.collaboration-section {
+    text-align: center;
+    margin-top: 30px;
+}
+.collaboration-section button {
+    background-color: #4CAF50;
+}
+.collaboration-section button:hover {
+    background-color: #45a049;
+}
+/* Adaptare pentru dispozitive mobile */
 @media (max-width: 768px) {
-    body {
-        padding: 10px;
-    }
     .form-container {
         padding: 15px;
-        border-width: 2px;
     }
     textarea {
         font-size: 14px;
         padding: 8px;
     }
     input[type="submit"], button {
-        font-size: 16px;
-        padding: 10px 20px;
-    }
-    .question-card h3 {
-        font-size: 1.1em;
-    }
-    .question-card p {
-        font-size: 0.9em;
-    }
-    .response-card {
-        width: 100%; /* Ajustare completă pentru lățimea pe mobil */
-        margin: 10px auto;
-    }
-    .response-card .card-header {
-        font-size: 1em;
-        padding: 10px;
-    }
-    .response-card .card-content {
-        padding: 10px;
-        font-size: 0.9em;
-    }
-    table, th, td {
-        font-size: 0.85em; /* Reducem dimensiunea fontului pentru vizibilitate */
-    }
-    .card-view {
-        gap: 15px;
-    }
-    .styled-detail-card {
-        width: 100%; /* Cardurile extinse să fie responsive */
-    }
-}
-
-/* Adaptare pentru ecrane foarte mici (sub 480px) */
-@media (max-width: 480px) {
-    .form-container {
-        padding: 10px;
+        font-size: 14px;
+        padding: 8px 15px;
     }
     .question-card h3 {
         font-size: 1em;
     }
     .question-card p {
         font-size: 0.85em;
+    }
+    .response-card {
+        width: 100%;
+        margin: 10px auto;
+    }
+    .response-card .card-header {
+        font-size: 0.9em;
+        padding: 10px;
+    }
+    .response-card .card-content {
+        padding: 10px;
+        font-size: 0.85em;
+    }
+    table, th, td {
+        font-size: 0.8em;
+        padding: 6px;
+    }
+    th, td {
+        white-space: nowrap;
+    }
+    .table-container {
+        overflow-x: auto;
+    }
+    .styled-detail-card {
+        padding: 15px;
+    }
+}
+/* Adaptare pentru ecrane foarte mici (sub 480px) */
+@media (max-width: 480px) {
+    body {
+        margin: 5px;
+    }
+    .form-container {
+        padding: 10px;
+    }
+    .question-card h3 {
+        font-size: 0.9em;
+    }
+    .question-card p {
+        font-size: 0.8em;
     }
     textarea {
         font-size: 12px;
         padding: 6px;
     }
     input[type="submit"], button {
-        font-size: 14px;
-        padding: 8px 15px;
+        font-size: 12px;
+        padding: 6px 10px;
     }
     .response-card .card-header {
-        font-size: 0.9em;
-        padding: 8px;
-    }
-    .response-card .card-content {
         font-size: 0.85em;
         padding: 8px;
     }
-    .card-view {
-        gap: 10px;
+    .response-card .card-content {
+        font-size: 0.8em;
+        padding: 8px;
     }
     table, th, td {
-        font-size: 0.75em;
-        padding: 5px;
+        font-size: 0.7em;
+        padding: 4px;
     }
     .styled-detail-card {
-        padding: 15px;
+        padding: 10px;
     }
 }
 
