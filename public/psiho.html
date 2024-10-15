@@ -91,7 +91,7 @@
         }
     }
 
-    function toggleDetails(id) {
+    window.toggleDetails = function(id) {
         const detailRow = document.getElementById(`details-${id}`);
         if (detailRow.style.display === "none") {
             detailRow.style.display = "table-row";
