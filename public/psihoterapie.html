@@ -390,7 +390,7 @@ async function populateTableData() {
                 if (collabData.pin === pin) {
                     console.log("PIN corect. Încărcăm datele colaboratorului o singură dată.");
                     if (!dataAlreadyLoaded) {  // Asigură-te că datele nu au fost deja încărcate
-                        loadTableData(collabId, pin);  // Apelăm doar o singură dată pentru colaborator
+                      //  loadTableData(collabId, pin);  // Apelăm doar o singură dată pentru colaborator
                         populateTableData(collabId, pin);
                     }
                 } else {
@@ -614,45 +614,26 @@ async function populateTableData() {
         }
 
         table {
-            width: max-content;
+            width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
             overflow: hidden;
-            table-layout: fixed;
         }
-
-        table, th, td {
-            border: 1px solid #ddd;
-        }
-
         th {
             background: linear-gradient(to right, #6bb9e7, #87CEFA);
             color: white;
-            font-size: 11px;
             text-align: center;
+            padding: 10px;
             position: sticky;
             top: 0;
             z-index: 2;
-            padding: 8px;
-            white-space: normal;
-            line-height: 1.2;
-            min-width: 100px;
-            max-width: 150px;
-            overflow-wrap: break-word;
         }
-
         td {
             padding: 10px;
             text-align: left;
-            min-width: 120px;
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            cursor: pointer;
-            position: relative;
+            border: 1px solid #ddd;
         }
         .detail-card {
             background: #f9f9f9;
