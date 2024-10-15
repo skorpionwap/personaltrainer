@@ -24,10 +24,10 @@
     const db = getFirestore(app);
 
     window.onload = function () {
-        loadTableData();
+        populateTableData();
     };
 
-    async function loadTableData() {
+    async function populateTableData() {
         try {
             const querySnapshot = await getDocs(collection(db, "raspunsuri"));
             const tableBody = document.getElementById("tableBody");

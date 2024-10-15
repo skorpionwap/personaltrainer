@@ -223,7 +223,78 @@
     }
 }
 
+async function populateTableData() {
+        try {
+            const querySnapshot = await getDocs(collection(db, "raspunsuri"));
+            const tableBody = document.getElementById("tableBody");
+            tableBody.innerHTML = "";
 
+            const sortedDocs = querySnapshot.docs.sort((a, b) => b.data().date.localeCompare(a.data().date));
+
+            sortedDocs.forEach((doc) => {
+                const rowData = doc.data();
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+                    <td>${rowData.date || ''}</td>
+                    <td>${rowData.situatie || ''}</td>
+                    <td>${rowData.ganduri || ''}</td>
+                    <td>${rowData.emotii || ''}</td>
+                    <td>${rowData.mod_activ || ''}</td>
+                    <td>${rowData.comportament || ''}</td>
+                    <td>${rowData.nevoi_profunde || ''}</td>
+                    <td>${rowData.ajutor_comportament || ''}</td>
+                    <td>${rowData.adult_sanatos || ''}</td>
+                    <td><button onclick="toggleDetails('${doc.id}')">Extinde</button></td>
+                `;
+
+                tableBody.appendChild(row);
+
+                const detailRow = document.createElement("tr");
+                detailRow.id = `details-${doc.id}`;
+                detailRow.style.display = "none";
+                detailRow.innerHTML = `
+                    <td colspan="10">
+                        <div class="detail-card styled-detail-card">
+                            <h4>Explorarea gândurilor și a percepțiilor</h4>
+                            <p><strong>Ce mă face să cred că gândul automat este adevărat?</strong> ${rowData.dovezi_adevar || ''}</p>
+                            <p><strong>Ce mă face să cred că nu este adevărat?</strong> ${rowData.dovezi_fals || ''}</p>
+                            <p><strong>Există o explicație alternativă?</strong> ${rowData.explicatie_alternativa || ''}</p>
+                            <p><strong>Care este cel mai rău lucru care s-ar putea întâmpla?</strong> ${rowData.scenariu_negativ || ''}</p>
+                            <p><strong>Care este cel mai bun lucru care s-ar putea întâmpla?</strong> ${rowData.scenariu_optimist || ''}</p>
+                            <p><strong>Care este cel mai realist rezultat?</strong> ${rowData.rezultat_realist || ''}</p>
+                            <p><strong>Ce s-ar întâmpla dacă mi-aș schimba modul de gândire?</strong> ${rowData.schimbare_gandire || ''}</p>
+                            <p><strong>Ce i-aș spune unui prieten dacă ar fi în aceeași situație?</strong> ${rowData.sfat_prieten || ''}</p>
+                            <h4>Întrebări pentru claritate și reflecție suplimentară</h4>
+                            <p><strong>Văd doar partea rea a lucrurilor?</strong> ${rowData.partea_rea || ''}</p>
+                            <p><strong>Îmi asum responsabilitatea pentru lucruri care nu au stat în puterea mea?</strong> ${rowData.responsabilitate || ''}</p>
+                            <p><strong>Mă condamn în baza unui singur eveniment?</strong> ${rowData.condamnare || ''}</p>
+                            <p><strong>Privesc situația în termeni extremi?</strong> ${rowData.termeni_extremi || ''}</p>
+                            <p><strong>Exagerez situația?</strong> ${rowData.exagerare || ''}</p>
+                            <p><strong>Există și alți factori responsabili?</strong> ${rowData.factori_responsabili || ''}</p>
+                            <p><strong>Am sărit direct la concluzii?</strong> ${rowData.concluzii || ''}</p>
+                            <p><strong>Îmi pun întrebări fără răspuns?</strong> ${rowData.intrebari_fara_raspuns || ''}</p>
+                            <p><strong>Mă concentrez doar asupra slăbiciunilor mele?</strong> ${rowData.slabiciuni || ''}</p>
+                            <p><strong>Mă zbat prea mult gândind la cum ar trebui să fie lucrurile?</strong> ${rowData.cum_ar_trebui || ''}</p>
+                            <p><strong>Mă aștept să fiu perfect?</strong> ${rowData.perfectiune || ''}</p>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(detailRow);
+            });
+        } catch (error) {
+            console.error("Eroare la încărcarea din Firestore:", error.message);
+        }
+    }
+
+    window.toggleDetails = function(id) {
+        const detailRow = document.getElementById(`details-${id}`);
+        if (detailRow.style.display === "none") {
+            detailRow.style.display = "table-row";
+        } else {
+            detailRow.style.display = "none";
+        }
+    }
 
     async function stergeCard(id, card) {
         try {
@@ -320,6 +391,7 @@
                     console.log("PIN corect. Încărcăm datele colaboratorului o singură dată.");
                     if (!dataAlreadyLoaded) {  // Asigură-te că datele nu au fost deja încărcate
                         loadTableData(collabId, pin);  // Apelăm doar o singură dată pentru colaborator
+                        populateTableData(collabId, pin);
                     }
                 } else {
                     alert("Cod PIN incorect.");
@@ -583,7 +655,38 @@
             cursor: pointer;
             position: relative;
         }
-
+        .detail-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+        .styled-detail-card {
+            background: #f9f9ff;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            width: calc(80% - 10px);
+            margin: 0 auto;
+            margin-bottom: 0px;
+            overflow: hidden;
+        }
+        .styled-detail-card h4 {
+            text-align: center;
+            color: #4A90E2;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .styled-detail-card p {
+            margin-bottom: 15px;
+            border-left: 3px solid #87CEFA;
+            padding-left: 10px;
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
         .delete-button {
             padding: 8px 15px;
             font-size: 14px;
@@ -797,6 +900,26 @@
     </div>
     
     <h3 style="text-align: center;">Răspunsurile tale:</h3>
+    <br/>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Care este situația?</th>
+                    <th>Ce îmi trece prin minte?</th>
+                    <th>Cum mă face acel gând să mă simt?</th>
+                    <th>Ce mod este activ?</th>
+                    <th>Ce comportament simți că adopți?</th>
+                    <th>Care sunt nevoile tale mai profunde?</th>
+                    <th>Mă ajută comportamentul meu să îndeplinesc aceste nevoi?</th>
+                    <th>Cum ar gândi și cum s-ar comporta Adultul Sănătos?</th>
+                    <th>Detalii</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
     <br/>
     <div class="card-view" id="cardViewContainer"></div>
     <br/>
