@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fișă Monitorizare - Psiho</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+    // Configurarea Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyBn2bojEoV4_icF4fVVKFdJN1YjDhtlG98",
+        authDomain: "personaltrainer-74ea4.firebaseapp.com",
+        projectId: "personaltrainer-74ea4",
+        storageBucket: "personaltrainer-74ea4.appspot.com",
+        messagingSenderId: "591778567441",
+        appId: "1:591778567441:web:bbaeac19a3fb0f190668b0",
+        measurementId: "G-WLWNGNDK5V",
+    };
+
+    // Inițializare Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.onload = function () {
+        loadTableData();
+    };
+
+    async function loadTableData() {
+        try {
+            const querySnapshot = await getDocs(collection(db, "raspunsuri"));
+            const tableBody = document.getElementById("tableBody");
+            tableBody.innerHTML = "";
+
+            const sortedDocs = querySnapshot.docs.sort((a, b) => b.data().date.localeCompare(a.data().date));
+
+            sortedDocs.forEach((doc) => {
+                const rowData = doc.data();
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+                    <td>${rowData.date || ''}</td>
+                    <td>${rowData.situatie || ''}</td>
+                    <td>${rowData.ganduri || ''}</td>
+                    <td>${rowData.emotii || ''}</td>
+                    <td>${rowData.mod_activ || ''}</td>
+                    <td>${rowData.comportament || ''}</td>
+                    <td>${rowData.nevoi_profunde || ''}</td>
+                    <td>${rowData.ajutor_comportament || ''}</td>
+                    <td>${rowData.adult_sanatos || ''}</td>
+                    <td><button onclick="toggleDetails('${doc.id}')">Extinde</button></td>
+                `;
+
+                tableBody.appendChild(row);
+
+                const detailRow = document.createElement("tr");
+                detailRow.id = `details-${doc.id}`;
+                detailRow.style.display = "none";
+                detailRow.innerHTML = `
+                    <td colspan="10">
+                        <div class="detail-card">
+                            <h4>Explorarea gândurilor și a percepțiilor</h4>
+                            <p><strong>Ce mă face să cred că gândul automat este adevărat?</strong> ${rowData.dovezi_adevar || ''}</p>
+                            <p><strong>Ce mă face să cred că nu este adevărat?</strong> ${rowData.dovezi_fals || ''}</p>
+                            <p><strong>Există o explicație alternativă?</strong> ${rowData.explicatie_alternativa || ''}</p>
+                            <p><strong>Care este cel mai rău lucru care s-ar putea întâmpla?</strong> ${rowData.scenariu_negativ || ''}</p>
+                            <p><strong>Care este cel mai bun lucru care s-ar putea întâmpla?</strong> ${rowData.scenariu_optimist || ''}</p>
+                            <p><strong>Care este cel mai realist rezultat?</strong> ${rowData.rezultat_realist || ''}</p>
+                            <p><strong>Ce s-ar întâmpla dacă mi-aș schimba modul de gândire?</strong> ${rowData.schimbare_gandire || ''}</p>
+                            <p><strong>Ce i-aș spune unui prieten dacă ar fi în aceeași situație?</strong> ${rowData.sfat_prieten || ''}</p>
+                            <h4>Întrăbări pentru claritate și reflecție suplimentară</h4>
+                            <p><strong>Văd doar partea rea a lucrurilor?</strong> ${rowData.partea_rea || ''}</p>
+                            <p><strong>Îmi asum responsabilitatea pentru lucruri care nu au stat în puterea mea?</strong> ${rowData.responsabilitate || ''}</p>
+                            <p><strong>Mă condamn în baza unui singur eveniment?</strong> ${rowData.condamnare || ''}</p>
+                            <p><strong>Privesc situația în termeni extremi?</strong> ${rowData.termeni_extremi || ''}</p>
+                            <p><strong>Exagerez situația?</strong> ${rowData.exagerare || ''}</p>
+                            <p><strong>Există și alți factori responsabili?</strong> ${rowData.factori_responsabili || ''}</p>
+                            <p><strong>Am sărit direct la concluzii?</strong> ${rowData.concluzii || ''}</p>
+                            <p><strong>Îmi pun întrebări fără răspuns?</strong> ${rowData.intrebari_fara_raspuns || ''}</p>
+                            <p><strong>Mă concentrez doar asupra slăbiciunilor mele?</strong> ${rowData.slabiciuni || ''}</p>
+                            <p><strong>Mă zbat prea mult gândind la cum ar trebui să fie lucrurile?</strong> ${rowData.cum_ar_trebui || ''}</p>
+                            <p><strong>Mă aștept să fiu perfect?</strong> ${rowData.perfectiune || ''}</p>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(detailRow);
+            });
+        } catch (error) {
+            console.error("Eroare la încărcarea din Firestore:", error.message);
+        }
+    }
+
+    function toggleDetails(id) {
+        const detailRow = document.getElementById(`details-${id}`);
+        if (detailRow.style.display === "none") {
+            detailRow.style.display = "table-row";
+        } else {
+            detailRow.style.display = "none";
+        }
+    }
+    </script>
+    <style>
+        body {
+            font-family: 'Roboto', 'Montserrat', sans-serif;
+            margin: 20px;
+            background: linear-gradient(to right, #ece9e6, #ffffff);
+            color: #333;
+        }
+        .form-container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            box-shadow: 0 16px 24px rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            border: 3px solid #87CEFA;
+            transition: transform 0.3s ease;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        th {
+            background: linear-gradient(to right, #6bb9e7, #87CEFA);
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        .detail-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Fișă Monitorizare</h2>
+        <p>Completează fiecare întrebare pentru a înselege mai bine situațiile tale. Fiecare secțiune reprezintă o parte importantă a reflecției tale.</p>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Care este situația?</th>
+                    <th>Ce îmi trece prin minte?</th>
+                    <th>Cum mă face acel gând să mă simt?</th>
+                    <th>Ce mod este activ?</th>
+                    <th>Ce comportament simți că adopți?</th>
+                    <th>Care sunt nevoile tale mai profunde?</th>
+                    <th>Mă ajută comportamentul meu să îndeplinesc aceste nevoi?</th>
+                    <th>Cum ar gândi și cum s-ar comporta Adultul Sănătos?</th>
+                    <th>Detalii</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+</body>
+</html>
