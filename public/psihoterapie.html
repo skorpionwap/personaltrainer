@@ -265,7 +265,7 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
 
       if (geminiModel) {
         console.log("Solicitare feedback de la Gemini...");
-        modelFolosit = `Gemini (${GEMINI_MODEL_NAME})`;
+        modelFolosit = `Gemini (${GEMINI_MODEL_NAME_FEEDBACK})`;
         feedbackText = await genereazaFeedbackCuGeminiDinFrontend(prompt);
       } else {
         console.warn("Gemini nu este configurat. Nu se poate genera feedback AI.");
@@ -481,7 +481,7 @@ Sunt aici să te ajut. Despre ce ai dori să discutăm sau să reflectăm astăz
         }
     }
 
-    
+
         const formData = new FormData(form);
         const rowData = { date: new Date().toLocaleDateString("ro-RO") };
         formData.forEach((value, key) => { rowData[key] = value; });
@@ -1329,6 +1329,18 @@ if (deleteAllFeedbackButton) {
         <!-- Cardurile cu răspunsuri și feedback AI vor fi adăugate aici de JavaScript -->
     </div>
     
+    <div class="chat-container" id="chatContainer" style="display: none; max-width: 900px; margin: 30px auto; padding: 20px; background: #f0f4f8; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+    <h3 style="text-align: center; color: #333; margin-top: 0;">Discută cu Asistentul AI</h3>
+    <div id="chatMessages" style="height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; background: #fff; border-radius: 5px;">
+        <!-- Mesajele vor apărea aici -->
+    </div>
+    <textarea id="chatInput" rows="3" style="width: calc(100% - 22px); padding: 10px; border-radius: 5px; border: 1px solid #ccc; resize: vertical;" placeholder="Scrie mesajul tău aici..."></textarea>
+    <button id="sendChatMessageButton" style="margin-top: 10px; padding: 10px 20px;">Trimite Mesaj</button>
+    <p id="chatStatus" style="font-size: 0.8em; color: #555; margin-top: 5px;"></p>
+</div>
+
+<button id="toggleChatButton" style="position: fixed; bottom: 20px; right: 20px; padding: 10px 15px; z-index: 1000;">💬 Chat AI</button>
+
     <div class="table-container" style="display: none;"> <!-- Ascuns implicit -->
         <table>
             <thead>
