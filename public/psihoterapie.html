@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, getDoc, updateDoc, arrayUnion, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, deleteField, doc, getDoc, updateDoc, arrayUnion, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
     import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
@@ -602,6 +602,7 @@ function afiseazaIstoricFeedback(containerElement, feedbackHistory) {
           
           <div class="card-actions">
               <button class="generate-ai-feedback-button">Regenerează Feedback AI</button>
+              <button class="delete-all-feedback-button">Șterge Tot Istoricul AI</button>
               <button class="delete-button">Șterge Înregistrarea</button>
           </div>
           <div class="ai-feedback-history-container">
@@ -651,6 +652,60 @@ function afiseazaIstoricFeedback(containerElement, feedbackHistory) {
             });
         }
     
+        const deleteAllFeedbackButton = card.querySelector('.delete-all-feedback-button');
+if (deleteAllFeedbackButton) {
+    deleteAllFeedbackButton.addEventListener('click', async (event) => {
+        event.stopPropagation(); // Previne deschiderea/închiderea cardului
+        if (confirm(`Sunteți sigur că doriți să ștergeți TOT istoricul de feedback AI pentru această înregistrare (${rowData.id})? Această acțiune este ireversibilă.`)) {
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'Se șterge...';
+            button.disabled = true;
+            try {
+                const docRef = doc(db, "raspunsuri", rowData.id);
+                // Setăm feedback_history la un array gol și ștergem și câmpurile individuale
+                // pentru a nu lăsa date inconsistente la rădăcina documentului.
+                await updateDoc(docRef, {
+                    feedback_history: [], // Golește array-ul
+                    feedback_empatie_initiala: deleteField(), // deleteField() din Firestore șterge câmpul
+                    feedback_puncte_forte: deleteField(),
+                    feedback_tipare_principale: deleteField(),
+                    feedback_conexiuni_cheie: deleteField(),
+                    feedback_distorsiuni_identificate: deleteField(),
+                    feedback_scheme_activate: deleteField(),
+                    feedback_moduri_implicate: deleteField(),
+                    feedback_perspectiva_adult_sanatos: deleteField(),
+                    feedback_intrebare_finala_reflectie: deleteField(),
+                    feedback_sugestie_mic_pas: deleteField(),
+                    feedback_incurajare_finala: deleteField(),
+                    // Adaugă aici și cheile vechi de feedback dacă vrei să le ștergi complet
+                    feedback_paragraf: deleteField(),
+                    feedback_intrebare: deleteField(),
+                    feedback_recomandare: deleteField(),
+                    feedback_distorsiuni: deleteField(), // Atenție la coliziunea de nume, feedback_distorsiuni_identificate e mai nou
+                    feedback_scheme: deleteField(),     // La fel, feedback_scheme_activate e mai nou
+                    feedback_adult_eval: deleteField(),
+                    feedback_model: deleteField()       // Modelul ultimului feedback
+                });
+
+                console.log(`Istoricul feedback AI și câmpurile de la rădăcină șterse pentru ${rowData.id}`);
+                
+                // Actualizează UI-ul: golește containerul de istoric
+                const historyContainer = card.querySelector('.ai-feedback-history-container');
+                if (historyContainer) {
+                    afiseazaIstoricFeedback(historyContainer, []); // Pasează un array gol
+                }
+                 alert("Istoricul feedback-ului AI a fost șters cu succes!");
+            } catch (error) {
+                console.error("Eroare la ștergerea istoricului de feedback AI:", error);
+                alert("A apărut o eroare la ștergerea istoricului.");
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+    });
+}
       afiseazaIstoricFeedback(card.querySelector('.ai-feedback-history-container'), rowData.feedback_history);
 
       // Inserează cardurile noi la început
