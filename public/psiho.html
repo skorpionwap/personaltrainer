@@ -28,8 +28,8 @@
 
   // --- Configurare Gemini API ---
     const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // <--- CHEIA TA API GEMINI
-    const GEMINI_MODEL_NAME_FEEDBACK = "gemini-1.5-flash-latest"; // Model pentru feedback-ul automat al fișelor (recomandat 'latest')
-    const GEMINI_MODEL_NAME_CHAT = "gemini-1.5-flash-latest"; // Model pentru chat (recomandat 'latest')
+    const GEMINI_MODEL_NAME_FEEDBACK = "gemini-2.5-flash-preview-04-17"; // Model pentru feedback-ul automat al fișelor (recomandat 'latest')
+    const GEMINI_MODEL_NAME_CHAT = "gemini-2.5-pro-preview-05-06"; // Model pentru chat (recomandat 'latest')
     let genAI, geminiModelFeedback, geminiModelChat;
 
     if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "" && GEMINI_API_KEY !== "YOUR_GEMINI_API_KEY_HERE"  && !GEMINI_API_KEY.startsWith("AIzaSyAlm63krfJxBu1QR5ZmvA0rcGU")) { // Added more checks for placeholder
