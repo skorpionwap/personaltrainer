@@ -44,11 +44,11 @@
             alert("Eroare la inițializarea serviciului AI. Verificați cheia API Gemini și configurația din Google Cloud. Funcționalitatea AI va fi limitată.");
             geminiModelFeedback = null; geminiModelChat = null;
         }
-    } else if (isLikelyPlaceholderKey) {
+    } else  {
         console.warn(`Cheia API Gemini pare a fi un placeholder ('${GEMINI_API_KEY}'). Te rog înlocuiește-o cu cheia ta API validă pentru a activa funcționalitatea AI.`);
         // alert("Funcționalitatea AI este dezactivată. Te rog configurează o cheie API Gemini validă în codul sursă (variabila GEMINI_API_KEY).");
         geminiModelFeedback = null; geminiModelChat = null;
-    } else { // Cheie goală sau doar spații
+        // Cheie goală sau doar spații
         console.warn("Cheia API Gemini nu este configurată. Funcționalitatea AI va fi dezactivată.");
         // alert("Cheia API Gemini nu este configurată. Funcționalitatea AI va fi dezactivată.");
         geminiModelFeedback = null; geminiModelChat = null;
