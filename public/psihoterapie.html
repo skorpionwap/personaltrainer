@@ -241,45 +241,57 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
 
       console.log("Răspuns brut de la Gemini:\n---\n" + feedbackText + "\n---");
 
-      const parsedFeedback = {
-          paragraf: feedbackText.match(/^Paragraf:\s*([\s\S]*?)(?=\n(?:Întrebare:|Recomandare:|Distorsiuni:|Scheme:|Adult Sănătos:|$))/im)?.[1]?.trim() || "Nu s-a putut extrage 'Paragraf'.",
-          intrebare: feedbackText.match(/^Întrebare:\s*([\s\S]*?)(?=\n(?:Recomandare:|Distorsiuni:|Scheme:|Adult Sănătos:|$))/im)?.[1]?.trim() || "Nu s-a putut extrage 'Întrebare'.",
-          recomandare: feedbackText.match(/^Recomandare:\s*([\s\S]*?)(?=\n(?:Distorsiuni:|Scheme:|Adult Sănătos:|$))/im)?.[1]?.trim() || "Nu s-a putut extrage 'Recomandare'.",
-          distorsiuni: feedbackText.match(/^Distorsiuni:\s*([\s\S]*?)(?=\n(?:Scheme:|Adult Sănătos:|$))/im)?.[1]?.trim() || "Nu s-au putut extrage 'Distorsiuni'.",
-          scheme: feedbackText.match(/^Scheme:\s*([\s\S]*?)(?=\n(?:Adult Sănătos:|$))/im)?.[1]?.trim() || "Nu s-au putut extrage 'Scheme'.",
-          adult_sanatos_eval: feedbackText.match(/^Adult Sănătos:\s*([\s\S]*?$)/im)?.[1]?.trim() || "Nu s-a putut extrage 'Adult Sănătos'.",
-          model: modelFolosit,
-          timestamp: new Date().toISOString()
-      };
-      
-      let allParsingFailed = ["paragraf", "intrebare", "recomandare", "distorsiuni", "scheme", "adult_sanatos_eval"]
-                             .every(key => parsedFeedback[key]?.startsWith("Nu s-a putut"));
-      
-      if (allParsingFailed && !(typeof feedbackText === 'string' && feedbackText.startsWith("EROARE:"))) {
-          console.warn("Parsarea detaliată a eșuat pentru toate câmpurile. Formatul răspunsului AI nu corespunde. Răspunsul brut va fi plasat în secțiunea 'Paragraf'.");
-          parsedFeedback.paragraf = `Răspuns brut de la ${modelFolosit} (parsare eșuată):\n${feedbackText.replace(/\n/g, "<br>")}`;
-          parsedFeedback.intrebare = ""; parsedFeedback.recomandare = ""; parsedFeedback.distorsiuni = ""; parsedFeedback.scheme = ""; parsedFeedback.adult_sanatos_eval = "";
-      }
+  const feedbackStructure = {
+            empatie_initiala: /^EmpatieInițială:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
+            puncte_forte: /^PuncteForteObservate:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
+            tipare_principale: /^TiparePrincipale:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
+            conexiuni_cheie: /^ConexiuniCheie:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
+            distorsiuni_identificate: /^DistorsiuniIdentificate:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
+            scheme_activate: /^SchemeActivate:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
+            moduri_implicate: /^ModuriImplicate:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
+            perspectiva_adult_sanatos: /^PerspectivaAdultSănătos:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
+            intrebare_finala_reflectie: /^ÎntrebareFinalăReflecție:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
+            sugestie_mic_pas: /^SugestieMicPas:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
+            incurajare_finala: /^ÎncurajareFinală:\s*([\s\S]*?$)/im,
+        };
+        
+        const parsedFeedback = { model: modelFolosit, timestamp: new Date().toISOString(), error: false, error_parsing: false };
+        let allParsingOk = true;
 
-      if (docId) {
-          const docRef = doc(db, "raspunsuri", docId);
-          try {
-              await updateDoc(docRef, {
-                  feedback_history: arrayUnion(parsedFeedback),
-                  feedback_paragraf: parsedFeedback.paragraf,
-                  feedback_intrebare: parsedFeedback.intrebare,
-                  feedback_recomandare: parsedFeedback.recomandare,
-                  feedback_distorsiuni: parsedFeedback.distorsiuni,
-                  feedback_scheme: parsedFeedback.scheme,
-                  feedback_adult_eval: parsedFeedback.adult_sanatos_eval,
-                  feedback_model: parsedFeedback.model
-              });
-              console.log(`Feedback AI (${modelFolosit}) salvat pentru docId: ${docId}`);
-          } catch (updateError) {
-              console.error(`Eroare la actualizarea documentului ${docId} cu feedback AI:`, updateError);
-          }
-      }
-      return parsedFeedback;
+        for (const key in feedbackStructure) {
+            const match = feedbackText.match(feedbackStructure[key]);
+            if (match && match[1] && match[1].trim() !== "") {
+                 parsedFeedback[key] = match[1].trim();
+            } else {
+                console.warn(`Nu s-a putut extrage sau este gol conținutul pentru: '${key}'`);
+                parsedFeedback[key] = `(Secțiune neextrasă sau goală: ${key})`;
+                allParsingOk = false; // Marchează că cel puțin o secțiune a eșuat
+            }
+        }
+        
+        if (!allParsingOk && !(typeof feedbackText === 'string' && feedbackText.startsWith("EROARE:"))) {
+            console.warn("Cel puțin o secțiune nu a putut fi parsată corect din răspunsul AI. Verifică formatul răspunsului AI și regex-urile.");
+            parsedFeedback.error_parsing = true;
+            // Consideră să pui tot răspunsul brut dacă parsarea majoră eșuează, de ex. în empatie_initiala
+            // if (Object.values(parsedFeedback).filter(v => typeof v === 'string' && v.startsWith("(Secțiune neextrasă")).length > 5) { // Heuristică
+            //    parsedFeedback.empatie_initiala = `Răspuns brut (parsare majoră eșuată):\n${feedbackText.replace(/\n/g, "<br>")}`;
+            // }
+        }
+
+        if (docId) {
+            const docRef = doc(db, "raspunsuri", docId);
+            try {
+                const updatePayload = { feedback_history: arrayUnion(parsedFeedback) };
+                Object.keys(parsedFeedback).forEach(key => {
+                    updatePayload[`feedback_${key}`] = parsedFeedback[key];
+                });
+                await updateDoc(docRef, updatePayload);
+                console.log(`Feedback AI (nou, ${modelFolosit}) salvat pentru ${docId}`);
+            } catch (updateError) {
+                console.error(`Eroare update Firestore feedback nou pt ${docId}:`, updateError);
+            }
+        }
+        return parsedFeedback;
     }
 
     async function salveazaRaspunsSiGenereazaFeedback() {
