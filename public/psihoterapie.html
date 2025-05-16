@@ -27,30 +27,33 @@
     const auth = getAuth(app);
 
   // --- Configurare Gemini API ---
-const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // ACEASTA ESTE CHEIA TA REALĂ
-const GEMINI_MODEL_NAME = "gemini-2.5-flash-preview-04-17";
-let genAI, geminiModel;
+ const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // <--- CHEIA TA API GEMINI
+    const GEMINI_MODEL_NAME_FEEDBACK = "gemini-2.5-flash-preview-04-17"; // Model pentru feedback-ul automat al fișelor
+    const GEMINI_MODEL_NAME_CHAT = "gemini-2.5-flash-preview-04-17"; // Model pentru chat, poate fi același sau diferit
+    let genAI, geminiModelFeedback, geminiModelChat;
 
-// Condiție simplificată: verifică doar dacă GEMINI_API_KEY are o valoare.
-if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
-    try {
-        genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        geminiModel = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME });
-        console.log("SDK Gemini inițializat cu succes. Model:", GEMINI_MODEL_NAME);
-    } catch (e) {
-        console.error("Eroare la inițializarea SDK Gemini. Verifică validitatea cheii API și conexiunea la internet.", e);
-        geminiModel = null; // Setează la null dacă inițializarea eșuează
+    if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
+        try {
+            genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+            geminiModelFeedback = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_FEEDBACK });
+            geminiModelChat = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_CHAT });
+            console.log("SDK Gemini inițializat. Model Feedback:", GEMINI_MODEL_NAME_FEEDBACK, "Model Chat:", GEMINI_MODEL_NAME_CHAT);
+        } catch (e) {
+            console.error("Eroare critică la inițializarea SDK Gemini:", e);
+            geminiModelFeedback = null; geminiModelChat = null;
+        }
+    } else {
+        console.warn("Cheia API Gemini nu este configurată. Funcționalitatea AI va fi dezactivată.");
+        geminiModelFeedback = null; geminiModelChat = null;
     }
-} else {
-    // Acest mesaj se va afișa doar dacă GEMINI_API_KEY este un string gol sau nu e definită.
-    console.warn("Cheia API pentru Gemini (GEMINI_API_KEY) este goală sau nedefinită. Feedback-ul AI prin Gemini va fi dezactivat.");
-    geminiModel = null;
-}
-
 
     let currentStep = 1;
     let totalSteps = 0;
-    let dataAlreadyLoaded = false; // Pentru a controla încărcarea inițială a datelor
+    let dataAlreadyLoaded = false;
+
+    // --- Variabile Globale pentru Chat ---
+    let chatSession = null;
+    const CHAT_HISTORY_DOC_ID_PREFIX = "chatHistory_";
 
     window.onload = function () {
         totalSteps = document.querySelectorAll('.form-step').length;
@@ -58,35 +61,44 @@ if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
         const urlParams = new URLSearchParams(window.location.search);
         const collabId = urlParams.get('collabId');
 
-        if (!collabId) { // Doar pentru utilizatorul normal, nu pentru colaborator
-            onAuthStateChanged(auth, (user) => {
+        if (!collabId) {
+            onAuthStateChanged(auth, async (user) => { // Adăugat async
                 if (user) {
                     console.log("Utilizator autentificat:", user.uid);
                     if (!dataAlreadyLoaded) {
-                        // TREBUIE SĂ FILTREZI DATELE AICI PENTRU `user.uid`
-                        populateTableData(user.uid); // Asigură-te că această funcție filtrează pe userId
-                        loadTableData(user.uid);     // Asigură-te că această funcție filtrează pe userId
+                        populateTableData(user.uid);
+                        loadTableData(user.uid);
                         dataAlreadyLoaded = true;
                     }
+                    // Ascunde/afișează butonul de chat în funcție de starea de autentificare
+                    const toggleChatBtn = document.getElementById("toggleChatButton");
+                    if(toggleChatBtn) toggleChatBtn.style.display = 'flex';
+
                 } else {
                     console.log("Utilizator neautentificat, redirecționare...");
+                    const toggleChatBtn = document.getElementById("toggleChatButton");
+                    if(toggleChatBtn) toggleChatBtn.style.display = 'none';
+                    document.getElementById("chatContainer").style.display = 'none';
                     window.location.href = "login.html";
                 }
             });
+        } else {
+            const toggleChatBtn = document.getElementById("toggleChatButton");
+            if(toggleChatBtn) toggleChatBtn.style.display = 'none'; // Nu afișa chat pentru colaboratori
         }
-        // Logica pentru collabId este în DOMContentLoaded
 
-        const nextButton = document.getElementById("nextButton");
-        if (nextButton) nextButton.addEventListener("click", nextStep);
-
-        const prevButton = document.getElementById("prevButton");
-        if (prevButton) prevButton.addEventListener("click", previousStep);
-
-        const addButton = document.getElementById("addButton");
-        if (addButton) addButton.addEventListener("click", salveazaRaspunsSiGenereazaFeedback); // Nume schimbat
-
-        const generateLinkButton = document.getElementById("generateLinkButton");
-        if (generateLinkButton) generateLinkButton.addEventListener("click", generateCollaborationLink);
+        document.getElementById("nextButton")?.addEventListener("click", nextStep);
+        document.getElementById("prevButton")?.addEventListener("click", previousStep);
+        document.getElementById("addButton")?.addEventListener("click", salveazaRaspunsSiGenereazaFeedback);
+        document.getElementById("generateLinkButton")?.addEventListener("click", generateCollaborationLink);
+        document.getElementById("toggleChatButton")?.addEventListener("click", handleToggleChat);
+        document.getElementById("sendChatMessageButton")?.addEventListener("click", handleSendChatMessage);
+        document.getElementById("chatInput")?.addEventListener("keypress", function(event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault(); 
+                handleSendChatMessage();
+            }
+        });
     };
 
     function nextStep() {
@@ -114,6 +126,40 @@ if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
             progress.style.width = progressPercentage + '%';
         }
     }
+
+     // --- Funcții Feedback AI pentru Fișe ---
+    async function callGeminiAPI(promptText, modelToUse, generationConfigOptions = {}) {
+        if (!modelToUse) {
+            console.error("Modelul Gemini specificat este invalid sau neinițializat.");
+            return "EROARE: Configurare Gemini incorectă (model lipsă).";
+        }
+        try {
+            const requestPayload = {
+                contents: [{ role: "user", parts: [{ text: promptText }] }],
+                generationConfig: { temperature: 0.55, ...generationConfigOptions }
+            };
+            const result = await modelToUse.generateContent(requestPayload);
+            const response = result.response;
+
+            if (response?.candidates?.[0]?.content?.parts?.[0]?.text) {
+                if (response.candidates[0].finishReason && !["STOP", "MAX_TOKENS"].includes(response.candidates[0].finishReason)) {
+                    console.warn("Gemini a oprit generarea:", response.candidates[0].finishReason, response.candidates[0].safetyRatings);
+                    return `EROARE Gemini: Generare oprită (Motiv: ${response.candidates[0].finishReason}). Filtre de siguranță posibile.`;
+                }
+                return response.candidates[0].content.parts[0].text;
+            } else {
+                console.error("Răspuns Gemini neașteptat/gol:", JSON.stringify(response, null, 2));
+                const reason = response?.promptFeedback?.blockReason ? `Prompt blocat (${response.promptFeedback.blockReason})` : "Răspuns invalid.";
+                return `EROARE Gemini: ${reason}`;
+            }
+        } catch (error) { /* ... logica de eroare detaliată dinainte ... */
+            console.error("Eroare detaliată la callGeminiAPI:", error, error.stack);
+            let errorMessage = `EROARE Gemini: ${error.message || "Eroare API necunoscută"}`;
+            if (error.toString().toLowerCase().includes("api key not valid")) { /* ... și alte verificări de eroare ... */ }
+            return errorMessage;
+         }
+    }
+
 
     async function genereazaFeedbackCuGeminiDinFrontend(promptText) {
         if (!geminiModel) {
@@ -310,6 +356,132 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
             return;
         }
 
+
+        // --- Funcții Chat ---
+    function displayChatMessage(message, role) { /* ... codul furnizat anterior ... */ }
+    async function loadChatHistory(userId) { /* ... codul furnizat anterior ... */ }
+    async function saveChatMessage(userId, messageObject) { /* ... codul furnizat anterior ... */ }
+    
+    let isChatInitialized = false;
+    async function initializeAndStartChatSession(userId) {
+        if (!geminiModelChat) {
+            document.getElementById("chatStatus").textContent = "EROARE: Serviciul AI Chat nu este configurat.";
+            return null;
+        }
+        if (chatSession && isChatInitialized) { return chatSession; }
+
+        document.getElementById("chatStatus").textContent = "Inițializare chat și context...";
+        let initialContextSummary = "REZUMAT DIN FIȘELE ANTERIOARE (ULTIMELE 3):\n";
+        try {
+            if (userId) {
+                const q = query(collection(db, "raspunsuri"), where("ownerUid", "==", userId), orderBy("timestamp", "desc"), limit(3));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    querySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        initialContextSummary += ` - Fișă (${data.date || 'N/A'}): Situația - ${(data.situatie || "").substring(0, 50)}...; Gânduri - ${(data.ganduri || "").substring(0, 50)}...; Emoții - ${data.emotii || 'N/A'}.\n`;
+                    });
+                } else { initialContextSummary += "Nicio fișă recentă găsită.\n"; }
+            }
+        } catch(e) { console.error("Eroare context chat:", e); initialContextSummary += "Eroare încărcare context.\n"}
+
+        const systemMessage = { 
+            role: "user", // Instrucțiunile sunt de la "user" pentru primul tur cu API-ul Gemini
+            parts: [{ text: 
+`Tu ești un asistent AI suportiv, specializat în reflecție psihologică. Bazează-te pe acest scurt rezumat al înregistrărilor anterioare ale utilizatorului și pe conversația curentă pentru a-l ajuta să exploreze teme, să facă noi conexiuni și să găsească claritate. Pune întrebări deschise. Fii empatic și curios.
+${initialContextSummary}
+---
+Sunt aici să te ajut. Despre ce ai dori să discutăm sau să reflectăm astăzi legat de experiențele tale?`
+            }]
+        };
+        
+        let chatHistoryFromDB = await loadChatHistory(userId);
+        const validChatHistoryForAPI = chatHistoryFromDB.map(msg => ({
+            role: msg.role, 
+            parts: [{ text: msg.content || "" }]
+        })).filter(msg => msg.parts[0].text.trim() !== "");
+
+        try {
+            chatSession = geminiModelChat.startChat({
+                history: [systemMessage, ...validChatHistoryForAPI], // Se trimite la API istoricul, inclusiv mesajul de sistem
+                generationConfig: { temperature: 0.75 }
+            });
+            console.log("Sesiune chat Gemini inițializată.");
+            document.getElementById("chatStatus").textContent = "Chat pregătit.";
+            
+            const messagesDiv = document.getElementById("chatMessages");
+            messagesDiv.innerHTML = ''; // Golește la inițializare/reinițializare
+
+            // Afișează mesajul de sistem (doar partea pentru utilizator) și istoricul
+            // Nu afișăm explicit `systemMessage` dacă nu vrem să vadă utilizatorul tot contextul trimis.
+            // Sau afișăm doar partea prietenoasă
+             displayChatMessage("Sunt aici să te ajut. Despre ce ai dori să discutăm sau să reflectăm astăzi legat de experiențele tale?", "AI"); // Mesaj inițial AI
+             // Nu mai salvăm acest mesaj inițial explicit în DB, e parte din system prompt practic.
+
+            validChatHistoryForAPI.forEach(msg => {
+                 displayChatMessage(msg.parts[0].text, msg.role === "model" ? "AI" : "user");
+            });
+            isChatInitialized = true;
+        } catch(initError) { /* ... gestionează eroarea ... */ }
+        return chatSession;
+    }
+
+    async function handleSendChatMessage() {
+        const chatInput = document.getElementById("chatInput");
+        const messageText = chatInput.value.trim();
+        if (messageText === "") return;
+
+        const user = auth.currentUser;
+        if (!user) { alert("Autentificare necesară pentru chat."); return; }
+
+        displayChatMessage(messageText, "user");
+        const messageToSaveUser = { role: "user", content: messageText, timestamp: new Date().toISOString() };
+        await saveChatMessage(user.uid, messageToSaveUser);
+        
+        chatInput.value = "";
+        document.getElementById("chatStatus").textContent = "AI-ul gândește...";
+        document.getElementById("sendChatMessageButton").disabled = true;
+
+        if (!chatSession || !isChatInitialized) {
+            console.log("Chat session nu este (re)inițializat, se încearcă acum...");
+            chatSession = await initializeAndStartChatSession(user.uid);
+            if(!chatSession) { /* ... gestionează eroarea ... */ return; }
+        }
+        
+        try {
+            //sendMessage acum ia doar textul, istoricul e în `chatSession`
+            const result = await chatSession.sendMessage(messageText);
+            const response = result.response;
+            const aiResponseText = response.text();
+
+            displayChatMessage(aiResponseText, "AI");
+            const messageToSaveAI = { role: "model", content: aiResponseText, timestamp: new Date().toISOString() };
+            await saveChatMessage(user.uid, messageToSaveAI);
+            document.getElementById("chatStatus").textContent = "Chat pregătit.";
+
+        } catch (error) { /* ... gestionează eroarea ... */ }
+        finally { document.getElementById("sendChatMessageButton").disabled = false; }
+    }
+
+    async function handleToggleChat() {
+        const user = auth.currentUser;
+        if (!user) { alert("Autentificare necesară."); window.location.href="login.html"; return; }
+
+        const chatContainer = document.getElementById("chatContainer");
+        const toggleButton = document.getElementById("toggleChatButton");
+        if (chatContainer.style.display === "none") {
+            chatContainer.style.display = "block";
+            toggleButton.innerHTML = "➖"; // Sau un icon X
+            if (!isChatInitialized) { // Inițializează doar dacă nu a fost făcut și e prima deschidere
+                await initializeAndStartChatSession(user.uid);
+            }
+        } else {
+            chatContainer.style.display = "none";
+            toggleButton.innerHTML = "💬";
+        }
+    }
+
+    
         const formData = new FormData(form);
         const rowData = { date: new Date().toLocaleDateString("ro-RO") };
         formData.forEach((value, key) => { rowData[key] = value; });
