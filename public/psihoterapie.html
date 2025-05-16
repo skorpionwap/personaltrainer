@@ -374,81 +374,177 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
         }
     }
 
-    function afiseazaIstoricFeedback(containerElement, feedbackHistory) {
-        containerElement.innerHTML = ''; 
+function afiseazaIstoricFeedback(containerElement, feedbackHistory) {
+    containerElement.innerHTML = ''; // Golește containerul înainte de a repopula
 
-        if (feedbackHistory && Array.isArray(feedbackHistory) && feedbackHistory.length > 0) {
-            const historyTitle = document.createElement("h4");
-            historyTitle.style.color = "#4A90E2";
-            historyTitle.style.marginTop = "20px";
-            historyTitle.style.marginBottom = "10px";
-            historyTitle.textContent = "🗂️ Istoric Feedback AI:";
-            containerElement.appendChild(historyTitle);
-
-            feedbackHistory.slice().reverse().forEach(entry => { 
-                const itemContainer = document.createElement("div");
-                itemContainer.className = "feedback-entry-card";
-
-                const timestampAndModel = document.createElement("p");
-                timestampAndModel.className = "feedback-timestamp";
-                timestampAndModel.innerHTML = `<strong>${new Date(entry.timestamp).toLocaleString("ro-RO")}</strong> (Model: ${entry.model || 'N/A'})`;
-                itemContainer.appendChild(timestampAndModel);
-
-                const sections = [
-                    { title: "✍️ Paragraf Empatic", key: "paragraf", isList: false },
-                    { title: "❓ Întrebare de Reflecție", key: "intrebare", isList: false },
-                    { title: "🛠️ Recomandare Terapeutică", key: "recomandare", isList: false },
-                    { title: "🔍 Distorsiuni Cognitive", key: "distorsiuni", isList: true },
-                    { title: "🧠 Scheme Cognitive", key: "scheme", isList: true },
-                    { title: "🧍‍♂️ Evaluare Adult Sănătos", key: "adult_sanatos_eval", isList: false }
-                ];
-
-                sections.forEach(sectionConfig => {
-                    const sectionDiv = document.createElement("div");
-                    sectionDiv.className = "feedback-section";
-
-                    const sectionTitleElement = document.createElement("h5");
-                    sectionTitleElement.textContent = sectionConfig.title + ":";
-                    sectionDiv.appendChild(sectionTitleElement);
-
-                    let contentText = entry[sectionConfig.key];
-
-                    if (contentText && typeof contentText === 'string') {
-                        const titleWithoutEmoji = sectionConfig.title.replace(/(\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/gu, '').trim();
-                        const patternTitleText = new RegExp(`^${titleWithoutEmoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:?\\s*`, "im");
-                        contentText = contentText.replace(patternTitleText, "").trim();
-                        const patternKeyText = new RegExp(`^${sectionConfig.key.replace(/_/g, " ")}:?\\s*`, "im");
-                        contentText = contentText.replace(patternKeyText, "").trim();
-
-
-                        if (sectionConfig.isList && contentText.includes('*')) {
-                            const listElement = document.createElement("ul");
-                            const items = contentText.split(/\s*\*\s*/)
-                                              .map(item => item.trim().replace(/^\s*-\s*/, '')) // Elimină și '-' de la începutul itemului de listă
-                                              .filter(item => item.length > 0);
-                            items.forEach(itemText => {
-                                const listItem = document.createElement("li");
-                                listItem.innerHTML = itemText.replace(/\n/g, '<br>');
-                                listElement.appendChild(listItem);
-                            });
-                            sectionDiv.appendChild(listElement);
-                        } else {
-                            const paragraphElement = document.createElement("p");
-                            paragraphElement.innerHTML = contentText.replace(/\n/g, '<br>') || '<i>Indisponibil</i>';
-                            sectionDiv.appendChild(paragraphElement);
-                        }
-                    } else {
-                        const unavailableText = document.createElement("p");
-                        unavailableText.style.fontStyle = "italic";
-                        unavailableText.textContent = "Indisponibil";
-                        sectionDiv.appendChild(unavailableText);
-                    }
-                    itemContainer.appendChild(sectionDiv);
-                });
-                containerElement.appendChild(itemContainer);
-            });
-        }
+    if (!feedbackHistory || !Array.isArray(feedbackHistory) || feedbackHistory.length === 0) {
+        // O poți lăsa goală sau poți adăuga un mesaj subtil dacă e cazul,
+        // dar de obicei dacă nu există istoric, nu afișăm nimic special aici.
+        // const noHistoryMsg = document.createElement("p");
+        // noHistoryMsg.textContent = "Niciun istoric de feedback AI pentru această intrare.";
+        // noHistoryMsg.style.fontStyle = "italic";
+        // noHistoryMsg.style.fontSize = "0.9em";
+        // noHistoryMsg.style.textAlign = "center";
+        // noHistoryMsg.style.padding = "10px 0";
+        // containerElement.appendChild(noHistoryMsg);
+        return;
     }
+
+    const historyTitle = document.createElement("h4");
+    historyTitle.style.color = "#4A90E2";
+    historyTitle.style.marginTop = "20px";
+    historyTitle.style.marginBottom = "10px";
+    historyTitle.textContent = "🗂️ Istoric Feedback AI:";
+    containerElement.appendChild(historyTitle);
+
+    feedbackHistory.slice().reverse().forEach(entry => { // Cel mai nou feedback primul
+        if (!entry || typeof entry !== 'object') {
+            console.warn("Intrare invalidă în istoricul de feedback, va fi ignorată:", entry);
+            return; // Sare peste intrarea invalidă
+        }
+        
+        const itemContainer = document.createElement("div");
+        itemContainer.className = "feedback-entry-card"; // Asigură-te că ai CSS pentru această clasă
+
+        const timestampAndModel = document.createElement("p");
+        timestampAndModel.className = "feedback-timestamp";
+        // Preferă `entry.model` din rădăcina feedback-ului; `entry.feedback_model` este pentru când feedback-ul e direct la rădăcina doc-ului
+        timestampAndModel.innerHTML = `<strong>${new Date(entry.timestamp || Date.now()).toLocaleString("ro-RO")}</strong> (Model: ${entry.model || 'N/A'})`;
+        itemContainer.appendChild(timestampAndModel);
+
+        // Detectează formatul (vechi sau nou)
+        // Presupunem că formatul nou are câmpul 'empatie_initiala'
+        // și formatul vechi are 'paragraf' dar NU 'empatie_initiala'
+        const isNewFormat = typeof entry.empatie_initiala === 'string';
+        const isLikelyOldFormat = typeof entry.paragraf === 'string' && typeof entry.empatie_initiala === 'undefined';
+
+        if (isNewFormat) {
+            // --- LOGICĂ PENTRU FORMATUL NOU ---
+            const newFormatSections = [
+                { title: "💬 Empatie Inițială", key: "empatie_initiala", isList: false },
+                { title: "🌟 Puncte Forte Observate", key: "puncte_forte", isList: false },
+                { title: "🔄 Tipare Principale", key: "tipare_principale", isList: false },
+                { title: "🔗 Conexiuni Cheie", key: "conexiuni_cheie", isList: false },
+                { title: "🔍 Distorsiuni Identificate", key: "distorsiuni_identificate", isList: true },
+                { title: "🧠 Scheme Activate", key: "scheme_activate", isList: true },
+                { title: "🎭 Moduri Implicate", key: "moduri_implicate", isList: false },
+                { title: "💪 Perspectiva Adultului Sănătos", key: "perspectiva_adult_sanatos", isList: false },
+                { title: "❓ Întrebare Finală de Reflecție", key: "intrebare_finala_reflectie", isList: false },
+                { title: "👟 Sugestie Mic Pas Următor", key: "sugestie_mic_pas", isList: false },
+                { title: "💖 Încurajare Finală", key: "incurajare_finala", isList: false }
+            ];
+
+            newFormatSections.forEach(sectionConfig => {
+                const sectionDiv = document.createElement("div");
+                sectionDiv.className = "feedback-section";
+                const sectionTitleElement = document.createElement("h5");
+                sectionTitleElement.textContent = sectionConfig.title + ":";
+                sectionDiv.appendChild(sectionTitleElement);
+
+                let contentText = entry[sectionConfig.key]; // Cheile sunt direct cele din obiectul `parsedFeedback` stocat în istoric
+
+                if (typeof contentText === 'string' && contentText.trim() !== "" && !contentText.startsWith("(Secțiune neextrasă")) {
+                    // Curățare opțională a prefixului din conținut, dacă AI-ul l-ar include redundant
+                    const titleWithoutEmoji = sectionConfig.title.replace(/(\p{Emoji_Presentation}|\p{Extended_Pictographic}|💬|🌟|🔄|🔗|🔍|🧠|🎭|💪|❓|👟|💖)\s*/gu, '').trim();
+                    const patternTitleText = new RegExp(`^${titleWithoutEmoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:?\\s*`, "im");
+                    contentText = contentText.replace(patternTitleText, "").trim();
+
+                    if (sectionConfig.isList && (contentText.includes('*') || contentText.includes('- '))) { // Verifică și pentru '-' ca bullet
+                        const listElement = document.createElement("ul");
+                        const items = contentText.split(/\s*\n?\s*[\*-]\s+/) // Split la '*' sau '-' urmat de spațiu
+                                          .map(item => item.trim())
+                                          .filter(item => item.length > 0);
+                        // Cazul în care lista are un singur element care începe cu * sau - și nu e prins de split
+                        if (items.length === 0 && (contentText.startsWith("* ") || contentText.startsWith("- "))) {
+                            items.push(contentText.substring(2).trim());
+                        }
+
+                        items.forEach(itemText => {
+                            const listItem = document.createElement("li");
+                            listItem.innerHTML = itemText.replace(/\n/g, '<br>');
+                            listElement.appendChild(listItem);
+                        });
+                        sectionDiv.appendChild(listElement);
+                    } else {
+                        const paragraphElement = document.createElement("p");
+                        paragraphElement.innerHTML = contentText.replace(/\n/g, '<br>');
+                        sectionDiv.appendChild(paragraphElement);
+                    }
+                } else {
+                    const unavailableText = document.createElement("p");
+                    unavailableText.style.fontStyle = "italic";
+                    unavailableText.textContent = (contentText && contentText.startsWith("(Secțiune neextrasă")) ? contentText : "Indisponibil sau secțiune goală.";
+                    sectionDiv.appendChild(unavailableText);
+                }
+                itemContainer.appendChild(sectionDiv);
+            });
+
+        } else if (isLikelyOldFormat) {
+            // --- LOGICĂ PENTRU FORMATUL VECHI ---
+            const oldFormatSections = [
+                { title: "✍️ Paragraf Empatic", key: "paragraf", isList: false },
+                { title: "❓ Întrebare de Reflecție", key: "intrebare", isList: false },
+                { title: "🛠️ Recomandare Terapeutică", key: "recomandare", isList: false },
+                { title: "🔍 Distorsiuni Cognitive", key: "distorsiuni", isList: true },
+                { title: "🧠 Scheme Cognitive", key: "scheme", isList: true },
+                { title: "🧍‍♂️ Evaluare Adult Sănătos", key: "adult_sanatos_eval", isList: false }
+            ];
+
+            oldFormatSections.forEach(sectionConfig => {
+                const sectionDiv = document.createElement("div");
+                sectionDiv.className = "feedback-section";
+                const sectionTitleElement = document.createElement("h5");
+                sectionTitleElement.textContent = sectionConfig.title + ":";
+                sectionDiv.appendChild(sectionTitleElement);
+
+                let contentText = entry[sectionConfig.key];
+
+                if (typeof contentText === 'string' && contentText.trim() !== "") {
+                    // Pentru formatul vechi, AI-ul nu ar trebui să includă prefixele în conținutul câmpurilor individuale
+                    if (sectionConfig.isList && (contentText.includes('*') || contentText.includes('- '))) {
+                        const listElement = document.createElement("ul");
+                        const items = contentText.split(/\s*\n?\s*[\*-]\s+/)
+                                          .map(item => item.trim())
+                                          .filter(item => item.length > 0);
+                        if (items.length === 0 && (contentText.startsWith("* ") || contentText.startsWith("- "))) {
+                            items.push(contentText.substring(2).trim());
+                        }
+                        items.forEach(itemText => {
+                            const listItem = document.createElement("li");
+                            listItem.innerHTML = itemText.replace(/\n/g, '<br>');
+                            listElement.appendChild(listItem);
+                        });
+                        sectionDiv.appendChild(listElement);
+                    } else {
+                        const paragraphElement = document.createElement("p");
+                        paragraphElement.innerHTML = contentText.replace(/\n/g, '<br>');
+                        sectionDiv.appendChild(paragraphElement);
+                    }
+                } else {
+                    const unavailableText = document.createElement("p");
+                    unavailableText.style.fontStyle = "italic";
+                    unavailableText.textContent = "Indisponibil sau secțiune goală.";
+                    sectionDiv.appendChild(unavailableText);
+                }
+                itemContainer.appendChild(sectionDiv);
+            });
+        } else {
+            // Caz neclar sau format necunoscut - afișăm ce putem
+            console.warn("Format de feedback necunoscut în istoric:", entry);
+            const unknownFormatDiv = document.createElement("div");
+            unknownFormatDiv.className = "feedback-section";
+            const titleEl = document.createElement("h5");
+            titleEl.textContent = "⁉️ Conținut Feedback (format necunoscut):";
+            unknownFormatDiv.appendChild(titleEl);
+            const contentP = document.createElement("p");
+            // Încercăm să afișăm tot obiectul ca JSON dacă nu știm cum să-l formatăm
+            contentP.innerHTML = `<pre>${JSON.stringify(entry, null, 2).replace(/\n/g, '<br>')}</pre>`;
+            unknownFormatDiv.appendChild(contentP);
+            itemContainer.appendChild(unknownFormatDiv);
+        }
+        containerElement.appendChild(itemContainer);
+    });
+}
 
    function adaugaCard(rowData) {
       const cardViewContainer = document.getElementById("cardViewContainer");
