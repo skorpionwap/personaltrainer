@@ -131,71 +131,181 @@
         }
     }
 
-    function adaugaCard(rowData) {
-        const existingCard = document.querySelector(`[data-id="${rowData.id}"]`);
-    if (existingCard) {
-        // Dacă cardul deja există, nu mai adăuga un altul
-        return;}
-        const cardViewContainer = document.getElementById("cardViewContainer");
+   function adaugaCard(rowData) {
+      const existingCard = document.querySelector(`[data-id="${rowData.id}"]`);
+      if (existingCard) return;
 
-        const card = document.createElement("div");
-        card.className = "response-card";
+      const cardViewContainer = document.getElementById("cardViewContainer");
+      const card = document.createElement("div");
+      card.className = "response-card";
+      card.setAttribute("data-id", rowData.id);
+      card.innerHTML = `
+        <div class="card-header"> Data: ${rowData.date || ''} - Situația: ${rowData.situatie || ''}</div>
+        <div class="card-content">
+          <h4>Explorarea situației și a nevoilor</h4>
+          <p><strong>Care este situația?</strong> ${rowData.situatie || ''}</p>
+          <p><strong>Ce îmi trece prin minte?</strong> ${rowData.ganduri || ''}</p>
+          <p><strong>Cum mă face acel gând să mă simt?</strong> ${rowData.emotii || ''}</p>
+          <p><strong>Ce mod este activ?</strong> ${rowData.mod_activ || ''}</p>
+          <p><strong>Ce comportament simți că adopți?</strong> ${rowData.comportament || ''}</p>
+          <p><strong>Care sunt nevoile tale mai profunde?</strong> ${rowData.nevoi_profunde || ''}</p>
+          <p><strong>Mă ajută comportamentul meu să îndeplinesc aceste nevoi?</strong> ${rowData.ajutor_comportament || ''}</p>
+          <p><strong>Cum ar gândi și cum s-ar comporta Adultul Sănătos?</strong> ${rowData.adult_sanatos || ''}</p>
 
-        // Creăm conținutul cardului cu toate câmpurile disponibile în rowData
-        card.innerHTML = `
-            <div class="card-header"> Data: ${rowData.date || ''} - Situația: ${rowData.situatie || ''}</div>
-            <div class="card-content">
-                <!-- Secțiunea 1 -->
-                <h4>Explorarea situației și a nevoilor</h4>
-                <p><strong>Care este situația?</strong> ${rowData.situatie || ''}</p>
-                <p><strong>Ce îmi trece prin minte?</strong> ${rowData.ganduri || ''}</p>
-                <p><strong>Cum mă face acel gând să mă simt?</strong> ${rowData.emotii || ''}</p>
-                <p><strong>Ce mod este activ?</strong> ${rowData.mod_activ || ''}</p>
-                <p><strong>Ce comportament simți că adopți?</strong> ${rowData.comportament || ''}</p>
-                <p><strong>Care sunt nevoile tale mai profunde?</strong> ${rowData.nevoi_profunde || ''}</p>
-                <p><strong>Mă ajută comportamentul meu să îndeplinesc aceste nevoi?</strong> ${rowData.ajutor_comportament || ''}</p>
-                <p><strong>Cum ar gândi și cum s-ar comporta Adultul Sănătos?</strong> ${rowData.adult_sanatos || ''}</p>
-                
-                <!-- Secțiunea 2 -->
-                <h4>Analiza gândurilor și a percepțiilor</h4>
-                <p><strong>Ce mă face să cred că gândul automat este adevărat?</strong> ${rowData.dovezi_adevar || ''}</p>
-                <p><strong>Ce mă face să cred că nu este adevărat?</strong> ${rowData.dovezi_fals || ''}</p>
-                <p><strong>Există o explicație alternativă?</strong> ${rowData.explicatie_alternativa || ''}</p>
-                <p><strong>Care este cel mai rău lucru care s-ar putea întâmpla?</strong> ${rowData.scenariu_negativ || ''}</p>
-                <p><strong>Care este cel mai bun lucru care s-ar putea întâmpla?</strong> ${rowData.scenariu_optimist || ''}</p>
-                <p><strong>Care este cel mai realist rezultat?</strong> ${rowData.rezultat_realist || ''}</p>
-                <p><strong>Ce s-ar întâmpla dacă mi-aș schimba modul de gândire?</strong> ${rowData.schimbare_gandire || ''}</p>
-                <p><strong>Ce i-aș spune unui prieten dacă ar fi în aceeași situație?</strong> ${rowData.sfat_prieten || ''}</p>
-                
-                <!-- Secțiunea 3 -->
-                <h4>Întrebări pentru claritate și reflecție suplimentară</h4>
-                <p><strong>Văd doar partea rea a lucrurilor?</strong> ${rowData.partea_rea || ''}</p>
-                <p><strong>Îmi asum responsabilitatea pentru lucruri care nu au stat în puterea mea?</strong> ${rowData.responsabilitate || ''}</p>
-                <p><strong>Mă condamn în baza unui singur eveniment?</strong> ${rowData.condamnare || ''}</p>
-                <p><strong>Privesc situația în termeni extremi?</strong> ${rowData.termeni_extremi || ''}</p>
-                <p><strong>Exagerez situația?</strong> ${rowData.exagerare || ''}</p>
-                <p><strong>Există și alți factori responsabili?</strong> ${rowData.factori_responsabili || ''}</p>
-                <p><strong>Am sărit direct la concluzii?</strong> ${rowData.concluzii || ''}</p>
-                <p><strong>Îmi pun întrebări fără răspuns?</strong> ${rowData.intrebari_fara_raspuns || ''}</p>
-                <p><strong>Mă concentrez doar asupra slăbiciunilor mele?</strong> ${rowData.slabiciuni || ''}</p>
-                <p><strong>Mă zbat prea mult gândind la cum ar trebui să fie lucrurile?</strong> ${rowData.cum_ar_trebui || ''}</p>
-                <p><strong>Mă aștept să fiu perfect?</strong> ${rowData.perfectiune || ''}</p>
-                
-                <button class="delete-button">Șterge</button>
-            </div>
-        `;
+          <h4>Analiza gândurilor și a percepțiilor</h4>
+          <p><strong>Ce mă face să cred că gândul automat este adevărat?</strong> ${rowData.dovezi_adevar || ''}</p>
+          <p><strong>Ce mă face să cred că nu este adevărat?</strong> ${rowData.dovezi_fals || ''}</p>
+          <p><strong>Există o explicație alternativă?</strong> ${rowData.explicatie_alternativa || ''}</p>
+          <p><strong>Care este cel mai rău lucru care s-ar putea întâmpla?</strong> ${rowData.scenariu_negativ || ''}</p>
+          <p><strong>Care este cel mai bun lucru care s-ar putea întâmpla?</strong> ${rowData.scenariu_optimist || ''}</p>
+          <p><strong>Care este cel mai realist rezultat?</strong> ${rowData.rezultat_realist || ''}</p>
+          <p><strong>Ce s-ar întâmpla dacă mi-aș schimba modul de gândire?</strong> ${rowData.schimbare_gandire || ''}</p>
+          <p><strong>Ce i-aș spune unui prieten dacă ar fi în aceeași situație?</strong> ${rowData.sfat_prieten || ''}</p>
 
-        // Adaugă evenimentul de extindere/restrângere la click pe antetul cardului
-        const cardHeader = card.querySelector('.card-header');
-        cardHeader.addEventListener('click', () => {
-            card.classList.toggle('open');
+          <h4>Întrebări pentru claritate și reflecție suplimentară</h4>
+          <p><strong>Văd doar partea rea a lucrurilor?</strong> ${rowData.partea_rea || ''}</p>
+          <p><strong>Îmi asum responsabilitatea pentru lucruri care nu au stat în puterea mea?</strong> ${rowData.responsabilitate || ''}</p>
+          <p><strong>Mă condamn în baza unui singur eveniment?</strong> ${rowData.condamnare || ''}</p>
+          <p><strong>Privesc situația în termeni extremi?</strong> ${rowData.termeni_extremi || ''}</p>
+          <p><strong>Exagerez situația?</strong> ${rowData.exagerare || ''}</p>
+          <p><strong>Există și alți factori responsabili?</strong> ${rowData.factori_responsabili || ''}</p>
+          <p><strong>Am sărit direct la concluzii?</strong> ${rowData.concluzii || ''}</p>
+          <p><strong>Îmi pun întrebări fără răspuns?</strong> ${rowData.intrebari_fara_raspuns || ''}</p>
+          <p><strong>Mă concentrez doar asupra slăbiciunilor mele?</strong> ${rowData.slabiciuni || ''}</p>
+          <p><strong>Mă zbat prea mult gândind la cum ar trebui să fie lucrurile?</strong> ${rowData.cum_ar_trebui || ''}</p>
+          <p><strong>Mă aștept să fiu perfect?</strong> ${rowData.perfectiune || ''}</p>
+          <button class="delete-button">Șterge</button>
+        </div>
+      `;
+
+      card.querySelector('.card-header').addEventListener('click', () => {
+        card.classList.toggle('open');
+      });
+      card.querySelector('.delete-button').addEventListener('click', () => stergeCard(rowData.id, card));
+
+      if (rowData.feedback_history && Array.isArray(rowData.feedback_history)) {
+        const historyDiv = document.createElement("div");
+        historyDiv.innerHTML = `<h4 style="color: #4A90E2;">🗂️ Istoric Feedback AI:</h4>`;
+        rowData.feedback_history.forEach(entry => {
+          const item = document.createElement("div");
+          item.style.marginBottom = "10px";
+          item.innerHTML = `
+            <p style="background: #eef6ff; padding: 10px; border-left: 4px solid #4A90E2; border-radius: 5px;">
+              <strong>${new Date(entry.timestamp).toLocaleString()}</strong> (${entry.model})<br>
+              ✍️ ${entry.paragraf}<br>
+              ❓ ${entry.intrebare}<br>
+              🛠️ ${entry.recomandare}<br>
+              🔍 <strong>Distorsiuni:</strong> ${entry.distorsiuni}<br>
+              🧠 <strong>Scheme:</strong> ${entry.scheme}<br>
+              🧍‍♂️ <strong>Adult Sănătos:</strong> ${entry.adult_sanatos_eval}
+            </p>
+          `;
+          historyDiv.appendChild(item);
         });
+        card.querySelector(".card-content").appendChild(historyDiv);
+      }
 
-        card.querySelector('.delete-button').addEventListener('click', () => stergeCard(rowData.id, card));
-        cardViewContainer.appendChild(card);
+      cardViewContainer.appendChild(card);
     }
 
     let dataAlreadyLoaded = false; // Adăugăm această variabilă pentru a urmări starea
+
+    async function genereazaFeedbackAI(rowData, docId = null) {
+      const prompt = `
+Analizează această fișă de auto-reflecție și oferă feedback psihologic structurat:
+1. ✍️ Un paragraf empatic.
+2. ❓ O întrebare de reflecție.
+3. 🛠️ O recomandare terapeutică (CBT, DBT sau mindfulness).
+4. 🔍 Identifică posibile distorsiuni cognitive (ex: suprageneralizare, personalizare).
+5. 🧠 Identifică posibile scheme si moduri cognitive implicate, conform schema therapy (ex: eșec, neajutorare, neacceptare, defectivitate, abandon, deprivare).
+6. 🧍‍♂️ Evaluează dacă Adultul Sănătos este prezent și cum ar putea fi activat mai mult.
+
+Date:
+Situație: ${rowData.situatie}
+Gânduri: ${rowData.ganduri}
+Emoții: ${rowData.emotii}
+Comportament: ${rowData.comportament}
+Adult sănătos: ${rowData.adult_sanatos}
+
+Format răspuns:
+Paragraf: ...
+Întrebare: ...
+Recomandare: ...
+Distorsiuni: ...
+Scheme: ...
+Adult Sănătos: ...`;
+
+      const models = [
+        { name: "mistralai/mistral-7b-instruct:free", label: "Mistral" },
+        { name: "deepseek-ai/deepseek-chat:free", label: "DeepSeek" }
+      ];
+
+      for (const model of models) {
+        try {
+          const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": "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",
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: model.name,
+              messages: [{ role: "user", content: prompt }],
+              temperature: 0.7
+            })
+          });
+
+          const data = await response.json();
+          const content = data.choices[0].message.content.trim();
+
+          const feedback = {
+            paragraf: content.match(/Paragraf:\s*(.+?)\n/i)?.[1] || "",
+            intrebare: content.match(/Întrebare:\s*(.+?)\n/i)?.[1] || "",
+            recomandare: content.match(/Recomandare:\s*(.+?)\n/i)?.[1] || "",
+            distorsiuni: content.match(/Distorsiuni:\s*(.+?)\n/i)?.[1] || "",
+            scheme: content.match(/Scheme:\s*(.+?)\n/i)?.[1] || "",
+            adult_sanatos_eval: content.match(/Adult Sănătos:\s*(.+)$/i)?.[1] || "",
+            model: model.label,
+            timestamp: new Date().toISOString()
+          };
+
+          if (docId) {
+            const docRef = doc(db, "raspunsuri", docId);
+            await updateDoc(docRef, {
+              feedback_history: arrayUnion(feedback),
+              feedback_paragraf: feedback.paragraf,
+              feedback_intrebare: feedback.intrebare,
+              feedback_recomandare: feedback.recomandare,
+              feedback_distorsiuni: feedback.distorsiuni,
+              feedback_scheme: feedback.scheme,
+              feedback_adult_eval: feedback.adult_sanatos_eval,
+              feedback_model: feedback.model
+            });
+          }
+
+          return feedback;
+        } catch (error) {
+          console.warn(`Modelul ${model.label} a eșuat`, error);
+        }
+      }
+
+      return {
+        paragraf: "Feedback indisponibil momentan.",
+        intrebare: "",
+        recomandare: "",
+        distorsiuni: "",
+        scheme: "",
+        adult_sanatos_eval: "",
+        model: "",
+        timestamp: new Date().toISOString()
+      };
+    }
+
+
+
+
+
+
 
     async function loadTableData(collabId, pin) {
     if (dataAlreadyLoaded) {
