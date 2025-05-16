@@ -8,7 +8,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, getDoc, updateDoc, arrayUnion, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai"; // Import pentru Gemini SDK
+    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
     // Configurarea Firebase
     const firebaseConfig = {
@@ -26,31 +26,30 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    // --- Configurare Gemini API (Folosit direct în frontend) ---
-    // !! ATENȚIE MAXIMĂ: Asigură-te că ai RESTRICȚII puternice pe această cheie în Google Cloud Console.
-    const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // <--- ÎNLOCUIEȘTE ASTA CU CHEIA TA REALĂ!
-    const GEMINI_MODEL_NAME = "gemini-1.5-flash-latest"; // Sau gemini-pro
+    // --- Configurare Gemini API ---
+    const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // <<-- ÎNLOCUIEȘTE CU CHEIA TA API GEMINI REALĂ !!!
+    const GEMINI_MODEL_NAME = "gemini-1.5-flash-latest";
     let genAI, geminiModel;
 
-    if (GEMINI_API_KEY && GEMINI_API_KEY !== "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng") {
+    // Am schimbat verificarea ca să fie mai clar: dacă e placeholder-ul, nu inițializa.
+    if (GEMINI_API_KEY && GEMINI_API_KEY !== "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng" && GEMINI_API_KEY !== "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng" ) {
         try {
             genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
             geminiModel = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME });
             console.log("SDK Gemini inițializat cu modelul:", GEMINI_MODEL_NAME);
         } catch (e) {
             console.error("Eroare la inițializarea SDK Gemini:", e);
-            geminiModel = null; // Asigură-te că e null dacă inițializarea eșuează
+            geminiModel = null;
         }
     } else {
-        console.warn("Cheia API pentru Gemini nu este configurată. Feedback-ul AI prin Gemini va fi dezactivat.");
+        console.warn("Cheia API pentru Gemini nu este configurată sau este placeholder-ul. Feedback-ul AI prin Gemini va fi dezactivat. Verifică constanta GEMINI_API_KEY.");
         geminiModel = null;
     }
     // --- Sfârșit Configurare Gemini API ---
 
     let currentStep = 1;
     let totalSteps = 0;
-    let dataAlreadyLoaded = false;
-
+    let dataAlreadyLoaded = false; // Pentru a controla încărcarea inițială a datelor
 
     window.onload = function () {
         totalSteps = document.querySelectorAll('.form-step').length;
@@ -58,17 +57,14 @@
         const urlParams = new URLSearchParams(window.location.search);
         const collabId = urlParams.get('collabId');
 
-        // Logica de autentificare și încărcare date
-        if (collabId) {
-            // Gestionarea vizualizării colaboratorului se face în listener-ul DOMContentLoaded
-        } else {
+        if (!collabId) { // Doar pentru utilizatorul normal, nu pentru colaborator
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     console.log("Utilizator autentificat:", user.uid);
-                    // Dacă utilizatorul este autentificat, încărcăm datele lui
-                    if (!dataAlreadyLoaded) { // Adăugat pentru a evita reîncărcări multiple
-                        populateTableData(user.uid); // Pentru tabel (dacă se folosește)
-                        loadTableData(user.uid);     // Pentru carduri
+                    if (!dataAlreadyLoaded) {
+                        // TREBUIE SĂ FILTREZI DATELE AICI PENTRU `user.uid`
+                        populateTableData(user.uid); // Asigură-te că această funcție filtrează pe userId
+                        loadTableData(user.uid);     // Asigură-te că această funcție filtrează pe userId
                         dataAlreadyLoaded = true;
                     }
                 } else {
@@ -77,7 +73,7 @@
                 }
             });
         }
-
+        // Logica pentru collabId este în DOMContentLoaded
 
         const nextButton = document.getElementById("nextButton");
         if (nextButton) nextButton.addEventListener("click", nextStep);
@@ -86,11 +82,10 @@
         if (prevButton) prevButton.addEventListener("click", previousStep);
 
         const addButton = document.getElementById("addButton");
-        if (addButton) addButton.addEventListener("click", salveazaRaspunsSiGenereazaFeedback);
+        if (addButton) addButton.addEventListener("click", salveazaRaspunsSiGenereazaFeedback); // Nume schimbat
 
         const generateLinkButton = document.getElementById("generateLinkButton");
         if (generateLinkButton) generateLinkButton.addEventListener("click", generateCollaborationLink);
-
     };
 
     function nextStep() {
@@ -113,7 +108,7 @@
 
     function updateProgressBar() {
         const progress = document.getElementById('progress');
-        if(progress && totalSteps > 0) { // Adaugat totalSteps > 0
+        if(progress && totalSteps > 0) {
             const progressPercentage = (currentStep / totalSteps) * 100;
             progress.style.width = progressPercentage + '%';
         }
@@ -125,24 +120,26 @@
             return "EROARE: Configurare Gemini incorectă. Verifică dacă ai introdus corect cheia API în cod.";
         }
         try {
-            console.log("Trimitere prompt către Gemini:", promptText.substring(0, 100) + "..."); // Loghează o parte din prompt
+            console.log("Trimitere prompt către Gemini (primele 100 caractere):", promptText.substring(0, 100) + "...");
             const result = await geminiModel.generateContent(promptText);
             const response = result.response;
             if (!response || typeof response.text !== 'function') {
                  console.error("Răspuns neașteptat de la Gemini (nu conține text()):", response);
-                 return `EROARE Gemini: Răspuns invalid de la API (status ${response?.status || 'necunoscut'}).`;
+                 return `EROARE Gemini: Răspuns invalid de la API.`;
             }
             const text = response.text();
             return text;
         } catch (error) {
-            console.error("Eroare detaliată la generarea feedback-ului Gemini:", error);
-            let errorMessage = `EROARE Gemini: ${error.message || "Eroare necunoscută la comunicarea cu API-ul"}`;
-            if (error.message && error.message.toLowerCase().includes("api key not valid")) {
-                 errorMessage = "EROARE: Cheia API Gemini nu este validă sau nu are permisiuni. Verifică restricțiile din Google Cloud Console (HTTP Referrers, API Restrictions pentru Generative Language API) și cheia din cod.";
-            } else if (error.message && (error.message.toLowerCase().includes("quota") || (error.status && error.status === 429) )) {
-                errorMessage = "EROARE: Limita de utilizare gratuită Gemini a fost depășită. Încearcă mai târziu.";
-            } else if (error.message && error.message.toLowerCase().includes("candidate.finish_reason")){
-                errorMessage = "EROARE Gemini: Generarea a fost oprită din motive de siguranță sau alte restricții ale modelului.";
+            console.error("Eroare detaliată la generarea feedback-ului Gemini:", error, error.stack);
+            let errorMessage = `EROARE Gemini: ${error.message || "Eroare necunoscută la API"}`;
+             if (error.toString().toLowerCase().includes("api key not valid") || (error.message && error.message.toLowerCase().includes("permission denied")) || (error.message && error.message.toLowerCase().includes("api_key_invalid")) ) {
+                 errorMessage = "EROARE: Cheia API Gemini nu este validă sau nu are permisiuni. Verifică restricțiile din Google Cloud Console (HTTP Referrers, API Restrictions pentru Generative Language API) și cheia din cod. Asigură-te că domeniul " + window.location.hostname + " este permis.";
+            } else if (error.message && (error.message.toLowerCase().includes("quota") || (error.status && error.status === 429) || (error.toString().toLowerCase().includes("resource has been exhausted")) )) {
+                errorMessage = "EROARE: Limita de utilizare gratuită Gemini (RPM sau alta) a fost depășită. Încearcă mai târziu.";
+            } else if (error.message && error.message.toLowerCase().includes("candidate.finish_reason")){ // Include și alte finish reasons
+                errorMessage = "EROARE Gemini: Generarea a fost oprită (posibil din motive de siguranță, conținut, sau alte restricții ale modelului). Încearcă un prompt diferit.";
+            }  else if (error.toString().toLowerCase().includes("404") && error.toString().toLowerCase().includes("model not found")) {
+                 errorMessage = `EROARE Gemini: Modelul ${GEMINI_MODEL_NAME} nu a fost găsit sau nu este suportat. Verifică numele modelului.`;
             }
             return errorMessage;
         }
@@ -175,15 +172,15 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
         modelFolosit = `Gemini (${GEMINI_MODEL_NAME})`;
         feedbackText = await genereazaFeedbackCuGeminiDinFrontend(prompt);
       } else {
-        console.warn("Gemini nu este configurat (cheia API lipsește sau este incorectă). Nu se poate genera feedback AI.");
+        console.warn("Gemini nu este configurat. Nu se poate genera feedback AI.");
         return {
-            paragraf: "Serviciul de feedback AI (Gemini) nu este configurat corect. Verifică cheia API în codul sursă.",
+            paragraf: "Serviciul de feedback AI (Gemini) nu este configurat corect. Verifică cheia API.",
             intrebare: "", recomandare: "", distorsiuni: "", scheme: "", adult_sanatos_eval: "",
-            model: "Configurare Gemini Eronată", timestamp: new Date().toISOString()
+            model: "Configurare Eronată", timestamp: new Date().toISOString()
         };
       }
 
-      if (!feedbackText || feedbackText.startsWith("EROARE:")) {
+      if (!feedbackText || (typeof feedbackText === 'string' && feedbackText.startsWith("EROARE:"))) {
         console.warn(`Eroare de la ${modelFolosit}:`, feedbackText);
         return {
             paragraf: feedbackText || `Nu s-a putut obține feedback de la ${modelFolosit}.`,
@@ -205,20 +202,14 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
           timestamp: new Date().toISOString()
       };
       
-      // Verificare suplimentară dacă toate câmpurile parsate sunt mesaje de eroare de la parsare
-        let allParsingFailed = true;
-        for (const key in parsedFeedback) {
-            if (key !== "model" && key !== "timestamp" && typeof parsedFeedback[key] === 'string' && !parsedFeedback[key].startsWith("Nu s-a putut")) {
-                allParsingFailed = false;
-                break;
-            }
-        }
-        if (allParsingFailed && !feedbackText.startsWith("EROARE:")) {
-             console.warn("Parsarea detaliată a eșuat pentru toate câmpurile. Este posibil ca formatul răspunsului de la AI să nu corespundă așteptărilor. Verifică promptul și regex-urile.");
-             // Opcional: poți afișa tot textul într-un singur câmp dacă parsarea eșuează complet
-             // parsedFeedback.paragraf = `Răspuns neparsat de la ${modelFolosit}:\n${feedbackText.replace(/\n\n/g, "\n").replace(/\n/g, "<br>")}`;
-        }
-
+      let allParsingFailed = ["paragraf", "intrebare", "recomandare", "distorsiuni", "scheme", "adult_sanatos_eval"]
+                             .every(key => parsedFeedback[key]?.startsWith("Nu s-a putut"));
+      
+      if (allParsingFailed && !(typeof feedbackText === 'string' && feedbackText.startsWith("EROARE:"))) {
+          console.warn("Parsarea detaliată a eșuat pentru toate câmpurile. Formatul răspunsului AI nu corespunde. Răspunsul brut va fi plasat în secțiunea 'Paragraf'.");
+          parsedFeedback.paragraf = `Răspuns brut de la ${modelFolosit} (parsare eșuată):\n${feedbackText.replace(/\n/g, "<br>")}`;
+          parsedFeedback.intrebare = ""; parsedFeedback.recomandare = ""; parsedFeedback.distorsiuni = ""; parsedFeedback.scheme = ""; parsedFeedback.adult_sanatos_eval = "";
+      }
 
       if (docId) {
           const docRef = doc(db, "raspunsuri", docId);
@@ -241,25 +232,38 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
       return parsedFeedback;
     }
 
-    async function salveazaRaspunsSiGenereazaFeedback() { // Am redenumit adaugaInTabel
+    async function salveazaRaspunsSiGenereazaFeedback() {
         const form = document.getElementById("exercitiuForm");
-        if (!form.checkValidity()) { // Validare HTML5 de bază
+        if (!form.checkValidity()) {
             form.reportValidity();
-            alert("Vă rugăm completați toate câmpurile marcate ca obligatorii din pasul curent.");
+            // Găsește primul câmp invalid din pasul curent și dă-i focus
+            const currentStepElement = document.querySelector('.form-step-active');
+            const firstInvalidField = currentStepElement?.querySelector(':invalid');
+            if (firstInvalidField) {
+                firstInvalidField.focus();
+                 alert("Vă rugăm completați toate câmpurile obligatorii din pasul curent înainte de a continua.");
+            } else {
+                 alert("Vă rugăm completați toate câmpurile obligatorii.");
+            }
             return;
         }
 
         const formData = new FormData(form);
-        const rowData = { date: new Date().toLocaleDateString("ro-RO") }; // Formatare data RO
+        const rowData = { date: new Date().toLocaleDateString("ro-RO") };
         formData.forEach((value, key) => { rowData[key] = value; });
 
         const user = auth.currentUser;
         if (!user) {
             alert("Trebuie să fiți autentificat pentru a salva datele.");
-            window.location.href = "login.html"; // Redirecționează dacă nu e autentificat
+            window.location.href = "login.html";
             return;
         }
         rowData.ownerUid = user.uid;
+
+        const addButton = document.getElementById("addButton");
+        const originalAddButtonText = addButton.textContent;
+        addButton.textContent = "Se salvează și se generează...";
+        addButton.disabled = true;
 
         try {
             const docRef = await addDoc(collection(db, "raspunsuri"), rowData);
@@ -268,10 +272,10 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
 
             const feedbackGenerat = await genereazaSiProceseazaFeedbackAI(rowData, docRef.id);
             
-            const docSnapshot = await getDoc(docRef); // Recitim pentru a avea cel mai nou istoric
+            const docSnapshot = await getDoc(docRef);
             if (docSnapshot.exists()) {
                 adaugaCard({ id: docSnapshot.id, ...docSnapshot.data() });
-            } else { // Puțin probabil, dar ca fallback
+            } else {
                 rowData.feedback_history = feedbackGenerat ? [feedbackGenerat] : [];
                 adaugaCard(rowData);
             }
@@ -283,29 +287,28 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
             updateProgressBar();
 
             const confirmationMessage = document.getElementById('confirmationMessage');
-            if (feedbackGenerat && !feedbackGenerat.paragraf.startsWith("EROARE:") && !feedbackGenerat.paragraf.startsWith("Serviciul") && !feedbackGenerat.paragraf.startsWith("Configurare Gemini Eronată")) {
+            if (feedbackGenerat && !(typeof feedbackGenerat.paragraf === 'string' && feedbackGenerat.paragraf.startsWith("EROARE:")) && feedbackGenerat.model !== "Configurare Eronată" && feedbackGenerat.model !== "Configurare Gemini Eronată") {
                 confirmationMessage.textContent = 'Formularul a fost trimis și feedback-ul AI generat! Îl puteți vedea în cardul de mai jos.';
                 confirmationMessage.style.backgroundColor = '#d4edda'; 
                 confirmationMessage.style.color = '#155724';
-            } else if (feedbackGenerat && feedbackGenerat.paragraf && feedbackGenerat.paragraf.includes("depășită")) { // Caută cuvântul cheie
-                 confirmationMessage.textContent = 'Formularul a fost trimis. Feedback-ul AI nu a putut fi generat din cauza depășirii limitei de utilizare. Vă rugăm încercați mai târziu.';
-                 confirmationMessage.style.backgroundColor = '#fff3cd';
-                 confirmationMessage.style.color = '#664d03';
             } else {
-                 confirmationMessage.textContent = `Formularul a fost trimis. Problemă la generarea feedback-ului AI: ${feedbackGenerat ? feedbackGenerat.paragraf : 'Eroare necunoscută'}`;
-                 confirmationMessage.style.backgroundColor = '#f8d7da';
-                 confirmationMessage.style.color = '#58151c';
+                 confirmationMessage.textContent = `Formularul a fost trimis. ${feedbackGenerat ? feedbackGenerat.paragraf : 'A apărut o problemă la generarea feedback-ului AI.'}`;
+                 confirmationMessage.style.backgroundColor = (feedbackGenerat && feedbackGenerat.paragraf && feedbackGenerat.paragraf.includes("depășită")) ? '#fff3cd' : '#f8d7da';
+                 confirmationMessage.style.color = (feedbackGenerat && feedbackGenerat.paragraf && feedbackGenerat.paragraf.includes("depășită")) ? '#664d03' : '#58151c';
             }
             confirmationMessage.style.display = 'block';
             setTimeout(() => {
                 confirmationMessage.style.display = 'none';
-                confirmationMessage.style.backgroundColor = '#d4edda'; // Reset default
+                confirmationMessage.style.backgroundColor = '#d4edda';
                 confirmationMessage.style.color = '#155724';
             }, 9000);
 
         } catch (error) {
             console.error("Eroare la salvarea în Firestore sau generarea feedback-ului AI:", error);
             alert("A apărut o eroare la salvare. Vă rugăm încercați din nou.");
+        } finally {
+            addButton.textContent = originalAddButtonText;
+            addButton.disabled = false;
         }
     }
 
@@ -322,7 +325,7 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
 
             feedbackHistory.slice().reverse().forEach(entry => { 
                 const itemContainer = document.createElement("div");
-                itemContainer.className = "feedback-entry-card"; // Adaugă o clasă pentru stilizare centralizată
+                itemContainer.className = "feedback-entry-card";
 
                 const timestampAndModel = document.createElement("p");
                 timestampAndModel.className = "feedback-timestamp";
@@ -350,15 +353,16 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
 
                     if (contentText && typeof contentText === 'string') {
                         const titleWithoutEmoji = sectionConfig.title.replace(/(\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/gu, '').trim();
-                        const redundantTitlePatternGeneric = new RegExp(`^${titleWithoutEmoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:?\\s*`, "im");
-                        contentText = contentText.replace(redundantTitlePatternGeneric, "").trim();
-                        const redundantKeyPattern = new RegExp(`^${sectionConfig.key.replace("_", " ")}:?\\s*`, "im");
-                        contentText = contentText.replace(redundantKeyPattern, "").trim();
+                        const patternTitleText = new RegExp(`^${titleWithoutEmoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:?\\s*`, "im");
+                        contentText = contentText.replace(patternTitleText, "").trim();
+                        const patternKeyText = new RegExp(`^${sectionConfig.key.replace(/_/g, " ")}:?\\s*`, "im");
+                        contentText = contentText.replace(patternKeyText, "").trim();
+
 
                         if (sectionConfig.isList && contentText.includes('*')) {
                             const listElement = document.createElement("ul");
                             const items = contentText.split(/\s*\*\s*/)
-                                              .map(item => item.trim())
+                                              .map(item => item.trim().replace(/^\s*-\s*/, '')) // Elimină și '-' de la începutul itemului de listă
                                               .filter(item => item.length > 0);
                             items.forEach(itemText => {
                                 const listItem = document.createElement("li");
@@ -381,35 +385,29 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
                 });
                 containerElement.appendChild(itemContainer);
             });
-        } else {
-            // Nu afișăm "Niciun feedback" dacă containerul e gol inițial,
-            // doar dacă feedbackHistory e un array gol explicit după o încercare.
-            // Dacă `feedbackHistory` e undefined, nu afișăm nimic aici (card nou, fără istoric încă).
         }
     }
 
    function adaugaCard(rowData) {
       const cardViewContainer = document.getElementById("cardViewContainer");
-      // Verifică dacă un card cu acest ID există deja pentru a evita duplicate la reîncărcări
-      const existingCard = cardViewContainer.querySelector(`.response-card[data-id="${rowData.id}"]`);
-      if (existingCard) {
-           // Opțional: actualizează istoricul cardului existent dacă e cazul,
-           // deși acest flux ar trebui să creeze cardul o singură dată la început
-           // sau la adăugarea unui nou răspuns.
+      let card = cardViewContainer.querySelector(`.response-card[data-id="${rowData.id}"]`);
+
+      if (card) {
            console.log("Cardul există deja, se actualizează istoricul AI:", rowData.id);
-           const historyContainer = existingCard.querySelector('.ai-feedback-history-container');
+           const historyContainer = card.querySelector('.ai-feedback-history-container');
            if (historyContainer) {
                 afiseazaIstoricFeedback(historyContainer, rowData.feedback_history);
            }
-           return; // Nu recreăm tot cardul
+           // S-ar putea să vrei să actualizezi și header-ul dacă data/situația s-ar schimba,
+           // dar în fluxul actual, odată creat, conținutul principal al răspunsului nu se schimbă.
+           return;
       }
 
-
-      const card = document.createElement("div");
+      card = document.createElement("div");
       card.className = "response-card";
       card.setAttribute("data-id", rowData.id);
       card.innerHTML = `
-        <div class="card-header"> Data: ${rowData.date || ''} - Situația: ${rowData.situatie.substring(0,50) || ''}...</div>
+        <div class="card-header"> Data: ${rowData.date || ''} - Situația: ${(rowData.situatie || '').substring(0,60)}...</div>
         <div class="card-content">
           <h4>Explorarea situației și a nevoilor</h4>
           <p><strong>Care este situația?</strong> ${rowData.situatie || ''}</p>
@@ -449,7 +447,6 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
               <button class="delete-button">Șterge Înregistrarea</button>
           </div>
           <div class="ai-feedback-history-container">
-              <!-- Istoricul AI va fi adăugat aici -->
           </div>
         </div>
       `;
@@ -466,7 +463,7 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
       const generateManualButton = card.querySelector('.generate-ai-feedback-button');
       if (generateManualButton) {
             generateManualButton.addEventListener('click', async (event) => {
-                event.stopPropagation(); // Nu propaga click-ul la header-ul cardului
+                event.stopPropagation();
                 const button = event.target;
                 const originalButtonText = button.textContent;
                 button.textContent = 'Se generează...';
@@ -474,17 +471,14 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
                 
                 try {
                     console.log(`Regenerare manuală feedback AI pentru card: ${rowData.id}`);
-                    const docSnapshot = await getDoc(doc(db, "raspunsuri", rowData.id)); // Ia ultimele date
+                    const docSnapshot = await getDoc(doc(db, "raspunsuri", rowData.id));
                     let currentCardData;
                     if (docSnapshot.exists()) {
                         currentCardData = { id: docSnapshot.id, ...docSnapshot.data() };
                     } else {
-                        console.warn("Documentul nu a fost găsit. Folosim datele locale pentru regenerare.");
                         currentCardData = rowData;
                     }
-
                     await genereazaSiProceseazaFeedbackAI(currentCardData, currentCardData.id);
-                    
                     const updatedDoc = await getDoc(doc(db, "raspunsuri", currentCardData.id));
                     if (updatedDoc.exists()) {
                        afiseazaIstoricFeedback(card.querySelector('.ai-feedback-history-container'), updatedDoc.data().feedback_history);
@@ -501,6 +495,7 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
     
       afiseazaIstoricFeedback(card.querySelector('.ai-feedback-history-container'), rowData.feedback_history);
 
+      // Inserează cardurile noi la început
       if (cardViewContainer.firstChild) {
           cardViewContainer.insertBefore(card, cardViewContainer.firstChild);
       } else {
@@ -508,102 +503,88 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
       }
     }
 
-    async function loadTableData(userId, collabIdForLoad = null, ownerIdForCollab = null) {
-        if (collabIdForLoad && dataAlreadyLoaded) { // Specific pentru colaborator
-            console.log("Datele colaboratorului deja încărcate în carduri.");
+    async function loadTableData(userId, collabIdForLoad = null, ownerIdForCollabView = null) {
+        // Funcția de încărcare carduri - ESENȚIAL: filtrează pe userId sau ownerIdForCollabView
+        if (!userId && !ownerIdForCollabView) {
+            console.warn("loadTableData apelat fără userId sau ownerIdForCollabView. Nu se încarcă date.");
+            return;
+        }
+
+        // Control pentru a nu reîncărca inutil dacă datele sunt deja pentru colaborator
+        if (collabIdForLoad && dataAlreadyLoaded) {
+            console.log("Cardurile pentru colaborator deja încărcate.");
             return;
         }
         
+        console.log("Încărcare/Reîncărcare carduri din Firestore...");
         const cardViewContainer = document.getElementById("cardViewContainer");
-        if (cardViewContainer.innerHTML !== '' && !collabIdForLoad && dataAlreadyLoaded) {
-            // Pentru utilizatorul normal, dacă datele sunt deja încărcate, nu le reîncărca la fiecare schimbare de stare auth minoră
-            console.log("Cardurile pentru utilizator sunt deja încărcate.");
-            // return; // Comentează return dacă vrei să reîmprospătezi la fiecare onAuthStateChanged (poate fi util)
-        }
-        
-        console.log("Încărcare date din Firestore pentru carduri...");
-        cardViewContainer.innerHTML = ''; // Golește înainte de a repopula
+        cardViewContainer.innerHTML = ''; // Golește întotdeauna la (re)încărcare
 
         try {
             let q;
-            if (collabIdForLoad && ownerIdForCollab) {
-                console.log(`Încărcare date pentru colaborare, owner ID: ${ownerIdForCollab}`);
-                q = query(collection(db, "raspunsuri"), where("ownerUid", "==", ownerIdForCollab));
-            } else if (userId) {
-                console.log(`Încărcare date pentru utilizatorul: ${userId}`);
+            if (ownerIdForCollabView) { // Pentru colaborator
+                console.log(`Filtrare colaborare pentru owner: ${ownerIdForCollabView}`);
+                q = query(collection(db, "raspunsuri"), where("ownerUid", "==", ownerIdForCollabView));
+            } else { // Pentru utilizatorul logat
+                console.log(`Filtrare pentru utilizator logat: ${userId}`);
                 q = query(collection(db, "raspunsuri"), where("ownerUid", "==", userId));
-            } else {
-                console.warn("Niciun userId sau ownerIdForCollab furnizat pentru loadTableData. Nu se încarcă date.");
-                return; // Nu încărca nimic dacă nu e clar pentru cine
             }
 
             const querySnapshot = await getDocs(q);
+            if (querySnapshot.empty) {
+                console.log("Nicio înregistrare găsită pentru filtrele aplicate.");
+                 // Poți afișa un mesaj utilizatorului în cardViewContainer
+                cardViewContainer.innerHTML = '<p style="text-align:center; margin-top:20px; font-style:italic;">Nicio fișă de monitorizare găsită.</p>';
+                if(collabIdForLoad) dataAlreadyLoaded = true; // Marchează ca încărcat chiar dacă e gol
+                return;
+            }
+            
             const documents = [];
             querySnapshot.forEach((doc) => {
                 documents.push({ id: doc.id, ...doc.data() });
             });
 
             documents.sort((a, b) => {
-                const dateA = a.date ? new Date(a.date.split('.').reverse().join('-') + "T" + (a.timestamp ? new Date(a.timestamp).toTimeString().split(" ")[0] : "00:00:00")) : new Date(0);
-                const dateB = b.date ? new Date(b.date.split('.').reverse().join('-') + "T" + (b.timestamp ? new Date(b.timestamp).toTimeString().split(" ")[0] : "00:00:00")) : new Date(0);
-                // Pentru o sortare mai robustă dacă ai timestamp complet în Firestore (de la Date())
-                // const timeA = a.firestoreTimestamp ? a.firestoreTimestamp.toDate() : dateA;
-                // const timeB = b.firestoreTimestamp ? b.firestoreTimestamp.toDate() : dateB;
-                // return timeB - timeA;
-                return dateB - dateA; // Sortare descrescătoare
+                // Sortare mai robustă: folosim timestamp-ul salvat dacă există, altfel data
+                const timeA = a.timestamp ? new Date(a.timestamp).getTime() : (a.date ? new Date(a.date.split('.').reverse().join('-')).getTime() : 0);
+                const timeB = b.timestamp ? new Date(b.timestamp).getTime() : (b.date ? new Date(b.date.split('.').reverse().join('-')).getTime() : 0);
+                return timeB - timeA; // Descrescător (cel mai nou primul)
             });
             
             documents.forEach(docData => {
                 adaugaCard(docData);
             });
 
-            if (collabIdForLoad) dataAlreadyLoaded = true; // Specific pentru scenariul de colaborare
-            // Pentru utilizatorul normal, dataAlreadyLoaded este gestionat în onAuthStateChanged
+            if (collabIdForLoad) dataAlreadyLoaded = true; 
+            // dataAlreadyLoaded pentru utilizatorul normal se setează în onAuthStateChanged
 
         } catch (error) {
             console.error("Eroare la încărcarea cardurilor din Firestore:", error.message, error.stack);
+            cardViewContainer.innerHTML = '<p style="text-align:center; margin-top:20px; color:red;">A apărut o eroare la încărcarea datelor.</p>';
         }
     }
 
-    async function populateTableData(userId) { // Doar pentru utilizatorul curent, nu pentru colaborare
-        // Consideră eliminarea completă a acestei funcții dacă tabelul nu mai este necesar
-        // sau integreaz-o mai bine cu `loadTableData` pentru a evita dubla interogare.
-        // Pentru moment, o las cu filtrare, dar este redundantă dacă cardurile sunt afișate.
-        const urlParams = new URLSearchParams(window.location.search);
-        const collabIdFromUrl = urlParams.get('collabId');
-        if (collabIdFromUrl) { // Tabelul nu e pentru colaboratori
-            console.log("Tabelul nu se populează pentru vizualizarea de colaborator.");
-            return;
-        }
-
+    async function populateTableData(userId) {
+        // Această funcție este pentru tabelul ascuns. Dacă nu-l mai folosești, o poți elimina.
+        // Asigură-te că filtrează pe `userId` dacă o păstrezi.
         const tableBody = document.getElementById("tableBody");
         if (!tableBody || !userId) return;
-        tableBody.innerHTML = "";
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('collabId')) return; // Nu pentru colaboratori
 
-        try {
-            const q = query(collection(db, "raspunsuri"), where("ownerUid", "==", userId));
-            const querySnapshot = await getDocs(q);
-            const docsData = [];
-            querySnapshot.forEach(doc => docsData.push({id: doc.id, ...doc.data()}));
-
-            // ... restul logicii de sortare și populare tabel (dacă este încă necesară) ...
-            console.log("Tabelul a fost populat (dacă este vizibil).");
-
-        } catch (error) {
-            console.error("Eroare la încărcarea în tabel din Firestore:", error.message);
-        }
+        // ... restul logicii populateTableData (cu query(collection(db, "raspunsuri"), where("ownerUid", "==", userId))) ...
+        console.log("Funcția populateTableData (tabel) a fost apelată. Consideră eliminarea ei dacă tabelul nu este utilizat.");
     }
 
     window.toggleDetails = function(id) { /* ... cod neschimbat ... */ }
 
-    async function stergeCard(id, cardElement) {
+    async function stergeCard(id, cardElement) { /* ... cod existent, ar trebui să funcționeze ... */
         if (confirm("Sunteți sigur că doriți să ștergeți această înregistrare și tot feedback-ul asociat? Această acțiune este ireversibilă.")) {
             try {
                 await deleteDoc(doc(db, "raspunsuri", id));
                 cardElement.remove();
                 console.log(`Înregistrarea ${id} a fost ștearsă.`);
-                // Reîmprospătează și tabelul dacă este vizibil și relevant
-                // populateTableData(auth.currentUser?.uid); // Depinde dacă vrei asta
             } catch (error) {
                 console.error("Eroare la ștergerea din Firestore:", error);
                 alert("Eroare la ștergerea înregistrării.");
@@ -611,391 +592,334 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
         }
     }
 
-    async function generateCollaborationLink() { /* ... cod neschimbat (asigură-te că salvezi `ownerUid`) ... */ }
+    async function generateCollaborationLink() {
+        const user = auth.currentUser;
+        if (!user) {
+            alert("Trebuie să fiți autentificat pentru a genera un link de colaborare.");
+            return;
+        }
+        // Caută dacă există deja un link activ pentru acest utilizator
+        const existingCollabQuery = query(collection(db, "collaborations"), where("owner", "==", user.uid));
+        const querySnapshot = await getDocs(existingCollabQuery);
+
+        if (!querySnapshot.empty) {
+            const collabDoc = querySnapshot.docs[0];
+            const collaborationLink = `${window.location.origin}${window.location.pathname}?collabId=${collabDoc.id}`;
+            prompt(`Ai deja un link de colaborare activ (PIN: ${collabDoc.data().pin}). Îl poți redistribui:\nLink și PIN:`, `${collaborationLink} (PIN: ${collabDoc.data().pin})`);
+            return;
+        }
+
+        const pinCode = prompt("Introduceți un cod PIN numeric (minim 4 cifre) pentru noul link de colaborare:");
+        if (!pinCode || !/^\d{4,}$/.test(pinCode)) { // Verifică dacă e numeric și are minim 4 cifre
+            alert("Cod PIN invalid. Trebuie să fie numeric și să conțină cel puțin 4 cifre.");
+            return;
+        }
+        try {
+            const docRef = await addDoc(collection(db, "collaborations"), { 
+                owner: user.uid, 
+                pin: pinCode, 
+                createdAt: new Date() 
+            });
+            const collaborationLink = `${window.location.origin}${window.location.pathname}?collabId=${docRef.id}`;
+            prompt(`Link de colaborare generat! Distribuie acest link ÎMPREUNĂ cu codul PIN.\nLink: ${collaborationLink}\nPIN: ${pinCode}`, `Link: ${collaborationLink} (PIN: ${pinCode})`);
+        } catch (error) {
+            console.error("Eroare la generarea link-ului de colaborare:", error);
+            alert("A apărut o eroare la generarea linkului.");
+        }
+    }
 
     window.addEventListener('DOMContentLoaded', async () => {
-        console.log("DOMContentLoaded - verifică vizualizarea colaboratorului.");
+        console.log("DOMContentLoaded - Verifică colaboratorul");
         const urlParams = new URLSearchParams(window.location.search);
         const collabId = urlParams.get('collabId');
 
         if (collabId) {
-            console.log("Mod colaborare detectat. ID Colaborare:", collabId);
-            dataAlreadyLoaded = false; // Resetează pentru colaborator
-            // Ascunde elementele care nu sunt pentru colaborator
+            dataAlreadyLoaded = false; // Important pentru colaborator
+            document.body.classList.add("collab-view"); // Clasă pentru a ascunde/modifica elemente via CSS dacă e nevoie
             ['exercitiuForm', 'generateLinkButton', '.form-container', '.table-container'].forEach(sel => {
                 const el = document.querySelector(sel) || document.getElementById(sel);
                 if (el) el.style.display = 'none';
             });
             
-            const pin = prompt("Introduceți codul PIN pentru a accesa această fișă de colaborare:");
+            const pin = prompt("Introduceți PIN pentru colaborare:");
             if (!pin) {
-                alert("Cod PIN necesar pentru vizualizare.");
-                window.location.href = "login.html"; // Sau o pagină de eroare
-                return;
+                alert("PIN necesar."); window.location.href = "login.html"; return;
             }
-
             try {
                 const collabDocRef = doc(db, "collaborations", collabId);
                 const collabSnapshot = await getDoc(collabDocRef);
-
                 if (collabSnapshot.exists()) {
                     const collabData = collabSnapshot.data();
                     if (collabData.pin === pin) {
-                        console.log("PIN corect. Se încarcă datele pentru owner:", collabData.owner);
-                        // Afișează un mesaj sau un header specific pentru colaborator
-                        const collabHeader = document.createElement('h2');
-                        collabHeader.textContent = "Vizualizare Fișă Colaborare";
-                        collabHeader.style.textAlign = "center";
-                        collabHeader.style.marginTop = "20px";
-                        document.body.insertBefore(collabHeader, document.querySelector('.card-view')); // Adaugă înainte de carduri
+                        console.log("PIN corect. Încărcare date colaborator pentru owner:", collabData.owner);
+                        // Modifică titlul principal al paginii
+                        document.title = "Vizualizare Fișă Colaborare - Psiho";
+                        const mainHeading = document.querySelector('body > h2, body > .form-container h2'); // Găsește un titlu existent sau adaptează
+                        if (mainHeading) mainHeading.textContent = "Fișă de Colaborare";
 
-                        loadTableData(null, collabId, collabData.owner); // Încarcă cardurile pentru owner-ul specificat
+                        // Șterge conținutul .card-view înainte de a-l popula specific
+                        const cardView = document.getElementById('cardViewContainer');
+                        if(cardView) cardView.innerHTML = ''; 
+
+                        // Important: Pasează ownerId la loadTableData
+                        loadTableData(null, collabId, collabData.owner); 
                     } else {
-                        alert("PIN incorect.");
-                        window.location.href = "login.html";
+                        alert("PIN incorect."); window.location.href = "login.html";
                     }
                 } else {
-                    alert("Link de colaborare invalid sau expirat.");
-                    window.location.href = "login.html";
+                    alert("Colaborare inexistentă."); window.location.href = "login.html";
                 }
             } catch (error) {
-                console.error("Eroare la accesarea datelor de colaborare:", error);
-                alert("A apărut o eroare la accesarea fișei. Vă rugăm încercați mai târziu.");
-                window.location.href = "login.html";
+                console.error("Eroare accesare colaborare:", error);
+                alert("Eroare accesare colaborare."); window.location.href = "login.html";
             }
         }
-        // Logica pentru utilizatorul normal (non-collab) este gestionată în onAuthStateChanged
+        // Pentru utilizatorul normal, onAuthStateChanged se ocupă de încărcarea datelor
     });
     </script>
     <style>
-        /* ... STILURILE TALE EXISTENTE (INCLUSIV .feedback-section, etc.) ... */
-        body {
-            font-family: 'Roboto', 'Montserrat', sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(to right, #ece9e6, #ffffff);
-            color: #333;
-            box-sizing: border-box;
-        }
-        .form-container {
-            max-width: 900px;
-            margin: 20px auto;
-            background: #fff;
-            padding: 30px;
-            box-shadow: 0 16px 24px rgba(0, 0, 0, 0.2);
-            border-radius: 15px;
-            border: 3px solid #87CEFA;
-            transition: transform 0.3s ease;
-        }
-        .form-container:hover {
-            transform: scale(1.01);
-        }
-        .progress-bar {
-            width: 100%;
-            background-color: #f3f3f3;
-            border-radius: 25px;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-        .progress {
-            height: 20px;
-            width: 0;
-            background-color: #87CEFA;
-            transition: width 0.4s ease;
-        }
-        .question-card {
-            margin-bottom: 20px;
-            padding: 20px;
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s;
-        }
-        .question-card:hover {
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
-        }
-        .question-card h3 {
-            font-weight: 700;
-            font-size: 1.2em;
-            margin-top: 0;
-            margin-bottom: 10px;
-        }
-        .question-card p {
-            font-weight: 300;
-            font-size: 0.95em;
-            margin-bottom: 15px;
-            color: #555;
-            line-height: 1.6;
-        }
-        textarea {
-            width: calc(100% - 22px);
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            resize: vertical;
-            min-height: 60px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: border-color 0.3s;
-        }
-        textarea:focus {
-            border-color: #87CEFA;
-            box-shadow: 0 2px 8px rgba(135, 206, 250, 0.5);
-            outline: none;
-        }
-        input[type="submit"], button {
-            margin-top: 20px;
-            padding: 12px 25px;
-            font-size: 18px;
-            font-weight: 500;
-            background: linear-gradient(to right, #87CEFA, #6bb9e7);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.3s, transform 0.2s;
-        }
-        input[type="submit"]:hover, button:hover {
-            background: linear-gradient(to right, #6bb9e7, #4A90E2);
-            transform: translateY(-2px);
-        }
-        .form-step { display: none; }
-        .form-step-active { display: block; animation: fadeIn 0.7s ease-in-out; }
-        @keyframes fadeIn {
-            0% { opacity: 0; transform: translateY(10px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-        .step-navigation { text-align: center; margin-top: 20px; }
-        .step-navigation button { margin: 0 10px; }
-        .table-container { /* ... stiluri tabel dacă e folosit ... */ }
-        .card-view { display: flex; flex-direction: column; gap: 20px; max-width: 900px; margin: 30px auto; }
-        .response-card { background: #f9f9ff; padding: 0; border-radius: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.12); transition: box-shadow 0.3s ease; position: relative; overflow: hidden; }
-        .response-card:hover { box-shadow: 0 10px 20px rgba(0,0,0,0.18); }
-        .response-card .card-header { font-weight: 700; font-size: 1.1em; cursor: pointer; background: #87CEFA; padding: 12px 20px; color: #fff; text-align: left; position: relative; display: flex; justify-content: space-between; align-items: center; }
-        .response-card .card-header::after { content: '▼'; font-size: 0.8em; transition: transform 0.3s ease; }
-        .response-card.open .card-header::after { transform: rotate(180deg); }
-        .response-card .card-content { max-height: 0; margin-top: 0; padding: 0 20px; background: #fff; line-height: 1.6; overflow: auto; transition: max-height 0.4s ease-out, padding-top 0.4s ease-out, padding-bottom 0.4s ease-out; }
-        .response-card.open .card-content { max-height: 1500px; /* Mărit pentru mai mult conținut */ padding-top: 15px; padding-bottom: 15px; }
-        .response-card .card-content p { margin-bottom: 12px; border-left: 3px solid #87CEFA; padding-left: 10px; }
-        .response-card .card-content p strong { color: #333; }
-        .response-card h4 { text-align: left; color: #4A90E2; font-weight: bold; margin-top: 20px; margin-bottom: 10px; font-size: 1.05em; }
-        .response-card h4:first-child { margin-top: 0; }
-        .card-actions { text-align: center; margin-top: 20px; padding-bottom: 10px; border-top: 1px solid #eee; padding-top: 15px; }
-        .card-actions button { padding: 8px 15px; font-size: 0.9em; margin: 5px; }
-        .generate-ai-feedback-button { background: #5cb85c; }
-        .generate-ai-feedback-button:hover { background: #4cae4c; }
-        .delete-button { background-color: #f44336 !important; }
-        .delete-button:hover { background-color: #d32f2f !important; }
-        #confirmationMessage { display: none; text-align: center; padding: 15px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 5px; margin-top: 20px; animation: fadeIn 0.5s; }
-        .collaboration-section { text-align: center; margin-top: 30px; padding-bottom: 20px; }
-        .collaboration-section button { background-color: #f0ad4e; }
-        .collaboration-section button:hover { background-color: #ec971f; }
+        /* ... TOATE STILURILE TALE CSS EXISTENTE (inclusiv responsive, .feedback-section, etc.) ... */
+        body {font-family: 'Roboto', 'Montserrat', sans-serif; margin: 0; padding: 20px; background: linear-gradient(to right, #ece9e6, #ffffff); color: #333; box-sizing: border-box;}
+        .form-container {max-width: 900px; margin: 20px auto; background: #fff; padding: 30px; box-shadow: 0 16px 24px rgba(0,0,0,0.2); border-radius: 15px; border: 3px solid #87CEFA; transition: transform 0.3s ease;}
+        .form-container:hover {transform: scale(1.01);}
+        .progress-bar {width: 100%; background-color: #f3f3f3; border-radius: 25px; overflow: hidden; margin-bottom: 20px;}
+        .progress {height: 20px; width: 0; background-color: #87CEFA; transition: width 0.4s ease;}
+        .question-card {margin-bottom: 20px; padding: 20px; background: #fff; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.3s;}
+        .question-card:hover {box-shadow: 0 6px 15px rgba(0,0,0,0.15);}
+        .question-card h3 {font-weight: 700; font-size: 1.2em; margin-top: 0; margin-bottom: 10px;}
+        .question-card p {font-weight: 300; font-size: 0.95em; margin-bottom: 15px; color: #555; line-height: 1.6;}
+        textarea {width: calc(100% - 22px); padding: 10px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; resize: vertical; min-height: 60px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: border-color 0.3s;}
+        textarea:focus {border-color: #87CEFA; box-shadow: 0 2px 8px rgba(135,206,250,0.5); outline: none;}
+        input[type="submit"], button {margin-top: 20px; padding: 12px 25px; font-size: 18px; font-weight: 500; background: linear-gradient(to right, #87CEFA, #6bb9e7); color: white; border: none; border-radius: 8px; cursor: pointer; transition: background 0.3s, transform 0.2s;}
+        input[type="submit"]:hover, button:hover {background: linear-gradient(to right, #6bb9e7, #4A90E2); transform: translateY(-2px);}
+        .form-step {display: none;}
+        .form-step-active {display: block; animation: fadeIn 0.7s ease-in-out;}
+        @keyframes fadeIn { 0% {opacity: 0; transform: translateY(10px);} 100% {opacity: 1; transform: translateY(0);} }
+        .step-navigation {text-align: center; margin-top: 20px;}
+        .step-navigation button {margin: 0 10px;}
+        .table-container {margin:30px auto; padding:20px; background:#fff; border-radius:15px; box-shadow:0 4px 10px rgba(0,0,0,0.1); overflow-x:auto; max-width:900px;}
+        .card-view {display: flex; flex-direction: column; gap: 20px; max-width: 900px; margin: 30px auto;}
+        .response-card {background: #f9f9ff; padding: 0; border-radius: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.12); transition: box-shadow 0.3s ease; position: relative; overflow: hidden;}
+        .response-card:hover {box-shadow: 0 10px 20px rgba(0,0,0,0.18);}
+        .response-card .card-header {font-weight: 700; font-size: 1.1em; cursor: pointer; background: #87CEFA; padding: 12px 20px; color: #fff; text-align: left; position: relative; display: flex; justify-content: space-between; align-items: center;}
+        .response-card .card-header::after {content: '▼'; font-size: 0.8em; transition: transform 0.3s ease;}
+        .response-card.open .card-header::after {transform: rotate(180deg);}
+        .response-card .card-content {max-height: 0; margin-top: 0; padding: 0 20px; background: #fff; line-height: 1.6; overflow: auto; transition: max-height 0.5s ease-out, padding-top 0.5s ease-out, padding-bottom 0.5s ease-out;} /* Timp tranzitie mărit */
+        .response-card.open .card-content {max-height: 2000px; /* Mărit substanțial */ padding-top: 15px; padding-bottom: 15px;}
+        .response-card .card-content p {margin-bottom: 12px; border-left: 3px solid #87CEFA; padding-left: 10px;}
+        .response-card .card-content p strong {color: #333;}
+        .response-card h4 {text-align: left; color: #4A90E2; font-weight: bold; margin-top: 20px; margin-bottom: 10px; font-size: 1.05em;}
+        .response-card h4:first-child {margin-top: 0;}
+        .card-actions {text-align: center; margin-top: 20px; padding-bottom: 10px; border-top: 1px solid #eee; padding-top: 15px;}
+        .card-actions button {padding: 8px 15px; font-size: 0.9em; margin: 5px;}
+        .generate-ai-feedback-button {background: #5cb85c;}
+        .generate-ai-feedback-button:hover {background: #4cae4c;}
+        .delete-button {background-color: #f44336 !important;}
+        .delete-button:hover {background-color: #d32f2f !important;}
+        #confirmationMessage {display:none; text-align:center; padding:15px; background-color:#d4edda; color:#155724; border:1px solid #c3e6cb; border-radius:5px; margin-top:20px; animation:fadeIn 0.5s;}
+        .collaboration-section {text-align:center; margin-top:30px; padding-bottom:20px;}
+        .collaboration-section button {background-color:#f0ad4e;}
+        .collaboration-section button:hover {background-color:#ec971f;}
+        .feedback-entry-card {background:#eef6ff; padding:15px; border-left:4px solid #4A90E2; border-radius:5px; margin-bottom:15px; font-size:0.95em; line-height:1.6;}
+        .feedback-timestamp {color:#555; font-size:0.9em; margin-bottom:12px;}
+        .feedback-section {margin-bottom:12px;}
+        .feedback-section h5 {font-size:1em; font-weight:bold; color:#2c5282; margin-top:0; margin-bottom:6px;}
+        .feedback-section p, .feedback-section ul {margin-top:0; margin-bottom:8px; color:#1e293b;}
+        .feedback-section ul {padding-left:25px; list-style-position:outside; list-style-type:disc;}
+        .feedback-section li {margin-bottom:4px;}
 
-        /* Stiluri pentru cardul de feedback istoric */
-        .feedback-entry-card {
-            background: #eef6ff;
-            padding: 15px;
-            border-left: 4px solid #4A90E2;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            font-size: 0.95em;
-            line-height: 1.6;
+        /* Responsive - ASIGURĂ-TE CĂ INCLUZI TOATE REGULILE TALE RESPONSIVE COMPLETE AICI */
+        @media (max-width: 768px) {
+            body {padding:10px;}
+            .form-container, .table-container, .card-view {padding:15px; margin-left:10px; margin-right:10px; max-width:calc(100% - 20px);}
+            textarea {font-size:14px; padding:8px; width:calc(100% - 18px);}
+            .form-container > button, .step-navigation button {font-size:16px; padding:10px 20px;}
+            .card-actions button {font-size:0.85em; padding:7px 12px;}
+            .question-card h3, .response-card .card-header {font-size:1.05em;}
+            .question-card p, .response-card .card-content p {font-size:0.9em;}
+            /* Reguli specifice tabelului pentru mobil */
+            .table-container {overflow-x:auto;}
+            table {display:block; width:100%;}
+            thead, tbody, tr {display:block;}
+            th {display:none;} /* Ascunde header-ul tabelului original */
+            tr {margin-bottom:15px; border:1px solid #ddd; border-radius:5px; display:flex; flex-direction:column;}
+            td {display:flex; justify-content:space-between; padding:10px; text-align:right; border-bottom:1px solid #eee; position:relative;}
+            td:last-child {border-bottom:none;}
+            td::before {content:attr(data-label); font-weight:bold; text-align:left; margin-right:10px; color:#555; flex-shrink:0; width:auto; padding-right: 10px;} /* Lățime auto, flex-shrink previne micșorarea */
+            td > *:not(button) {flex-grow:1; word-break:break-word; text-align:left;} /* Conținutul să ocupe spațiul rămas și să se alinieze la stânga */
+            td button {width:auto; padding:6px 12px; font-size:0.85em; margin-left:auto; flex-shrink:0;}
+            td[colspan="10"] {display:block;}
         }
-        .feedback-timestamp {
-            color: #555;
-            font-size: 0.9em;
-            margin-bottom: 12px;
+        @media (max-width: 480px) {
+            .form-container, .table-container, .card-view {padding:10px; margin-left:5px; margin-right:5px; max-width:calc(100% - 10px);}
+            .question-card h3, .response-card .card-header {font-size:1em;}
+            .question-card p, .response-card .card-content p {font-size:0.85em;}
+            textarea {font-size:13px; padding:6px; width:calc(100% - 14px);}
+            .form-container > button, .step-navigation button {font-size:14px; padding:8px 15px;}
+            .card-actions button {font-size:0.8em; padding:6px 10px;}
+            .response-card .card-header {padding:10px;}
+            .response-card .card-content {padding-left:15px; padding-right:15px; font-size:0.85em;}
+            td {flex-direction:column; align-items:flex-start;} /* Label deasupra valorii */
+            td::before {width:100%; margin-bottom:5px; margin-right: 0;}
+            td button {align-self:flex-end;}
         }
-        .feedback-section {
-            margin-bottom: 12px;
-        }
-        .feedback-section h5 {
-            font-size: 1em;
-            font-weight: bold;
-            color: #2c5282; /* O nuanță de albastru-gri închis */
-            margin-top: 0;
-            margin-bottom: 6px;
-        }
-        .feedback-section p,
-        .feedback-section ul {
-            margin-top: 0;
-            margin-bottom: 8px;
-            color: #1e293b;
-        }
-        .feedback-section ul {
-            padding-left: 25px;
-            list-style-position: outside;
-            list-style-type: disc;
-        }
-        .feedback-section li {
-            margin-bottom: 4px;
-        }
-
-        /* Responsive adjustments */
-        /* ... Include aici TOATE regulile tale @media ... */
-        @media (max-width: 768px) { /* Exemplu, copiază toate stilurile tale responsive */
-            body { padding: 10px; }
-            .form-container, .card-view { padding: 15px; margin-left: 10px; margin-right: 10px; max-width: calc(100% - 20px);  }
-            /* ... continuă cu restul ... */
-        }
-
     </style>
 </head>
 <body>
 
     <div class="form-container">
         <h2>Fișă Monitorizare</h2>
-        <p>Completează fiecare întrebare pentru a înțelege mai bine situațiile tale...</p>
+        <p>Completează fiecare întrebare pentru a înțelege mai bine situațiile tale. Fiecare secțiune reprezintă o parte importantă a reflecției tale. În acest exercițiu, îți voi ghida fiecare pas, astfel încât să poți explora în profunzime gândurile, emoțiile și comportamentele tale.</p>
     
         <div class="progress-bar">
             <div class="progress" id="progress"></div>
         </div>
     
-        <form id="exercitiuForm" novalidate> <!-- Adăugat novalidate pentru a controla validarea prin JS dacă e cazul -->
-            <!-- Pasul 1: Explorarea situației și a nevoilor -->
+        <form id="exercitiuForm" novalidate>
+            <!-- PASUL 1 -->
             <div class="question-card form-step form-step-active" id="step-1">
                 <h3>Care este situația?</h3>
-                <p>Descrie contextul care a declanșat emoțiile sau comportamentul...</p>
+                <p>Te rog să descrii contextul care a declanșat emoțiile sau comportamentul tău. Încearcă să fii cât mai specific și detaliat. Aceasta poate fi o situație concretă din viața de zi cu zi în care te-ai simțit copleșit, stresat sau într-o altă stare emoțională intensă.</p>
                 <textarea name="situatie" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-2">
                 <h3>Ce îmi trece prin minte?</h3>
-                <p>Identifică gândurile automate...</p>
+                <p>Îți cer să identifici gândurile automate care au apărut în această situație. Acestea sunt gânduri rapide, involuntare, care îți trec prin minte în momentele de stres. Ce îți spui în acel moment? Este un gând critic sau îngrijorător?</p>
                 <textarea name="ganduri" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-3">
                 <h3>Cum mă face acel gând să mă simt?</h3>
-                <p>Notează emoțiile pe care le simți...</p>
+                <p>Te rog să notezi emoțiile pe care le simți în urma acelui gând. Ce simți? Frică, tristețe, furie? Dă o intensitate emoției (de la 0 la 100) pentru a vedea cât de puternică este.</p>
                 <textarea name="emotii" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-4">
                 <h3>Ce mod este activ?</h3>
-                <p>Identifică modul în care te afli...</p>
+                <p>Identifică modul în care te afli în această situație. Este un mod de copil vulnerabil, critic interior, sau poate adultul sănătos? Conștientizarea modului îți poate oferi o mai bună înțelegere a reacțiilor tale.</p>
                 <textarea name="mod_activ" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-5">
                 <h3>Ce comportament simți că adopți?</h3>
-                <p>Descrie comportamentul pe care îl manifești...</p>
+                <p>Descrie comportamentul pe care îl manifești în această situație. Este un comportament de evitare, de confruntare, de sacrificiu de sine? Recunoașterea comportamentului te ajută să înțelegi mai bine cum reacționezi.</p>
                 <textarea name="comportament" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-6">
                 <h3>Care sunt nevoile tale mai profunde?</h3>
-                <p>Ce nevoi stau la baza acestor emoții și comportamente? ...</p>
+                <p>Ce nevoi stau la baza acestor emoții și comportamente? Poate fi nevoia de siguranță, de validare, de acceptare? Identificarea acestor nevoi te poate ajuta să găsești strategii mai sănătoase pentru a le îndeplini.</p>
                 <textarea name="nevoi_profunde" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-7">
                 <h3>Mă ajută comportamentul meu să îndeplinesc aceste nevoi?</h3>
-                <p>Reflectează dacă felul în care reacționezi te ajută...</p>
+                <p>Reflectează dacă felul în care reacționezi te ajută cu adevărat să îți îndeplinești nevoile. Poate fi util să te gândești dacă există alternative mai eficiente.</p>
                 <textarea name="ajutor_comportament" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-8">
                 <h3>Cum ar gândi și cum s-ar comporta Adultul Sănătos?</h3>
-                <p>Gândește-te la cum ar reacționa partea ta Adultă Sănătoasă...</p>
+                <p>Gândește-te la cum ar reacționa partea ta Adultă Sănătoasă în această situație. Cum ai putea să abordezi diferit pentru a avea grijă de tine și de nevoile tale?</p>
                 <textarea name="adult_sanatos" rows="3" required></textarea>
             </div>
 
-            <!-- Pasul 2: Analiza gândurilor și a percepțiilor -->
-             <div class="question-card form-step" id="step-9">
+            <!-- PASUL 2 -->
+            <div class="question-card form-step" id="step-9">
                 <h3>Ce mă face să cred că gândul automat este adevărat?</h3>
-                <p>Explorează motivele pentru care crezi că acest gând este adevărat...</p>
+                <p>Explorează motivele pentru care crezi că acest gând este adevărat. Ce dovezi ai care îți confirmă acest lucru? De multe ori, ne bazăm pe experiențe trecute sau frici pentru a justifica un gând.</p>
                 <textarea name="dovezi_adevar" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-10">
                 <h3>Ce mă face să cred că nu este adevărat?</h3>
-                <p>Acum, să ne uităm la dovezile împotriva gândului tău...</p>
+                <p>Acum, să ne uităm la dovezile împotriva gândului tău. Există argumente sau experiențe care contrazic acest gând? Poate există o altă perspectivă pe care nu ai luat-o în considerare?</p>
                 <textarea name="dovezi_fals" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-11">
                 <h3>Există o explicație alternativă?</h3>
-                <p>Uneori, există mai multe explicații pentru ceea ce se întâmplă...</p>
+                <p>Uneori, există mai multe explicații pentru ceea ce se întâmplă. Ce alte interpretări ai putea avea pentru această situație? Gândește-te la alte posibilități care ar putea explica contextul.</p>
                 <textarea name="explicatie_alternativa" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-12">
                 <h3>Care este cel mai rău lucru care s-ar putea întâmpla?</h3>
-                <p>Ce este cel mai rău care ar putea avea loc în această situație?...</p>
+                <p>Ce este cel mai rău care ar putea avea loc în această situație? Să identificăm acele frici catastrofale care adesea ne alimentează gândurile negative.</p>
                 <textarea name="scenariu_negativ" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-13">
                 <h3>Care este cel mai bun lucru care s-ar putea întâmpla?</h3>
-                <p>Pe de altă parte, care ar fi cel mai pozitiv scenariu?...</p>
+                <p>Pe de altă parte, care ar fi cel mai pozitiv scenariu? Uneori uităm să ne gândim și la posibilitățile bune. Cum ar arăta cel mai bun rezultat al acestei situații?</p>
                 <textarea name="scenariu_optimist" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-14">
                 <h3>Care este cel mai realist rezultat?</h3>
-                <p>După ce am explorat extremele, ce crezi că este cel mai probabil să se întâmple?...</p>
+                <p>După ce am explorat extremele, ce crezi că este cel mai probabil să se întâmple? Cum ar arăta un rezultat realist, ținând cont de toate perspectivele?</p>
                 <textarea name="rezultat_realist" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-15">
                 <h3>Ce s-ar întâmpla dacă mi-aș schimba modul de gândire?</h3>
-                <p>Întreabă-te cum ar fi dacă ai aborda situația cu un alt tip de gândire...</p>
+                <p>Întreabă-te cum ar fi dacă ai aborda situația cu un alt tip de gândire. Cum ar influența asta emoțiile și comportamentele tale?</p>
                 <textarea name="schimbare_gandire" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-16">
                 <h3>Ce i-aș spune unui prieten dacă ar fi în aceeași situație?</h3>
-                <p>Gândește-te la cum ai reacționa dacă un prieten drag ar avea aceleași gânduri...</p>
+                <p>Gândește-te la cum ai reacționa dacă un prieten drag ar avea aceleași gânduri. Ce i-ai spune pentru a-l sprijini? Cum ai încerca să-l încurajezi?</p>
                 <textarea name="sfat_prieten" rows="3" required></textarea>
             </div>
 
-            <!-- Pasul 3: Întrebări pentru claritate și reflecție suplimentară -->
+            <!-- PASUL 3 -->
             <div class="question-card form-step" id="step-17">
                 <h3>Văd doar partea rea a lucrurilor?</h3>
-                <p>Este posibil să fii prins într-un tipar negativ de gândire...</p>
+                <p>Este posibil să fii prins într-un tipar negativ de gândire, concentrându-te doar pe aspectele negative. Încearcă să observi dacă există și aspecte pozitive pe care le-ai ignorat.</p>
                 <textarea name="partea_rea" rows="3" required></textarea>
             </div>
-             <div class="question-card form-step" id="step-18">
+            <div class="question-card form-step" id="step-18">
                 <h3>Îmi asum responsabilitatea pentru lucruri care nu au stat în puterea mea?</h3>
-                <p>Reflectează dacă îți asumi responsabilitatea pentru situații...</p>
+                <p>Reflectează dacă îți asumi responsabilitatea pentru situații asupra cărora nu aveai control. Este important să îți dai seama de limitele influenței tale.</p>
                 <textarea name="responsabilitate" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-19">
                 <h3>Mă condamn în baza unui singur eveniment?</h3>
-                <p>Îți evaluezi valoarea personală bazându-te pe un singur eveniment negativ?...</p>
+                <p>Îți evaluezi valoarea personală bazându-te pe un singur eveniment negativ? Amintește-ți că un eveniment nu definește cine ești în totalitate.</p>
                 <textarea name="condamnare" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-20">
                 <h3>Privesc situația în termeni extremi?</h3>
-                <p>Verifică dacă vezi situația doar în alb sau negru...</p>
+                <p>Verifică dacă vezi situația doar în alb sau negru, fără nuanțe de gri. Gândirea extremă poate distorsiona realitatea.</p>
                 <textarea name="termeni_extremi" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-21">
                 <h3>Exagerez situația?</h3>
-                <p>Îți amplifici reacțiile față de o situație?...</p>
+                <p>Îți amplifici reacțiile față de o situație? Încearcă să te gândești dacă ceea ce percepi este realist sau dacă exagerezi impactul situației.</p>
                 <textarea name="exagerare" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-22">
                 <h3>Există și alți factori responsabili?</h3>
-                <p>Există alți factori care contribuie la această situație...</p>
+                <p>Există alți factori care contribuie la această situație, pe lângă tine? Este important să ai o perspectivă completă asupra cauzelor unei situații.</p>
                 <textarea name="factori_responsabili" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-23">
                 <h3>Am sărit direct la concluzii?</h3>
-                <p>Te-ai grăbit să ajungi la o concluzie fără suficiente dovezi?...</p>
+                <p>Te-ai grăbit să ajungi la o concluzie fără suficiente dovezi? Încearcă să observi dacă există alte posibilități care ar putea explica situația.</p>
                 <textarea name="concluzii" rows="3" required></textarea>
             </div>
-             <div class="question-card form-step" id="step-24">
+            <div class="question-card form-step" id="step-24">
                 <h3>Îmi pun întrebări fără răspuns?</h3>
-                <p>Te frământă întrebări care nu au un răspuns clar sau realist?...</p>
+                <p>Te frământă întrebări care nu au un răspuns clar sau realist? Aceste întrebări pot fi o sursă majoră de anxietate.</p>
                 <textarea name="intrebari_fara_raspuns" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-25">
                 <h3>Mă concentrez doar asupra slăbiciunilor mele?</h3>
-                <p>Ai tendința să te focalizezi doar pe slăbiciuni...</p>
+                <p>Ai tendința să te focalizezi doar pe slăbiciuni și să ignori punctele tale forte? Încearcă să îți recunoști și punctele pozitive.</p>
                 <textarea name="slabiciuni" rows="3" required></textarea>
             </div>
             <div class="question-card form-step" id="step-26">
                 <h3>Mă zbat prea mult gândind la cum ar trebui să fie lucrurile?</h3>
-                <p>Ai tendința să te gândești mereu la cum ar trebui să fie lucrurile...</p>
+                <p>Ai tendința să te gândești mereu la cum ar trebui să fie lucrurile, în loc să accepți situația așa cum este? Acceptarea poate reduce stresul și anxietatea.</p>
                 <textarea name="cum_ar_trebui" rows="3" required></textarea>
             </div>
-             <div class="question-card form-step" id="step-27">
+            <div class="question-card form-step" id="step-27">
                 <h3>Mă aștept să fiu perfect?</h3>
-                <p>Îți setezi standarde foarte înalte, imposibil de atins?...</p>
+                <p>Îți setezi standarde foarte înalte, imposibil de atins? Perfecționismul poate fi o sursă majoră de frustrare și descurajare.</p>
                 <textarea name="perfectiune" rows="3" required></textarea>
             </div>
-            <div class="question-card form-step" id="step-28">
+             <div class="question-card form-step" id="step-28">
                 <h3>Completare finalizată!</h3>
-                <p>Felicitări pentru parcurgerea acestui exercițiu de auto-reflecție! Nu uita să salvezi datele apăsând butonul de mai jos.</p>
-                <p>Feedback-ul AI te poate ajuta să obții noi perspective. Dacă întâmpini probleme cu generarea feedback-ului (ex: erori de limită), poți încerca din nou mai târziu.</p>
+                <p>Felicitări pentru parcurgerea acestui exercițiu de auto-reflecție! Apasă butonul de mai jos pentru a salva datele și a genera un feedback automatizat, dacă este disponibil.</p>
+                <p>Feedback-ul AI te poate ajuta să obții noi perspective. Dacă întâmpini probleme cu generarea (ex: erori de limită de utilizare), poți încerca din nou mai târziu.</p>
             </div>
 
             <div class="step-navigation">
@@ -1020,7 +944,7 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
         <!-- Cardurile cu răspunsuri și feedback AI vor fi adăugate aici de JavaScript -->
     </div>
     
-    <div class="table-container" style="display: none;"> <!-- Ascuns implicit, îl poți activa dacă e necesar -->
+    <div class="table-container" style="display: none;"> <!-- Ascuns implicit -->
         <table>
             <thead>
                 <tr>
@@ -1032,6 +956,5 @@ Te rog să răspunzi doar cu textul cerut conform structurii, fără introduceri
         </table>
     </div>
     <br/>
-    
 </body>
 </html>
