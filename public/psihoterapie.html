@@ -12,7 +12,7 @@
 
     // Configurarea Firebase
     const firebaseConfig = {
-        apiKey: "AIzaSyBn2bojEoV4_icF4fVVKFdJN1YjDhtlG98",
+        apiKey: "AIzaSyBn2bojEoV4_icF4fVVKFdJN1YjDhtlG98", // Înlocuiește cu cheia ta reală dacă e diferită
         authDomain: "personaltrainer-74ea4.firebaseapp.com",
         projectId: "personaltrainer-74ea4",
         storageBucket: "personaltrainer-74ea4.appspot.com",
@@ -21,6 +21,7 @@
         measurementId: "G-WLWNGNDK5V",
     };
 
+    // Inițializare Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
@@ -49,7 +50,7 @@ if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
 
     let currentStep = 1;
     let totalSteps = 0;
-    let dataAlreadyLoaded = false;
+    let dataAlreadyLoaded = false; // Pentru a controla încărcarea inițială a datelor
 
     window.onload = function () {
         totalSteps = document.querySelectorAll('.form-step').length;
@@ -57,14 +58,14 @@ if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
         const urlParams = new URLSearchParams(window.location.search);
         const collabId = urlParams.get('collabId');
 
-        if (!collabId) {
+        if (!collabId) { // Doar pentru utilizatorul normal, nu pentru colaborator
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     console.log("Utilizator autentificat:", user.uid);
                     if (!dataAlreadyLoaded) {
-                        // Este CRUCIAL ca aceste funcții să filtreze pe user.uid
-                        populateTableData(user.uid); 
-                        loadTableData(user.uid);     
+                        // TREBUIE SĂ FILTREZI DATELE AICI PENTRU `user.uid`
+                        populateTableData(user.uid); // Asigură-te că această funcție filtrează pe userId
+                        loadTableData(user.uid);     // Asigură-te că această funcție filtrează pe userId
                         dataAlreadyLoaded = true;
                     }
                 } else {
@@ -73,18 +74,22 @@ if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
                 }
             });
         }
+        // Logica pentru collabId este în DOMContentLoaded
 
         const nextButton = document.getElementById("nextButton");
         if (nextButton) nextButton.addEventListener("click", nextStep);
+
         const prevButton = document.getElementById("prevButton");
         if (prevButton) prevButton.addEventListener("click", previousStep);
+
         const addButton = document.getElementById("addButton");
-        if (addButton) addButton.addEventListener("click", salveazaRaspunsSiGenereazaFeedback);
+        if (addButton) addButton.addEventListener("click", salveazaRaspunsSiGenereazaFeedback); // Nume schimbat
+
         const generateLinkButton = document.getElementById("generateLinkButton");
         if (generateLinkButton) generateLinkButton.addEventListener("click", generateCollaborationLink);
     };
 
-    function nextStep() { /* ... la fel ... */ 
+    function nextStep() {
         if (currentStep < totalSteps) {
             document.getElementById(`step-${currentStep}`).classList.remove('form-step-active');
             currentStep++;
@@ -92,7 +97,8 @@ if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
             updateProgressBar();
         }
     }
-    function previousStep() { /* ... la fel ... */ 
+
+    function previousStep() {
         if (currentStep > 1) {
             document.getElementById(`step-${currentStep}`).classList.remove('form-step-active');
             currentStep--;
@@ -100,7 +106,8 @@ if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
             updateProgressBar();
         }
     }
-    function updateProgressBar() { /* ... la fel ... */ 
+
+    function updateProgressBar() {
         const progress = document.getElementById('progress');
         if(progress && totalSteps > 0) {
             const progressPercentage = (currentStep / totalSteps) * 100;
@@ -108,48 +115,31 @@ if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
         }
     }
 
-    async function genereazaFeedbackCuGeminiDinFrontend(promptText, generationConfig = {}) {
+    async function genereazaFeedbackCuGeminiDinFrontend(promptText) {
         if (!geminiModel) {
-            console.error("Modelul Gemini nu este inițializat.");
-            return "EROARE: Configurare Gemini incorectă (cheie API).";
+            console.error("Modelul Gemini nu este inițializat. Verifică cheia API.");
+            return "EROARE: Configurare Gemini incorectă. Verifică dacă ai introdus corect cheia API în cod.";
         }
         try {
             console.log("Trimitere prompt către Gemini (primele 100 caractere):", promptText.substring(0, 100) + "...");
-            
-            const requestPayload = {
-                contents: [{ role: "user", parts: [{ text: promptText }] }],
-                generationConfig: {
-                    temperature: 0.6, // Valoare cu care poți experimenta (0.2-0.8)
-                    // maxOutputTokens: 4096, // Poți seta o limită dacă răspunsurile sunt prea lungi
-                    ...generationConfig // Permite suprascrierea default-urilor dacă e necesar
-                }
-            };
-
-            const result = await geminiModel.generateContent(requestPayload);
+            const result = await geminiModel.generateContent(promptText);
             const response = result.response;
-
-            if (response && response.candidates && response.candidates.length > 0 && response.candidates[0].content && response.candidates[0].content.parts && response.candidates[0].content.parts.length > 0 && typeof response.candidates[0].content.parts[0].text === 'string') {
-                 if (response.candidates[0].finishReason && response.candidates[0].finishReason !== "STOP" && response.candidates[0].finishReason !== "MAX_TOKENS") {
-                    console.warn("Gemini a oprit generarea cu motivul:", response.candidates[0].finishReason, response.candidates[0].safetyRatings);
-                    return `EROARE Gemini: Generarea a fost oprită (Motiv: ${response.candidates[0].finishReason}). Este posibil ca promptul sau răspunsul să fi declanșat filtre de siguranță. Încearcă să reformulezi.`;
-                }
-                return response.candidates[0].content.parts[0].text;
-            } else {
-                 console.error("Răspuns neașteptat sau gol de la Gemini:", JSON.stringify(response, null, 2));
-                 let reason = "Răspuns invalid sau gol.";
-                 if(response && response.promptFeedback && response.promptFeedback.blockReason){
-                    reason = `Prompt blocat (Motiv: ${response.promptFeedback.blockReason}, Detalii: ${response.promptFeedback.blockReasonMessage || 'N/A'})`;
-                 }
-                 return `EROARE Gemini: ${reason}`;
+            if (!response || typeof response.text !== 'function') {
+                 console.error("Răspuns neașteptat de la Gemini (nu conține text()):", response);
+                 return `EROARE Gemini: Răspuns invalid de la API.`;
             }
+            const text = response.text();
+            return text;
         } catch (error) {
             console.error("Eroare detaliată la generarea feedback-ului Gemini:", error, error.stack);
             let errorMessage = `EROARE Gemini: ${error.message || "Eroare necunoscută la API"}`;
              if (error.toString().toLowerCase().includes("api key not valid") || (error.message && error.message.toLowerCase().includes("permission denied")) || (error.message && error.message.toLowerCase().includes("api_key_invalid")) ) {
-                 errorMessage = "EROARE: Cheia API Gemini nu este validă sau nu are permisiuni. Verifică restricțiile din Google Cloud Console și cheia din cod. Asigură-te că domeniul " + window.location.hostname + " este permis.";
+                 errorMessage = "EROARE: Cheia API Gemini nu este validă sau nu are permisiuni. Verifică restricțiile din Google Cloud Console (HTTP Referrers, API Restrictions pentru Generative Language API) și cheia din cod. Asigură-te că domeniul " + window.location.hostname + " este permis.";
             } else if (error.message && (error.message.toLowerCase().includes("quota") || (error.status && error.status === 429) || (error.toString().toLowerCase().includes("resource has been exhausted")) )) {
                 errorMessage = "EROARE: Limita de utilizare gratuită Gemini (RPM sau alta) a fost depășită. Încearcă mai târziu.";
-            } else if (error.toString().toLowerCase().includes("404") && error.toString().toLowerCase().includes("model not found")) {
+            } else if (error.message && error.message.toLowerCase().includes("candidate.finish_reason")){ // Include și alte finish reasons
+                errorMessage = "EROARE Gemini: Generarea a fost oprită (posibil din motive de siguranță, conținut, sau alte restricții ale modelului). Încearcă un prompt diferit.";
+            }  else if (error.toString().toLowerCase().includes("404") && error.toString().toLowerCase().includes("model not found")) {
                  errorMessage = `EROARE Gemini: Modelul ${GEMINI_MODEL_NAME} nu a fost găsit sau nu este suportat. Verifică numele modelului.`;
             }
             return errorMessage;
@@ -157,7 +147,7 @@ if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
     }
 
     async function genereazaSiProceseazaFeedbackAI(rowData, docId) {
-        const prompt = `
+      const prompt = `
 Analizează în profunzime această fișă completă de auto-reflecție. Utilizatorul a parcurs un exercițiu detaliat pentru a-și înțelege o situație specifică. Oferă feedback psihologic structurat, empatic și acționabil. Respectă cu strictețe formatul și ordinea secțiunilor de mai jos, folosind exact prefixele indicate.
 
 **Datele Complete din Fișa de Reflecție a Utilizatorului:**
@@ -224,153 +214,151 @@ SugestieMicPas: (O sugestie concretă pentru un mic pas următor.)
 
 Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii sau formatări suplimentare în afara celor specificate (ex: nu folosi markdown bold '**' în răspunsul tău, doar prefixele și `* ` pentru liste).`;
 
-        let feedbackText = null;
-        let modelFolosit = "N/A";
+      let feedbackText = null;
+      let modelFolosit = "N/A";
 
-        if (geminiModel) {
-            console.log("Solicitare feedback de la Gemini (prompt nou)...");
-            modelFolosit = `Gemini (${GEMINI_MODEL_NAME})`;
-            feedbackText = await genereazaFeedbackCuGeminiDinFrontend(prompt);
-        } else {
-            return { // Structură similară pentru eroare
-                empatie_initiala: "Serviciul de feedback AI (Gemini) nu este configurat. Verifică cheia API.",
-                model: "Configurare Gemini Eronată", timestamp: new Date().toISOString(), error: true
-            };
-        }
-
-        if (!feedbackText || (typeof feedbackText === 'string' && feedbackText.startsWith("EROARE:"))) {
-            return { 
-                empatie_initiala: feedbackText || `Nu s-a putut obține feedback de la ${modelFolosit}.`,
-                model: modelFolosit + " (Eroare API)", timestamp: new Date().toISOString(), error: true
-            };
-        }
-
-        console.log("Răspuns brut de la Gemini (prompt nou):\n---\n" + feedbackText + "\n---");
-
-        // Definirea noilor chei și prefixe pentru parsare
-        const feedbackStructure = {
-            empatie_initiala: /^EmpatieInițială:\s*([\s\S]*?)(?=\n(?:PuncteForteObservate:|$))/im,
-            puncte_forte: /^PuncteForteObservate:\s*([\s\S]*?)(?=\n(?:TiparePrincipale:|$))/im,
-            tipare_principale: /^TiparePrincipale:\s*([\s\S]*?)(?=\n(?:ConexiuniCheie:|$))/im,
-            conexiuni_cheie: /^ConexiuniCheie:\s*([\s\S]*?)(?=\n(?:DistorsiuniIdentificate:|$))/im,
-            distorsiuni_identificate: /^DistorsiuniIdentificate:\s*([\s\S]*?)(?=\n(?:SchemeActivate:|$))/im,
-            scheme_activate: /^SchemeActivate:\s*([\s\S]*?)(?=\n(?:ModuriImplicate:|$))/im,
-            moduri_implicate: /^ModuriImplicate:\s*([\s\S]*?)(?=\n(?:PerspectivaAdultSănătos:|$))/im,
-            perspectiva_adult_sanatos: /^PerspectivaAdultSănătos:\s*([\s\S]*?)(?=\n(?:ÎntrebareFinalăReflecție:|$))/im,
-            intrebare_finala_reflectie: /^ÎntrebareFinalăReflecție:\s*([\s\S]*?)(?=\n(?:SugestieMicPas:|$))/im,
-            sugestie_mic_pas: /^SugestieMicPas:\s*([\s\S]*?)(?=\n(?:ÎncurajareFinală:|$))/im,
-            incurajare_finala: /^ÎncurajareFinală:\s*([\s\S]*?$)/im,
+      if (geminiModel) {
+        console.log("Solicitare feedback de la Gemini...");
+        modelFolosit = `Gemini (${GEMINI_MODEL_NAME})`;
+        feedbackText = await genereazaFeedbackCuGeminiDinFrontend(prompt);
+      } else {
+        console.warn("Gemini nu este configurat. Nu se poate genera feedback AI.");
+        return {
+            paragraf: "Serviciul de feedback AI (Gemini) nu este configurat corect. Verifică cheia API.",
+            intrebare: "", recomandare: "", distorsiuni: "", scheme: "", adult_sanatos_eval: "",
+            model: "Configurare Eronată", timestamp: new Date().toISOString()
         };
-        
-        const parsedFeedback = { model: modelFolosit, timestamp: new Date().toISOString() };
-        let allParsingFailed = true;
+      }
 
-        for (const key in feedbackStructure) {
-            const match = feedbackText.match(feedbackStructure[key]);
-            parsedFeedback[key] = match && match[1] ? match[1].trim() : `Nu s-a putut extrage '${key}'.`;
-            if (parsedFeedback[key] && !parsedFeedback[key].startsWith("Nu s-a putut")) {
-                allParsingFailed = false;
-            }
-        }
-        
-        if (allParsingFailed && !(typeof feedbackText === 'string' && feedbackText.startsWith("EROARE:"))) {
-            console.warn("Parsarea detaliată a eșuat pentru toate secțiunile (prompt nou). Verifică formatul răspunsului AI și regex-urile.");
-            // Dacă totul eșuează, pune răspunsul brut într-un câmp principal
-            parsedFeedback.empatie_initiala = `Răspuns brut (parsare eșuată):\n${feedbackText.replace(/\n/g, "<br>")}`;
-            parsedFeedback.error_parsing = true; // Marchează că parsarea a eșuat
-        }
+      if (!feedbackText || (typeof feedbackText === 'string' && feedbackText.startsWith("EROARE:"))) {
+        console.warn(`Eroare de la ${modelFolosit}:`, feedbackText);
+        return {
+            paragraf: feedbackText || `Nu s-a putut obține feedback de la ${modelFolosit}.`,
+            intrebare: "", recomandare: "", distorsiuni: "", scheme: "", adult_sanatos_eval: "",
+            model: modelFolosit + " (Eroare API)", timestamp: new Date().toISOString()
+        };
+      }
 
-        if (docId) {
-            const docRef = doc(db, "raspunsuri", docId);
-            try {
-                const updatePayload = { feedback_history: arrayUnion(parsedFeedback) };
-                // Adaugă câmpurile individuale pentru cel mai recent feedback
-                Object.keys(parsedFeedback).forEach(key => {
-                    updatePayload[`feedback_${key}`] = parsedFeedback[key];
-                });
-                await updateDoc(docRef, updatePayload);
-                console.log(`Feedback AI (structură nouă, ${modelFolosit}) salvat pentru docId: ${docId}`);
-            } catch (updateError) {
-                console.error(`Eroare la actualizarea Firestore cu feedback (structură nouă) pt doc ${docId}:`, updateError);
-            }
-        }
-        return parsedFeedback;
+      console.log("Răspuns brut de la Gemini:\n---\n" + feedbackText + "\n---");
+
+      const parsedFeedback = {
+          paragraf: feedbackText.match(/^Paragraf:\s*([\s\S]*?)(?=\n(?:Întrebare:|Recomandare:|Distorsiuni:|Scheme:|Adult Sănătos:|$))/im)?.[1]?.trim() || "Nu s-a putut extrage 'Paragraf'.",
+          intrebare: feedbackText.match(/^Întrebare:\s*([\s\S]*?)(?=\n(?:Recomandare:|Distorsiuni:|Scheme:|Adult Sănătos:|$))/im)?.[1]?.trim() || "Nu s-a putut extrage 'Întrebare'.",
+          recomandare: feedbackText.match(/^Recomandare:\s*([\s\S]*?)(?=\n(?:Distorsiuni:|Scheme:|Adult Sănătos:|$))/im)?.[1]?.trim() || "Nu s-a putut extrage 'Recomandare'.",
+          distorsiuni: feedbackText.match(/^Distorsiuni:\s*([\s\S]*?)(?=\n(?:Scheme:|Adult Sănătos:|$))/im)?.[1]?.trim() || "Nu s-au putut extrage 'Distorsiuni'.",
+          scheme: feedbackText.match(/^Scheme:\s*([\s\S]*?)(?=\n(?:Adult Sănătos:|$))/im)?.[1]?.trim() || "Nu s-au putut extrage 'Scheme'.",
+          adult_sanatos_eval: feedbackText.match(/^Adult Sănătos:\s*([\s\S]*?$)/im)?.[1]?.trim() || "Nu s-a putut extrage 'Adult Sănătos'.",
+          model: modelFolosit,
+          timestamp: new Date().toISOString()
+      };
+      
+      let allParsingFailed = ["paragraf", "intrebare", "recomandare", "distorsiuni", "scheme", "adult_sanatos_eval"]
+                             .every(key => parsedFeedback[key]?.startsWith("Nu s-a putut"));
+      
+      if (allParsingFailed && !(typeof feedbackText === 'string' && feedbackText.startsWith("EROARE:"))) {
+          console.warn("Parsarea detaliată a eșuat pentru toate câmpurile. Formatul răspunsului AI nu corespunde. Răspunsul brut va fi plasat în secțiunea 'Paragraf'.");
+          parsedFeedback.paragraf = `Răspuns brut de la ${modelFolosit} (parsare eșuată):\n${feedbackText.replace(/\n/g, "<br>")}`;
+          parsedFeedback.intrebare = ""; parsedFeedback.recomandare = ""; parsedFeedback.distorsiuni = ""; parsedFeedback.scheme = ""; parsedFeedback.adult_sanatos_eval = "";
+      }
+
+      if (docId) {
+          const docRef = doc(db, "raspunsuri", docId);
+          try {
+              await updateDoc(docRef, {
+                  feedback_history: arrayUnion(parsedFeedback),
+                  feedback_paragraf: parsedFeedback.paragraf,
+                  feedback_intrebare: parsedFeedback.intrebare,
+                  feedback_recomandare: parsedFeedback.recomandare,
+                  feedback_distorsiuni: parsedFeedback.distorsiuni,
+                  feedback_scheme: parsedFeedback.scheme,
+                  feedback_adult_eval: parsedFeedback.adult_sanatos_eval,
+                  feedback_model: parsedFeedback.model
+              });
+              console.log(`Feedback AI (${modelFolosit}) salvat pentru docId: ${docId}`);
+          } catch (updateError) {
+              console.error(`Eroare la actualizarea documentului ${docId} cu feedback AI:`, updateError);
+          }
+      }
+      return parsedFeedback;
     }
 
     async function salveazaRaspunsSiGenereazaFeedback() {
         const form = document.getElementById("exercitiuForm");
         if (!form.checkValidity()) {
             form.reportValidity();
+            // Găsește primul câmp invalid din pasul curent și dă-i focus
             const currentStepElement = document.querySelector('.form-step-active');
-            const firstInvalidField = currentStepElement?.querySelector(':invalid:not(fieldset)'); // Evită fieldset dacă ai
+            const firstInvalidField = currentStepElement?.querySelector(':invalid');
             if (firstInvalidField) {
                 firstInvalidField.focus();
-                alert("Vă rugăm completați toate câmpurile obligatorii din pasul curent.");
+                 alert("Vă rugăm completați toate câmpurile obligatorii din pasul curent înainte de a continua.");
             } else {
-                alert("Vă rugăm completați toate câmpurile obligatorii.");
+                 alert("Vă rugăm completați toate câmpurile obligatorii.");
             }
             return;
         }
 
         const formData = new FormData(form);
-        const rowData = { 
-            date: new Date().toLocaleDateString("ro-RO"),
-            timestamp: new Date().toISOString() // Adaugă un timestamp complet la salvarea datelor
-        };
+        const rowData = { date: new Date().toLocaleDateString("ro-RO") };
         formData.forEach((value, key) => { rowData[key] = value; });
 
         const user = auth.currentUser;
         if (!user) {
-            alert("Trebuie să fiți autentificat."); window.location.href = "login.html"; return;
+            alert("Trebuie să fiți autentificat pentru a salva datele.");
+            window.location.href = "login.html";
+            return;
         }
         rowData.ownerUid = user.uid;
 
         const addButton = document.getElementById("addButton");
         const originalAddButtonText = addButton.textContent;
-        addButton.textContent = "Se salvează și procesează..."; addButton.disabled = true;
+        addButton.textContent = "Se salvează și se generează...";
+        addButton.disabled = true;
 
         try {
             const docRef = await addDoc(collection(db, "raspunsuri"), rowData);
             rowData.id = docRef.id;
-            console.log(`Răspuns salvat cu ID: ${docRef.id}. Se generează feedback AI...`);
+            console.log(`Răspuns salvat cu ID: ${docRef.id}. Se generează feedback AI automat...`);
 
             const feedbackGenerat = await genereazaSiProceseazaFeedbackAI(rowData, docRef.id);
             
-            const docSnapshot = await getDoc(docRef); // Ia cea mai recentă versiune
+            const docSnapshot = await getDoc(docRef);
             if (docSnapshot.exists()) {
                 adaugaCard({ id: docSnapshot.id, ...docSnapshot.data() });
             } else {
-                rowData.feedback_history = feedbackGenerat && !feedbackGenerat.error ? [feedbackGenerat] : [];
-                adaugaCard(rowData); // Fallback
+                rowData.feedback_history = feedbackGenerat ? [feedbackGenerat] : [];
+                adaugaCard(rowData);
             }
             
-            form.reset(); currentStep = 1;
-            document.querySelectorAll('.form-step').forEach(s => s.classList.remove('form-step-active'));
+            form.reset();
+            currentStep = 1;
+            document.querySelectorAll('.form-step').forEach(step => step.classList.remove('form-step-active'));
             document.getElementById('step-1').classList.add('form-step-active');
             updateProgressBar();
 
             const confirmationMessage = document.getElementById('confirmationMessage');
-            if (feedbackGenerat && !feedbackGenerat.error && !feedbackGenerat.error_parsing && !(typeof feedbackGenerat.empatie_initiala === 'string' && feedbackGenerat.empatie_initiala.startsWith("EROARE:"))) {
-                confirmationMessage.textContent = 'Formular trimis și feedback AI generat!';
-                confirmationMessage.style.backgroundColor = '#d4edda'; confirmationMessage.style.color = '#155724';
+            if (feedbackGenerat && !(typeof feedbackGenerat.paragraf === 'string' && feedbackGenerat.paragraf.startsWith("EROARE:")) && feedbackGenerat.model !== "Configurare Eronată" && feedbackGenerat.model !== "Configurare Gemini Eronată") {
+                confirmationMessage.textContent = 'Formularul a fost trimis și feedback-ul AI generat! Îl puteți vedea în cardul de mai jos.';
+                confirmationMessage.style.backgroundColor = '#d4edda'; 
+                confirmationMessage.style.color = '#155724';
             } else {
-                let msg = 'Formular trimis. ';
-                if (feedbackGenerat && feedbackGenerat.empatie_initiala) {
-                    msg += feedbackGenerat.empatie_initiala; // Afișează eroarea din primul câmp
-                } else {
-                    msg += 'Problemă la generarea feedback-ului AI.';
-                }
-                confirmationMessage.textContent = msg;
-                confirmationMessage.style.backgroundColor = '#f8d7da'; confirmationMessage.style.color = '#58151c';
+                 confirmationMessage.textContent = `Formularul a fost trimis. ${feedbackGenerat ? feedbackGenerat.paragraf : 'A apărut o problemă la generarea feedback-ului AI.'}`;
+                 confirmationMessage.style.backgroundColor = (feedbackGenerat && feedbackGenerat.paragraf && feedbackGenerat.paragraf.includes("depășită")) ? '#fff3cd' : '#f8d7da';
+                 confirmationMessage.style.color = (feedbackGenerat && feedbackGenerat.paragraf && feedbackGenerat.paragraf.includes("depășită")) ? '#664d03' : '#58151c';
             }
             confirmationMessage.style.display = 'block';
-            setTimeout(() => { confirmationMessage.style.display = 'none'; }, 9000);
+            setTimeout(() => {
+                confirmationMessage.style.display = 'none';
+                confirmationMessage.style.backgroundColor = '#d4edda';
+                confirmationMessage.style.color = '#155724';
+            }, 9000);
 
         } catch (error) {
-            console.error("Eroare majoră în salveazaRaspunsSiGenereazaFeedback:", error);
-            alert("Eroare la salvare. Încercați din nou.");
+            console.error("Eroare la salvarea în Firestore sau generarea feedback-ului AI:", error);
+            alert("A apărut o eroare la salvare. Vă rugăm încercați din nou.");
         } finally {
-            addButton.textContent = originalAddButtonText; addButton.disabled = false;
+            addButton.textContent = originalAddButtonText;
+            addButton.disabled = false;
         }
     }
 
@@ -379,40 +367,31 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
 
         if (feedbackHistory && Array.isArray(feedbackHistory) && feedbackHistory.length > 0) {
             const historyTitle = document.createElement("h4");
-            // ... stiluri pentru historyTitle ...
-            historyTitle.style.color = "#4A90E2"; historyTitle.style.marginTop = "20px"; historyTitle.style.marginBottom = "10px";
+            historyTitle.style.color = "#4A90E2";
+            historyTitle.style.marginTop = "20px";
+            historyTitle.style.marginBottom = "10px";
             historyTitle.textContent = "🗂️ Istoric Feedback AI:";
             containerElement.appendChild(historyTitle);
 
             feedbackHistory.slice().reverse().forEach(entry => { 
-                if (!entry || typeof entry !== 'object') { // Verificare suplimentară
-                    console.warn("Intrare invalidă în istoricul de feedback:", entry);
-                    return; 
-                }
                 const itemContainer = document.createElement("div");
                 itemContainer.className = "feedback-entry-card";
 
                 const timestampAndModel = document.createElement("p");
                 timestampAndModel.className = "feedback-timestamp";
-                timestampAndModel.innerHTML = `<strong>${new Date(entry.timestamp || Date.now()).toLocaleString("ro-RO")}</strong> (Model: ${entry.model || 'N/A'})`;
+                timestampAndModel.innerHTML = `<strong>${new Date(entry.timestamp).toLocaleString("ro-RO")}</strong> (Model: ${entry.model || 'N/A'})`;
                 itemContainer.appendChild(timestampAndModel);
 
-                // Definește structura NOUĂ de afișare, corespunzătoare NOUILOR chei parsate
-                const newSections = [
-                    { title: "💬 Empatie Inițială", key: "empatie_initiala", isList: false },
-                    { title: "🌟 Puncte Forte Observate", key: "puncte_forte", isList: false },
-                    { title: "🔄 Tipare Principale", key: "tipare_principale", isList: false },
-                    { title: "🔗 Conexiuni Cheie (S-G-E-C-N)", key: "conexiuni_cheie", isList: false },
-                    { title: "🔍 Distorsiuni Identificate", key: "distorsiuni_identificate", isList: true, complexList: true }, // complexList pentru parsare mai detaliată dacă e cazul
-                    { title: "🧠 Scheme Activate", key: "scheme_activate", isList: true },
-                    { title: "🎭 Moduri Implicate", key: "moduri_implicate", isList: false }, // Poate fi și listă dacă AI-ul dă mai multe
-                    { title: "💪 Perspectiva Adultului Sănătos", key: "perspectiva_adult_sanatos", isList: false },
-                    { title: "❓ Întrebare Finală de Reflecție", key: "intrebare_finala_reflectie", isList: false },
-                    { title: "👟 Sugestie Mic Pas Următor", key: "sugestie_mic_pas", isList: false },
-                    { title: "💖 Încurajare Finală", key: "incurajare_finala", isList: false }
+                const sections = [
+                    { title: "✍️ Paragraf Empatic", key: "paragraf", isList: false },
+                    { title: "❓ Întrebare de Reflecție", key: "intrebare", isList: false },
+                    { title: "🛠️ Recomandare Terapeutică", key: "recomandare", isList: false },
+                    { title: "🔍 Distorsiuni Cognitive", key: "distorsiuni", isList: true },
+                    { title: "🧠 Scheme Cognitive", key: "scheme", isList: true },
+                    { title: "🧍‍♂️ Evaluare Adult Sănătos", key: "adult_sanatos_eval", isList: false }
                 ];
 
-                newSections.forEach(sectionConfig => {
+                sections.forEach(sectionConfig => {
                     const sectionDiv = document.createElement("div");
                     sectionDiv.className = "feedback-section";
 
@@ -420,27 +399,23 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
                     sectionTitleElement.textContent = sectionConfig.title + ":";
                     sectionDiv.appendChild(sectionTitleElement);
 
-                    let contentText = entry[`feedback_${sectionConfig.key}`] || entry[sectionConfig.key]; // Preferă câmpurile `feedback_` de la rădăcină dacă există
+                    let contentText = entry[sectionConfig.key];
 
                     if (contentText && typeof contentText === 'string') {
-                        // Eliminare prefix redundant din textul conținutului (dacă AI-ul l-a inclus)
-                        const titleWithoutEmoji = sectionConfig.title.replace(/(\p{Emoji_Presentation}|\p{Extended_Pictographic}|💬|🌟|🔄|🔗|🔍|🧠|🎭|💪|❓|👟|💖)\s*/gu, '').trim();
+                        const titleWithoutEmoji = sectionConfig.title.replace(/(\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/gu, '').trim();
                         const patternTitleText = new RegExp(`^${titleWithoutEmoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:?\\s*`, "im");
                         contentText = contentText.replace(patternTitleText, "").trim();
-                        
+                        const patternKeyText = new RegExp(`^${sectionConfig.key.replace(/_/g, " ")}:?\\s*`, "im");
+                        contentText = contentText.replace(patternKeyText, "").trim();
+
+
                         if (sectionConfig.isList && contentText.includes('*')) {
                             const listElement = document.createElement("ul");
-                            const items = contentText.split(/\s*\n?\s*\*\s+/) // Split mai robust la '*' urmat de spațiu, pe linie nouă sau nu
-                                              .map(item => item.trim().replace(/^\s*-\s*/, '')) 
+                            const items = contentText.split(/\s*\*\s*/)
+                                              .map(item => item.trim().replace(/^\s*-\s*/, '')) // Elimină și '-' de la începutul itemului de listă
                                               .filter(item => item.length > 0);
-                            if (items.length === 0 && contentText.startsWith("*")) { // Cazul cu un singur item *
-                                items.push(contentText.substring(1).trim().replace(/^\s*-\s*/, ''));
-                            }
-                            
                             items.forEach(itemText => {
                                 const listItem = document.createElement("li");
-                                // Dacă este `complexList` pentru Distorsiuni, fiecare item ar putea avea substructură
-                                // Momentan, doar afișăm textul itemului.
                                 listItem.innerHTML = itemText.replace(/\n/g, '<br>');
                                 listElement.appendChild(listItem);
                             });
@@ -450,17 +425,10 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
                             paragraphElement.innerHTML = contentText.replace(/\n/g, '<br>') || '<i>Indisponibil</i>';
                             sectionDiv.appendChild(paragraphElement);
                         }
-                    } else if (typeof contentText === 'string' && contentText === "") {
-                        // Afișează un mesaj specific dacă textul este gol, dar nu "Indisponibil"
-                        const emptyTextP = document.createElement("p");
-                        emptyTextP.style.fontStyle = "italic";
-                        emptyTextP.textContent = "(Secțiune goală sau necompletată de AI)";
-                        sectionDiv.appendChild(emptyTextP);
-                    }
-                    else {
+                    } else {
                         const unavailableText = document.createElement("p");
                         unavailableText.style.fontStyle = "italic";
-                        unavailableText.textContent = "Indisponibil sau format necunoscut";
+                        unavailableText.textContent = "Indisponibil";
                         sectionDiv.appendChild(unavailableText);
                     }
                     itemContainer.appendChild(sectionDiv);
@@ -470,21 +438,25 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
         }
     }
 
-   function adaugaCard(rowData) { /* ... Adaptat pentru noile chei de feedback dacă e necesar la afișarea primară a feedback-ului, deși afiseazaIstoricFeedback face treaba principală ... */ 
-        const cardViewContainer = document.getElementById("cardViewContainer");
-        let card = cardViewContainer.querySelector(`.response-card[data-id="${rowData.id}"]`);
+   function adaugaCard(rowData) {
+      const cardViewContainer = document.getElementById("cardViewContainer");
+      let card = cardViewContainer.querySelector(`.response-card[data-id="${rowData.id}"]`);
 
-        if (card) {
-            console.log("Cardul există, se actualizează istoricul AI:", rowData.id);
-            afiseazaIstoricFeedback(card.querySelector('.ai-feedback-history-container'), rowData.feedback_history);
-            return;
-        }
+      if (card) {
+           console.log("Cardul există deja, se actualizează istoricul AI:", rowData.id);
+           const historyContainer = card.querySelector('.ai-feedback-history-container');
+           if (historyContainer) {
+                afiseazaIstoricFeedback(historyContainer, rowData.feedback_history);
+           }
+           // S-ar putea să vrei să actualizezi și header-ul dacă data/situația s-ar schimba,
+           // dar în fluxul actual, odată creat, conținutul principal al răspunsului nu se schimbă.
+           return;
+      }
 
-        card = document.createElement("div");
-        card.className = "response-card";
-        card.setAttribute("data-id", rowData.id);
-        // ... (restul conținutului cardului cu datele utilizatorului rămâne la fel) ...
-          card.innerHTML = `
+      card = document.createElement("div");
+      card.className = "response-card";
+      card.setAttribute("data-id", rowData.id);
+      card.innerHTML = `
         <div class="card-header"> Data: ${rowData.date || ''} - Situația: ${(rowData.situatie || '').substring(0,60)}...</div>
         <div class="card-content">
           <h4>Explorarea situației și a nevoilor</h4>
@@ -529,146 +501,234 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
         </div>
       `;
 
-        card.querySelector('.card-header').addEventListener('click', () => card.classList.toggle('open'));
-        card.querySelector('.delete-button').addEventListener('click', (e) => { e.stopPropagation(); stergeCard(rowData.id, card); });
+      card.querySelector('.card-header').addEventListener('click', () => {
+        card.classList.toggle('open');
+      });
 
-        const regenButton = card.querySelector('.generate-ai-feedback-button');
-        if (regenButton) {
-            regenButton.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const button = e.target; 
-                const originalText = button.textContent;
-                button.textContent = 'Se generează...'; button.disabled = true;
+      card.querySelector('.delete-button').addEventListener('click', (event) => {
+        event.stopPropagation();
+        stergeCard(rowData.id, card);
+      });
+
+      const generateManualButton = card.querySelector('.generate-ai-feedback-button');
+      if (generateManualButton) {
+            generateManualButton.addEventListener('click', async (event) => {
+                event.stopPropagation();
+                const button = event.target;
+                const originalButtonText = button.textContent;
+                button.textContent = 'Se generează...';
+                button.disabled = true;
+                
                 try {
-                    const currentDoc = await getDoc(doc(db, "raspunsuri", rowData.id));
-                    if (currentDoc.exists()) {
-                        await genereazaSiProceseazaFeedbackAI({id: currentDoc.id, ...currentDoc.data()}, currentDoc.id);
-                        const updatedDoc = await getDoc(doc(db, "raspunsuri", currentDoc.id)); // Recitește pentru a obține cel mai nou istoric
-                        if (updatedDoc.exists()) {
-                            afiseazaIstoricFeedback(card.querySelector('.ai-feedback-history-container'), updatedDoc.data().feedback_history);
-                        }
+                    console.log(`Regenerare manuală feedback AI pentru card: ${rowData.id}`);
+                    const docSnapshot = await getDoc(doc(db, "raspunsuri", rowData.id));
+                    let currentCardData;
+                    if (docSnapshot.exists()) {
+                        currentCardData = { id: docSnapshot.id, ...docSnapshot.data() };
+                    } else {
+                        currentCardData = rowData;
                     }
-                } catch (err) { console.error("Eroare regenerare AI:", err); alert("Eroare regenerare feedback."); }
-                finally { button.textContent = originalText; button.disabled = false; }
+                    await genereazaSiProceseazaFeedbackAI(currentCardData, currentCardData.id);
+                    const updatedDoc = await getDoc(doc(db, "raspunsuri", currentCardData.id));
+                    if (updatedDoc.exists()) {
+                       afiseazaIstoricFeedback(card.querySelector('.ai-feedback-history-container'), updatedDoc.data().feedback_history);
+                    }
+                } catch (error) {
+                    console.error("Eroare la regenerarea manuală a feedback-ului AI:", error);
+                    alert("A apărut o eroare la regenerarea feedback-ului AI.");
+                } finally {
+                    button.textContent = originalButtonText;
+                    button.disabled = false;
+                }
             });
         }
-        afiseazaIstoricFeedback(card.querySelector('.ai-feedback-history-container'), rowData.feedback_history);
-        if (cardViewContainer.firstChild) cardViewContainer.insertBefore(card, cardViewContainer.firstChild);
-        else cardViewContainer.appendChild(card);
-   }
+    
+      afiseazaIstoricFeedback(card.querySelector('.ai-feedback-history-container'), rowData.feedback_history);
 
+      // Inserează cardurile noi la început
+      if (cardViewContainer.firstChild) {
+          cardViewContainer.insertBefore(card, cardViewContainer.firstChild);
+      } else {
+          cardViewContainer.appendChild(card);
+      }
+    }
 
-    async function loadTableData(userId, collabIdForLoad = null, ownerIdForCollabView = null) { /* ... la fel, asigură filtrarea pe ownerUid ... */
-         if (!userId && !ownerIdForCollabView) {
-            console.warn("loadTableData apelat fără userId sau ownerIdForCollabView.");
+    async function loadTableData(userId, collabIdForLoad = null, ownerIdForCollabView = null) {
+        // Funcția de încărcare carduri - ESENȚIAL: filtrează pe userId sau ownerIdForCollabView
+        if (!userId && !ownerIdForCollabView) {
+            console.warn("loadTableData apelat fără userId sau ownerIdForCollabView. Nu se încarcă date.");
             return;
         }
-        if (collabIdForLoad && dataAlreadyLoaded) { console.log("Colaborare deja încărcată."); return; }
+
+        // Control pentru a nu reîncărca inutil dacă datele sunt deja pentru colaborator
+        if (collabIdForLoad && dataAlreadyLoaded) {
+            console.log("Cardurile pentru colaborator deja încărcate.");
+            return;
+        }
         
-        console.log("Încărcare carduri Firestore...");
+        console.log("Încărcare/Reîncărcare carduri din Firestore...");
         const cardViewContainer = document.getElementById("cardViewContainer");
-        cardViewContainer.innerHTML = '';
+        cardViewContainer.innerHTML = ''; // Golește întotdeauna la (re)încărcare
 
         try {
             let q;
-            if (ownerIdForCollabView) {
+            if (ownerIdForCollabView) { // Pentru colaborator
+                console.log(`Filtrare colaborare pentru owner: ${ownerIdForCollabView}`);
                 q = query(collection(db, "raspunsuri"), where("ownerUid", "==", ownerIdForCollabView));
-            } else {
+            } else { // Pentru utilizatorul logat
+                console.log(`Filtrare pentru utilizator logat: ${userId}`);
                 q = query(collection(db, "raspunsuri"), where("ownerUid", "==", userId));
             }
 
             const querySnapshot = await getDocs(q);
             if (querySnapshot.empty) {
-                cardViewContainer.innerHTML = '<p style="text-align:center; margin-top:20px; font-style:italic;">Nicio fișă găsită.</p>';
-                if(collabIdForLoad) dataAlreadyLoaded = true;
+                console.log("Nicio înregistrare găsită pentru filtrele aplicate.");
+                 // Poți afișa un mesaj utilizatorului în cardViewContainer
+                cardViewContainer.innerHTML = '<p style="text-align:center; margin-top:20px; font-style:italic;">Nicio fișă de monitorizare găsită.</p>';
+                if(collabIdForLoad) dataAlreadyLoaded = true; // Marchează ca încărcat chiar dacă e gol
                 return;
             }
             
             const documents = [];
-            querySnapshot.forEach((doc) => documents.push({ id: doc.id, ...doc.data() }));
-            documents.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0) ); // Sortează după timestamp complet
+            querySnapshot.forEach((doc) => {
+                documents.push({ id: doc.id, ...doc.data() });
+            });
+
+            documents.sort((a, b) => {
+                // Sortare mai robustă: folosim timestamp-ul salvat dacă există, altfel data
+                const timeA = a.timestamp ? new Date(a.timestamp).getTime() : (a.date ? new Date(a.date.split('.').reverse().join('-')).getTime() : 0);
+                const timeB = b.timestamp ? new Date(b.timestamp).getTime() : (b.date ? new Date(b.date.split('.').reverse().join('-')).getTime() : 0);
+                return timeB - timeA; // Descrescător (cel mai nou primul)
+            });
             
-            documents.forEach(docData => adaugaCard(docData));
+            documents.forEach(docData => {
+                adaugaCard(docData);
+            });
+
             if (collabIdForLoad) dataAlreadyLoaded = true; 
+            // dataAlreadyLoaded pentru utilizatorul normal se setează în onAuthStateChanged
+
         } catch (error) {
-            console.error("Eroare loadTableData:", error.message, error.stack);
-            cardViewContainer.innerHTML = '<p style="text-align:center; margin-top:20px; color:red;">Eroare încărcare date.</p>';
+            console.error("Eroare la încărcarea cardurilor din Firestore:", error.message, error.stack);
+            cardViewContainer.innerHTML = '<p style="text-align:center; margin-top:20px; color:red;">A apărut o eroare la încărcarea datelor.</p>';
         }
     }
-    async function populateTableData(userId) { /* ... la fel, asigură filtrarea ... */ 
-        console.log("populateTableData (tabel) rulează pentru:", userId, "Consideră eliminarea dacă nu se folosește tabelul.");
+
+    async function populateTableData(userId) {
+        // Această funcție este pentru tabelul ascuns. Dacă nu-l mai folosești, o poți elimina.
+        // Asigură-te că filtrează pe `userId` dacă o păstrezi.
+        const tableBody = document.getElementById("tableBody");
+        if (!tableBody || !userId) return;
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('collabId')) return; // Nu pentru colaboratori
+
+        // ... restul logicii populateTableData (cu query(collection(db, "raspunsuri"), where("ownerUid", "==", userId))) ...
+        console.log("Funcția populateTableData (tabel) a fost apelată. Consideră eliminarea ei dacă tabelul nu este utilizat.");
     }
-    window.toggleDetails = function(id) { /* ... la fel ... */ 
-         const detailRow = document.getElementById(`details-${id}`);
-        if (detailRow) {
-            detailRow.style.display = detailRow.style.display === "none" ? "table-row" : "none";
-        }
-    }
-    async function stergeCard(id, cardElement) { /* ... la fel ... */ 
-        if (confirm("Sigur ștergi această înregistrare? Ireversibil!")) {
+
+    window.toggleDetails = function(id) { /* ... cod neschimbat ... */ }
+
+    async function stergeCard(id, cardElement) { /* ... cod existent, ar trebui să funcționeze ... */
+        if (confirm("Sunteți sigur că doriți să ștergeți această înregistrare și tot feedback-ul asociat? Această acțiune este ireversibilă.")) {
             try {
                 await deleteDoc(doc(db, "raspunsuri", id));
                 cardElement.remove();
-                console.log(`Înregistrare ${id} ștearsă.`);
-            } catch (error) { console.error("Eroare ștergere:", error); alert("Eroare ștergere.");}
+                console.log(`Înregistrarea ${id} a fost ștearsă.`);
+            } catch (error) {
+                console.error("Eroare la ștergerea din Firestore:", error);
+                alert("Eroare la ștergerea înregistrării.");
+            }
         }
-    }
-    async function generateCollaborationLink() { /* ... la fel ... */
-        const user = auth.currentUser;
-        if (!user) { alert("Autentificare necesară."); return; }
-        const q = query(collection(db, "collaborations"), where("owner", "==", user.uid));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-            const collabDoc = snapshot.docs[0];
-            prompt(`Link existent (PIN: ${collabDoc.data().pin}):`, `${location.origin}${location.pathname}?collabId=${collabDoc.id} (PIN: ${collabDoc.data().pin})`);
-            return;
-        }
-        const pin = prompt("PIN numeric (minim 4 cifre) pentru link colaborare:");
-        if (!pin || !/^\d{4,}$/.test(pin)) { alert("PIN invalid."); return; }
-        try {
-            const ref = await addDoc(collection(db, "collaborations"), { owner: user.uid, pin, createdAt: new Date() });
-            prompt(`Link generat! Distribuie cu PIN:\nLink: ${location.origin}${location.pathname}?collabId=${ref.id}\nPIN: ${pin}`, `Link: ${location.origin}${location.pathname}?collabId=${ref.id} (PIN: ${pin})`);
-        } catch (e) { console.error("Eroare generare link:", e); alert("Eroare generare link."); }
     }
 
-    window.addEventListener('DOMContentLoaded', async () => { /* ... la fel, asigură filtrarea pt collabData.owner ... */
-        console.log("DOMContentLoaded - verifică colaborare");
-        const params = new URLSearchParams(location.search);
-        const collabId = params.get('collabId');
+    async function generateCollaborationLink() {
+        const user = auth.currentUser;
+        if (!user) {
+            alert("Trebuie să fiți autentificat pentru a genera un link de colaborare.");
+            return;
+        }
+        // Caută dacă există deja un link activ pentru acest utilizator
+        const existingCollabQuery = query(collection(db, "collaborations"), where("owner", "==", user.uid));
+        const querySnapshot = await getDocs(existingCollabQuery);
+
+        if (!querySnapshot.empty) {
+            const collabDoc = querySnapshot.docs[0];
+            const collaborationLink = `${window.location.origin}${window.location.pathname}?collabId=${collabDoc.id}`;
+            prompt(`Ai deja un link de colaborare activ (PIN: ${collabDoc.data().pin}). Îl poți redistribui:\nLink și PIN:`, `${collaborationLink} (PIN: ${collabDoc.data().pin})`);
+            return;
+        }
+
+        const pinCode = prompt("Introduceți un cod PIN numeric (minim 4 cifre) pentru noul link de colaborare:");
+        if (!pinCode || !/^\d{4,}$/.test(pinCode)) { // Verifică dacă e numeric și are minim 4 cifre
+            alert("Cod PIN invalid. Trebuie să fie numeric și să conțină cel puțin 4 cifre.");
+            return;
+        }
+        try {
+            const docRef = await addDoc(collection(db, "collaborations"), { 
+                owner: user.uid, 
+                pin: pinCode, 
+                createdAt: new Date() 
+            });
+            const collaborationLink = `${window.location.origin}${window.location.pathname}?collabId=${docRef.id}`;
+            prompt(`Link de colaborare generat! Distribuie acest link ÎMPREUNĂ cu codul PIN.\nLink: ${collaborationLink}\nPIN: ${pinCode}`, `Link: ${collaborationLink} (PIN: ${pinCode})`);
+        } catch (error) {
+            console.error("Eroare la generarea link-ului de colaborare:", error);
+            alert("A apărut o eroare la generarea linkului.");
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        console.log("DOMContentLoaded - Verifică colaboratorul");
+        const urlParams = new URLSearchParams(window.location.search);
+        const collabId = urlParams.get('collabId');
+
         if (collabId) {
-            dataAlreadyLoaded = false; 
-            document.body.classList.add("collab-view");
-            ['exercitiuForm', 'generateLinkButton', '.form-container', '.table-container'].forEach(s => {
-                const el = document.querySelector(s) || document.getElementById(s);
+            dataAlreadyLoaded = false; // Important pentru colaborator
+            document.body.classList.add("collab-view"); // Clasă pentru a ascunde/modifica elemente via CSS dacă e nevoie
+            ['exercitiuForm', 'generateLinkButton', '.form-container', '.table-container'].forEach(sel => {
+                const el = document.querySelector(sel) || document.getElementById(sel);
                 if (el) el.style.display = 'none';
             });
-            const pin = prompt("PIN colaborare:");
-            if (!pin) { alert("PIN necesar."); location.href = "login.html"; return; }
+            
+            const pin = prompt("Introduceți PIN pentru colaborare:");
+            if (!pin) {
+                alert("PIN necesar."); window.location.href = "login.html"; return;
+            }
             try {
-                const collabRef = doc(db, "collaborations", collabId);
-                const collabSnap = await getDoc(collabRef);
-                if (collabSnap.exists()) {
-                    const collabData = collabSnap.data();
+                const collabDocRef = doc(db, "collaborations", collabId);
+                const collabSnapshot = await getDoc(collabDocRef);
+                if (collabSnapshot.exists()) {
+                    const collabData = collabSnapshot.data();
                     if (collabData.pin === pin) {
-                        console.log("PIN corect, încarc date pentru owner:", collabData.owner);
-                        document.title = "Vizualizare Fișă Colaborare";
-                        const mainH = document.querySelector('.form-container h2');
-                        if(mainH) mainH.textContent = "Fișă Colaborare (Citire)";
-                        else { // Adaugă un titlu dacă nu există cel din form-container
-                            const pageTitle = document.createElement('h2');
-                            pageTitle.textContent = "Vizualizare Fișă Colaborare";
-                            pageTitle.style.textAlign = 'center';
-                            document.body.insertBefore(pageTitle, document.querySelector('.card-view'));
-                        }
+                        console.log("PIN corect. Încărcare date colaborator pentru owner:", collabData.owner);
+                        // Modifică titlul principal al paginii
+                        document.title = "Vizualizare Fișă Colaborare - Psiho";
+                        const mainHeading = document.querySelector('body > h2, body > .form-container h2'); // Găsește un titlu existent sau adaptează
+                        if (mainHeading) mainHeading.textContent = "Fișă de Colaborare";
+
+                        // Șterge conținutul .card-view înainte de a-l popula specific
+                        const cardView = document.getElementById('cardViewContainer');
+                        if(cardView) cardView.innerHTML = ''; 
+
+                        // Important: Pasează ownerId la loadTableData
                         loadTableData(null, collabId, collabData.owner); 
-                    } else { alert("PIN incorect."); location.href = "login.html"; }
-                } else { alert("Colaborare invalidă."); location.href = "login.html"; }
-            } catch (e) { console.error("Eroare colaborare:", e); alert("Eroare accesare colaborare."); location.href = "login.html"; }
+                    } else {
+                        alert("PIN incorect."); window.location.href = "login.html";
+                    }
+                } else {
+                    alert("Colaborare inexistentă."); window.location.href = "login.html";
+                }
+            } catch (error) {
+                console.error("Eroare accesare colaborare:", error);
+                alert("Eroare accesare colaborare."); window.location.href = "login.html";
+            }
         }
+        // Pentru utilizatorul normal, onAuthStateChanged se ocupă de încărcarea datelor
     });
     </script>
     <style>
-        /* ... TOATE STILURILE TALE CSS COMPLETE AICI ... */
+        /* ... TOATE STILURILE TALE CSS EXISTENTE (inclusiv responsive, .feedback-section, etc.) ... */
         body {font-family: 'Roboto', 'Montserrat', sans-serif; margin: 0; padding: 20px; background: linear-gradient(to right, #ece9e6, #ffffff); color: #333; box-sizing: border-box;}
         .form-container {max-width: 900px; margin: 20px auto; background: #fff; padding: 30px; box-shadow: 0 16px 24px rgba(0,0,0,0.2); border-radius: 15px; border: 3px solid #87CEFA; transition: transform 0.3s ease;}
         .form-container:hover {transform: scale(1.01);}
@@ -694,8 +754,8 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
         .response-card .card-header {font-weight: 700; font-size: 1.1em; cursor: pointer; background: #87CEFA; padding: 12px 20px; color: #fff; text-align: left; position: relative; display: flex; justify-content: space-between; align-items: center;}
         .response-card .card-header::after {content: '▼'; font-size: 0.8em; transition: transform 0.3s ease;}
         .response-card.open .card-header::after {transform: rotate(180deg);}
-        .response-card .card-content {max-height: 0; margin-top: 0; padding: 0 20px; background: #fff; line-height: 1.6; overflow: auto; transition: max-height 0.5s ease-out, padding-top 0.5s ease-out, padding-bottom 0.5s ease-out;}
-        .response-card.open .card-content {max-height: 3000px; /* Mărit și mai mult */ padding-top: 15px; padding-bottom: 15px;}
+        .response-card .card-content {max-height: 0; margin-top: 0; padding: 0 20px; background: #fff; line-height: 1.6; overflow: auto; transition: max-height 0.5s ease-out, padding-top 0.5s ease-out, padding-bottom 0.5s ease-out;} /* Timp tranzitie mărit */
+        .response-card.open .card-content {max-height: 2000px; /* Mărit substanțial */ padding-top: 15px; padding-bottom: 15px;}
         .response-card .card-content p {margin-bottom: 12px; border-left: 3px solid #87CEFA; padding-left: 10px;}
         .response-card .card-content p strong {color: #333;}
         .response-card h4 {text-align: left; color: #4A90E2; font-weight: bold; margin-top: 20px; margin-bottom: 10px; font-size: 1.05em;}
@@ -718,8 +778,8 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
         .feedback-section ul {padding-left:25px; list-style-position:outside; list-style-type:disc;}
         .feedback-section li {margin-bottom:4px;}
 
-        /* Responsive - Adaugă aici toate regulile @media din versiunea ta anterioară funcțională */
-         @media (max-width: 768px) {
+        /* Responsive - ASIGURĂ-TE CĂ INCLUZI TOATE REGULILE TALE RESPONSIVE COMPLETE AICI */
+        @media (max-width: 768px) {
             body {padding:10px;}
             .form-container, .table-container, .card-view {padding:15px; margin-left:10px; margin-right:10px; max-width:calc(100% - 20px);}
             textarea {font-size:14px; padding:8px; width:calc(100% - 18px);}
@@ -727,14 +787,16 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
             .card-actions button {font-size:0.85em; padding:7px 12px;}
             .question-card h3, .response-card .card-header {font-size:1.05em;}
             .question-card p, .response-card .card-content p {font-size:0.9em;}
+            /* Reguli specifice tabelului pentru mobil */
             .table-container {overflow-x:auto;}
-            table {display:block; width:100%;} thead, tbody, tr {display:block;}
-            th {display:none;}
+            table {display:block; width:100%;}
+            thead, tbody, tr {display:block;}
+            th {display:none;} /* Ascunde header-ul tabelului original */
             tr {margin-bottom:15px; border:1px solid #ddd; border-radius:5px; display:flex; flex-direction:column;}
             td {display:flex; justify-content:space-between; padding:10px; text-align:right; border-bottom:1px solid #eee; position:relative;}
             td:last-child {border-bottom:none;}
-            td::before {content:attr(data-label); font-weight:bold; text-align:left; margin-right:10px; color:#555; flex-shrink:0; width:auto; padding-right: 10px;}
-            td > *:not(button) {flex-grow:1; word-break:break-word; text-align:left;}
+            td::before {content:attr(data-label); font-weight:bold; text-align:left; margin-right:10px; color:#555; flex-shrink:0; width:auto; padding-right: 10px;} /* Lățime auto, flex-shrink previne micșorarea */
+            td > *:not(button) {flex-grow:1; word-break:break-word; text-align:left;} /* Conținutul să ocupe spațiul rămas și să se alinieze la stânga */
             td button {width:auto; padding:6px 12px; font-size:0.85em; margin-left:auto; flex-shrink:0;}
             td[colspan="10"] {display:block;}
         }
@@ -747,11 +809,10 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
             .card-actions button {font-size:0.8em; padding:6px 10px;}
             .response-card .card-header {padding:10px;}
             .response-card .card-content {padding-left:15px; padding-right:15px; font-size:0.85em;}
-            td {flex-direction:column; align-items:flex-start;}
+            td {flex-direction:column; align-items:flex-start;} /* Label deasupra valorii */
             td::before {width:100%; margin-bottom:5px; margin-right: 0;}
             td button {align-self:flex-end;}
         }
-
     </style>
 </head>
 <body>
