@@ -162,13 +162,13 @@
 
 
     async function genereazaFeedbackCuGeminiDinFrontend(promptText) {
-        if (!geminiModel) {
+        if (!geminiModelFeedback) {
             console.error("Modelul Gemini nu este inițializat. Verifică cheia API.");
             return "EROARE: Configurare Gemini incorectă. Verifică dacă ai introdus corect cheia API în cod.";
         }
         try {
             console.log("Trimitere prompt către Gemini (primele 100 caractere):", promptText.substring(0, 100) + "...");
-            const result = await geminiModel.generateContent(promptText);
+            const result = await geminiModelFeedback.generateContent(promptText);
             const response = result.response;
             if (!response || typeof response.text !== 'function') {
                  console.error("Răspuns neașteptat de la Gemini (nu conține text()):", response);
@@ -263,7 +263,7 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri, concluzii
       let feedbackText = null;
       let modelFolosit = "N/A";
 
-      if (geminiModel) {
+      if (geminiModelFeedback) {
         console.log("Solicitare feedback de la Gemini...");
         modelFolosit = `Gemini (${GEMINI_MODEL_NAME_FEEDBACK})`;
         feedbackText = await genereazaFeedbackCuGeminiDinFrontend(prompt);
