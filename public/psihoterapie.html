@@ -26,26 +26,27 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    // --- Configurare Gemini API ---
-    const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // <<-- ÎNLOCUIEȘTE CU CHEIA TA API GEMINI REALĂ !!!
-    const GEMINI_MODEL_NAME = "gemini-1.5-flash-latest";
-    let genAI, geminiModel;
+  // --- Configurare Gemini API ---
+const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // ACEASTA ESTE CHEIA TA REALĂ
+const GEMINI_MODEL_NAME = "gemini-1.5-flash-latest";
+let genAI, geminiModel;
 
-    // Am schimbat verificarea ca să fie mai clar: dacă e placeholder-ul, nu inițializa.
-    if (GEMINI_API_KEY && GEMINI_API_KEY !== "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng" && GEMINI_API_KEY !== "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng" ) {
-        try {
-            genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-            geminiModel = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME });
-            console.log("SDK Gemini inițializat cu modelul:", GEMINI_MODEL_NAME);
-        } catch (e) {
-            console.error("Eroare la inițializarea SDK Gemini:", e);
-            geminiModel = null;
-        }
-    } else {
-        console.warn("Cheia API pentru Gemini nu este configurată sau este placeholder-ul. Feedback-ul AI prin Gemini va fi dezactivat. Verifică constanta GEMINI_API_KEY.");
-        geminiModel = null;
+// Condiție simplificată: verifică doar dacă GEMINI_API_KEY are o valoare.
+if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
+    try {
+        genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        geminiModel = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME });
+        console.log("SDK Gemini inițializat cu succes. Model:", GEMINI_MODEL_NAME);
+    } catch (e) {
+        console.error("Eroare la inițializarea SDK Gemini. Verifică validitatea cheii API și conexiunea la internet.", e);
+        geminiModel = null; // Setează la null dacă inițializarea eșuează
     }
-    // --- Sfârșit Configurare Gemini API ---
+} else {
+    // Acest mesaj se va afișa doar dacă GEMINI_API_KEY este un string gol sau nu e definită.
+    console.warn("Cheia API pentru Gemini (GEMINI_API_KEY) este goală sau nedefinită. Feedback-ul AI prin Gemini va fi dezactivat.");
+    geminiModel = null;
+}
+
 
     let currentStep = 1;
     let totalSteps = 0;
