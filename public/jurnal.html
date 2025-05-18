@@ -5,9 +5,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <script type="module">
-    // --- Configurări Firebase și Gemini ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, getDoc, updateDoc, arrayUnion, query, where, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"; // Adăugat Timestamp
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, getDoc, updateDoc, arrayUnion, arrayRemove, query, where, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
     import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
@@ -25,10 +24,11 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    // !!! ÎNLOCUIEȘTE CU CHEIA TA API GEMINI VALIDĂ ȘI ACTIVĂ !!!
-    const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // <--- CHEIA TA API GEMINI
-    const GEMINI_MODEL_NAME_JOURNAL_FEEDBACK = "gemini-2.5-flash-preview-04-17"; // Sau modelul preferat pentru text generativ, ex "gemini-1.5-flash-latest"
+    const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // <--- ÎNLOCUIEȘTE AICI !!!
+    const GEMINI_MODEL_NAME_JOURNAL_FEEDBACK = "gemini-2.5-flash-preview-04-17"; // Sau "gemini-1.5-flash-latest"
     let genAI, geminiModelJournalFeedback;
+
+    console.log("Jurnal - Cheia API configurată:", "'" + GEMINI_API_KEY + "'");
 
     if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") { // Am eliminat verificarea .startsWith()
         try {
@@ -51,136 +51,82 @@
         alert("Jurnal Terapeutic: Cheia API Gemini nu este configurată. Funcționalitatea AI pentru jurnal va fi dezactivată.");
         geminiModelJournalFeedback = null;
     }
-    // --- Sfârșit Configurare Gemini ---
 
     let dataAlreadyLoaded = false;
 
     window.onload = function () {
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                console.log("Jurnal Terapeutic: Utilizator autentificat:", user.uid);
                 if (!dataAlreadyLoaded) {
                     incarcaIntrariJurnal(user.uid);
                     dataAlreadyLoaded = true;
                 }
+                initializeReflectionPrompts();
             } else {
-                console.log("Jurnal Terapeutic: Utilizator neautentificat, redirecționare...");
-                window.location.href = "login.html"; // Redirecționează la login
+                window.location.href = "login.html";
             }
         });
-
         document.getElementById("saveJournalEntryButton")?.addEventListener("click", salveazaIntrareJurnalSiGenereazaFeedback);
     };
 
-    async function callGeminiAPI(promptText, modelToUse, generationConfigOptions = {}) {
-        if (!modelToUse) {
-            console.error("Modelul Gemini pentru feedback jurnal este invalid sau neinițializat.");
-            return "EROARE: Model AI neinițializat. Verifică cheia API Gemini.";
-        }
-        try {
-            const requestPayload = {
-                contents: [{ role: "user", parts: [{ text: promptText }] }],
-                generationConfig: { temperature: 0.7, ...generationConfigOptions } 
-            };
-            const result = await modelToUse.generateContent(requestPayload);
-            const response = result.response;
+    function initializeReflectionPrompts() {
+        const promptsContainerEl = document.getElementById("reflectionPrompts");
+        const journalTextarea = document.getElementById("journalContent");
+        if (!promptsContainerEl || !journalTextarea) return;
 
+        const prompts = [
+            { label: "Explorează o emoție", text: "Astăzi vreau să explorez emoția de [NUMEȘTE EMOȚIA].\n\nCum se simte în corpul meu? [DESCRIE SENZAȚIILE]\nCe gânduri sunt asociate? [NOTEAZĂ GÂNDURILE]\nÎn ce context a apărut? [DESCRIE SITUAȚIA]\nCe nevoie ar putea semnala? [REFLECTEAZĂ]\nCum aș putea oferi compasiune? [ACȚIUNE COMPASIONALĂ]\n" },
+            { label: "Analizează o situație", text: "Situația care mă preocupă este: [DESCRIE SITUAȚIA]\n\nCe s-a întâmplat exact? (Fapte)\nInterpretarea mea inițială: [GÂNDURI AUTOMATE]\nEmoțiile principale: [LISTEAZĂ EMOȚIILE]\nO altă perspectivă: [REFRAMING]\nCe am învățat/pot învăța? [LECȚII]\n" },
+            { label: "Dialog Voce Critică", text: "Vocea mea critică îmi spune: \"[MESAJUL CRITIC]\"\n\nMă face să mă simt: [EMOȚII GENERATE]\nDin perspectiva Adultului Sănătos, aș răspunde: \"[RĂSPUNS COMPASIONAL]\"\nO nevoie ascunsă: [NEVOIA SUBIACENTĂ]\n" },
+            { label: "Recunoștință & Resurse", text: "Astăzi sunt recunoscător/oare pentru:\n1. \n2. \n3. \n\nO resursă interioară pe care mă pot baza: \nUn gest de auto-îngrijire: \n" }
+        ];
+        promptsContainerEl.innerHTML = ''; // Clear previous
+        prompts.forEach(prompt => {
+            const button = document.createElement("button");
+            button.textContent = prompt.label;
+            button.className = "prompt-button";
+            button.type = "button";
+            button.title = "Inserează acest ghid în jurnal";
+            button.onclick = () => {
+                if (journalTextarea.value.trim() !== "" && !confirm("Vrei să înlocuiești textul curent cu acest ghid? OK pentru a înlocui, Anulare pentru a adăuga la sfârșit.")) {
+                    journalTextarea.value += "\n\n---\n" + prompt.text;
+                } else {
+                    journalTextarea.value = prompt.text;
+                }
+                journalTextarea.focus();
+                journalTextarea.scrollTop = journalTextarea.scrollHeight;
+            };
+            promptsContainerEl.appendChild(button);
+        });
+    }
+
+    async function callGeminiAPI(promptText, modelToUse, generationConfigOptions = {}) {
+        if (!modelToUse) return "EROARE: Model AI neinițializat (jurnal).";
+        try {
+            const result = await modelToUse.generateContent({
+                contents: [{ role: "user", parts: [{ text: promptText }] }],
+                generationConfig: { temperature: 0.72, ...generationConfigOptions }
+            });
+            const response = result.response;
             if (response?.candidates?.[0]?.content?.parts?.[0]?.text) {
                 if (response.candidates[0].finishReason && !["STOP", "MAX_TOKENS"].includes(response.candidates[0].finishReason)) {
-                     console.warn("Gemini a oprit generarea prematur (jurnal):", response.candidates[0].finishReason, response.candidates[0].safetyRatings);
                     return `EROARE Gemini: Generare oprită (Motiv: ${response.candidates[0].finishReason}).`;
                 }
                 return response.candidates[0].content.parts[0].text;
             } else if (response?.promptFeedback?.blockReason) {
-                 console.error("Prompt blocat de Gemini (jurnal):", response.promptFeedback.blockReasonDetail || response.promptFeedback.blockReason);
-                 return `EROARE Gemini: Prompt blocat (Motiv: ${response.promptFeedback.blockReason}). Revizuiește conținutul trimis.`;
-            } else {
-                console.error("Răspuns Gemini neașteptat sau gol (jurnal):", JSON.stringify(response, null, 2));
-                return "EROARE Gemini: Răspuns invalid sau gol de la API.";
+                return `EROARE Gemini: Prompt blocat (Motiv: ${response.promptFeedback.blockReason}).`;
             }
+            return "EROARE Gemini: Răspuns invalid/gol.";
         } catch (error) {
-            console.error("Eroare detaliată la callGeminiAPI (jurnal):", error, error.stack);
-            let errorMessage = `EROARE Gemini: ${error.message || "Eroare API necunoscută"}`;
-            // Aici poți adăuga logica detaliată de gestionare a erorilor ca în fișierul original, dacă e nevoie
-            if (error.toString().toLowerCase().includes("api key not valid")) {
-                 errorMessage = "EROARE: Cheia API Gemini nu este validă sau nu are permisiuni.";
-            } else if (error.message && (error.message.toLowerCase().includes("quota"))) {
-                errorMessage = "EROARE: Limita de utilizare a API-ului Gemini a fost depășită.";
-            }
-            return errorMessage;
-         }
-    }
-    
-    async function genereazaFeedbackJurnalCuGemini(promptText) { 
-        if (!geminiModelJournalFeedback) {
-            console.error("Modelul Gemini pentru feedback jurnal nu este inițializat. Feedback-ul AI nu va fi generat.");
-            return "EROARE: Funcționalitatea AI pentru jurnal nu este disponibilă. Verifică configurația cheii API Gemini.";
+            console.error("Eroare callGeminiAPI (jurnal):", error);
+            return `EROARE Gemini: ${error.message || "Eroare API."}`;
         }
-        console.log("Trimitere prompt către Gemini (feedback jurnal, primele 100 caractere):", promptText.substring(0, 100) + "...");
-        return await callGeminiAPI(promptText, geminiModelJournalFeedback, { temperature: 0.72 }); // Temperatură specifică
     }
 
-    async function proceseazaSiStructureazaFeedbackJurnal(feedbackText, docId) {
-        console.log("Răspuns brut de la Gemini (feedback jurnal):\n---\n" + feedbackText + "\n---");
-        const parsedFeedback = {
-            rawText: feedbackText,
-            model: `Gemini (${GEMINI_MODEL_NAME_JOURNAL_FEEDBACK})`,
-            timestamp: new Date().toISOString(), // JS Date, va fi convertit la Timestamp de Firestore la salvarea directă
-            error: typeof feedbackText === 'string' && feedbackText.toUpperCase().startsWith("EROARE:")
-        };
-
-        if (docId) {
-            const docRef = doc(db, "intrariJurnal", docId);
-            try {
-                const updatePayload = {
-                    feedbackAI_history: arrayUnion(parsedFeedback),
-                    feedbackAI_latest: parsedFeedback 
-                };
-                await updateDoc(docRef, updatePayload);
-                console.log(`Feedback AI (jurnal, ${parsedFeedback.model}) salvat pentru intrarea ${docId}`);
-            } catch (updateError) {
-                console.error(`Eroare update Firestore feedback jurnal pentru ${docId}:`, updateError);
-            }
-        }
-        return parsedFeedback;
-    }
-
-    async function salveazaIntrareJurnalSiGenereazaFeedback() {
-        const journalTextarea = document.getElementById("journalContent");
-        const journalTitleInput = document.getElementById("journalTitle");
+    async function genereazaSauRegenereazaFeedbackJurnal(entryData, entryId) {
+        if (!geminiModelJournalFeedback) return "EROARE: Funcționalitatea AI pentru jurnal nu este disponibilă.";
         
-        if (!journalTextarea || journalTextarea.value.trim() === "") {
-            alert("Te rog scrie ceva în jurnal înainte de a salva.");
-            journalTextarea.focus();
-            return;
-        }
-
-        const entryData = {
-            continut: journalTextarea.value,
-            titlu: (journalTitleInput && journalTitleInput.value.trim() !== "") ? journalTitleInput.value.trim() : `Intrare din ${new Date().toLocaleDateString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
-            timestampCreare: Timestamp.fromDate(new Date()), // Folosește Timestamp din Firebase
-            dataIntrare: new Date().toLocaleDateString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric' })
-        };
-
-        const user = auth.currentUser;
-        if (!user) {
-            alert("Trebuie să fii autentificat pentru a salva în jurnal.");
-            window.location.href = "login.html";
-            return;
-        }
-        entryData.ownerUid = user.uid;
-        
-        const saveButton = document.getElementById("saveJournalEntryButton");
-        const originalButtonText = saveButton.textContent;
-        saveButton.textContent = "Se salvează și se generează...";
-        saveButton.disabled = true;
-        const confirmationMsg = document.getElementById('journalConfirmationMessage');
-
-        try {
-            const docRef = await addDoc(collection(db, "intrariJurnal"), entryData);
-            console.log(`Intrare jurnal salvată cu ID: ${docRef.id}. Se generează feedback AI...`);
-            
-            const promptJurnal = `
+        const promptJurnal = `
 Rolul meu personalizat pentru PsihoGPT Jurnal (pentru uz personal, sunt în terapie):
 "Ești PsihoGPT, asistentul meu personal AI pentru scriere terapeutică și auto-reflecție. Te consider un 'partener de dialog' informat de diverse școli psihoterapeutice (TCC, Scheme, ACT, IFS, Psihodinamică, Centrată pe Emoții). Scopul tău este să mă ajuți să adâncesc înțelegerea propriei mele experiențe, să identific tipare, să explorez perspective și să facilitez procesul de integrare emoțională. Abordarea ta este una de curiositate empatică, provocare blândă și rezonanță cu conceptele terapeutice. Am suport terapeutic uman, deci poți fi mai direct în reflecții și poți folosi termeni tehnici relevanți, atâta timp cât menții un ton suportiv și cald."
 
@@ -199,355 +145,390 @@ Te rog să-mi oferi un feedback structurat după cum urmează, adaptat pentru mi
 5.  **Sugestie de Focalizare (pentru auto-lucru):** (O scurtă sugestie despre un aspect pe care l-aș putea explora mai departe în următoarea intrare, sau un micro-exercițiu de reflecție bazat pe discuția noastră. Ex: "Pentru următoarea intrare, ai putea explora [tema] din perspectiva [model terapeutic]".)
 
 Folosește un limbaj clar, profesionist, dar empatic. Nu ezita să folosești termeni tehnici pe care i-am putea discuta în terapie. Mulțumesc!`;
+        console.log("Trimitere prompt către Gemini (jurnal):", promptJurnal.substring(0, 100) + "...");
+        const feedbackText = await callGeminiAPI(promptJurnal, geminiModelJournalFeedback);
+        return proceseazaSiStructureazaFeedbackJurnal(feedbackText, entryId);
+    }
+    
+    async function proceseazaSiStructureazaFeedbackJurnal(feedbackText, docId) {
+        const parsedFeedback = {
+            rawText: feedbackText,
+            model: `Gemini (${GEMINI_MODEL_NAME_JOURNAL_FEEDBACK})`,
+            timestamp: new Date().toISOString(),
+            error: typeof feedbackText === 'string' && feedbackText.toUpperCase().startsWith("EROARE:")
+        };
+        if (docId) {
+            try {
+                await updateDoc(doc(db, "intrariJurnal", docId), {
+                    feedbackAI_history: arrayUnion(parsedFeedback),
+                    feedbackAI_latest: parsedFeedback
+                });
+                console.log(`Feedback AI (jurnal) salvat pentru ${docId}`);
+            } catch (e) { console.error(`Eroare update feedback pt ${docId}:`, e); }
+        }
+        return parsedFeedback;
+    }
 
-            const feedbackText = await genereazaFeedbackJurnalCuGemini(promptJurnal);
-            await proceseazaSiStructureazaFeedbackJurnal(feedbackText, docRef.id);
-            
-            const docSnapshot = await getDoc(docRef); 
-            if (docSnapshot.exists()) {
-                afiseazaCardJurnal({ id: docSnapshot.id, ...docSnapshot.data() });
-            }
-            
-            journalTextarea.value = ""; 
-            if (journalTitleInput) journalTitleInput.value = "";
+    async function salveazaIntrareJurnalSiGenereazaFeedback() {
+        const journalTextarea = document.getElementById("journalContent");
+        const journalTitleInput = document.getElementById("journalTitle");
+        if (!journalTextarea || journalTextarea.value.trim() === "") { alert("Scrie ceva în jurnal."); return; }
 
-            if (feedbackText.toUpperCase().startsWith("EROARE:")) {
-                 confirmationMsg.textContent = `Intrarea a fost salvată. Feedback AI: ${feedbackText}`;
-                 confirmationMsg.className = 'confirmation-message error';
-            } else {
-                 confirmationMsg.textContent = 'Intrarea a fost salvată și feedback-ul AI generat! Îl poți vedea în cardul de mai jos.';
-                 confirmationMsg.className = 'confirmation-message success';
-            }
+        const entryData = {
+            continut: journalTextarea.value,
+            titlu: (journalTitleInput?.value.trim() !== "") ? journalTitleInput.value.trim() : `Intrare din ${new Date().toLocaleDateString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+            timestampCreare: Timestamp.fromDate(new Date()),
+            dataIntrare: new Date().toLocaleDateString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric' }),
+            ownerUid: auth.currentUser?.uid
+        };
+        if (!entryData.ownerUid) { alert("Eroare autentificare."); return; }
+
+        const saveButton = document.getElementById("saveJournalEntryButton");
+        const originalButtonText = saveButton.textContent;
+        saveButton.textContent = "Se salvează..."; saveButton.disabled = true;
+        const confirmationMsg = document.getElementById('journalConfirmationMessage');
+
+        try {
+            const docRef = await addDoc(collection(db, "intrariJurnal"), entryData);
+            saveButton.textContent = "Se generează AI...";
+            const parsedFeedback = await genereazaSauRegenereazaFeedbackJurnal(entryData, docRef.id);
+            
+            const docSnapshot = await getDoc(docRef);
+            if (docSnapshot.exists()) afiseazaCardJurnal({ id: docSnapshot.id, ...docSnapshot.data() });
+            
+            journalTextarea.value = ""; if (journalTitleInput) journalTitleInput.value = "";
+            confirmationMsg.textContent = parsedFeedback.error ? `Intrare salvată. Feedback AI: ${parsedFeedback.rawText}` : 'Intrare salvată și feedback AI generat!';
+            confirmationMsg.className = `confirmation-message ${parsedFeedback.error ? 'error' : 'success'}`;
             confirmationMsg.style.display = 'block';
             setTimeout(() => { confirmationMsg.style.display = 'none'; }, 9000);
-
         } catch (error) {
-            console.error("Eroare la salvarea în jurnal sau generarea feedback-ului:", error);
-            confirmationMsg.textContent = 'Eroare la salvarea intrării sau la generarea feedback-ului AI.';
+            console.error("Eroare la salvare/generare feedback jurnal:", error);
+            confirmationMsg.textContent = 'Eroare la salvare sau generare feedback.';
             confirmationMsg.className = 'confirmation-message error';
             confirmationMsg.style.display = 'block';
-             setTimeout(() => { confirmationMsg.style.display = 'none'; }, 7000);
+            setTimeout(() => { confirmationMsg.style.display = 'none'; }, 7000);
         } finally {
             saveButton.textContent = originalButtonText;
             saveButton.disabled = false;
         }
     }
     
-    function afiseazaIstoricFeedbackJurnal(containerElement, feedbackHistory) {
-        containerElement.innerHTML = ''; 
-        if (!feedbackHistory || !Array.isArray(feedbackHistory) || feedbackHistory.length === 0) {
-            const noHistoryMsg = document.createElement("p");
-            noHistoryMsg.textContent = "Niciun feedback AI generat pentru această intrare.";
-            noHistoryMsg.style.fontStyle = "italic";
-            noHistoryMsg.style.textAlign = "center";
-            containerElement.appendChild(noHistoryMsg);
-            return;
-        }
+    async function regenereazaFeedbackJurnal(entryId) {
+        const btn = document.querySelector(`.journal-card[data-id="${entryId}"] .regenerate-feedback-button`);
+        const originalText = btn ? btn.textContent : "";
+        if (btn) { btn.textContent = "Se generează..."; btn.disabled = true; }
 
-        feedbackHistory.slice().reverse().forEach((entry, index) => { 
-            const itemContainer = document.createElement("div");
-            itemContainer.className = "feedback-entry-card"; // Reutilizează stilul dacă e potrivit
-
-            const timestampAndModel = document.createElement("p");
-            timestampAndModel.className = "feedback-timestamp";
-            timestampAndModel.innerHTML = `<strong>Feedback #${feedbackHistory.length - index}</strong> (${new Date(entry.timestamp).toLocaleString("ro-RO")} - ${entry.model || 'N/A'})`;
-            itemContainer.appendChild(timestampAndModel);
-
-            if (entry.error) {
-                const errorP = document.createElement("p");
-                errorP.style.color = "red";
-                errorP.style.fontWeight = "bold";
-                errorP.innerHTML = (entry.rawText || "Eroare la generarea acestui feedback.").replace(/\n/g, '<br>');
-                itemContainer.appendChild(errorP);
-            } else {
-                const contentP = document.createElement("p");
-                contentP.style.whiteSpace = "pre-wrap";
-                contentP.innerHTML = (entry.rawText || 'Conținut indisponibil.').replace(/\n/g, '<br>');
-                itemContainer.appendChild(contentP);
+        try {
+            const entryDoc = await getDoc(doc(db, "intrariJurnal", entryId));
+            if (!entryDoc.exists()) { alert("Intrarea nu există."); return; }
+            await genereazaSauRegenereazaFeedbackJurnal(entryDoc.data(), entryId);
+            
+            const updatedDoc = await getDoc(doc(db, "intrariJurnal", entryId)); // Re-fetch
+            if (updatedDoc.exists()) {
+                const card = document.querySelector(`.journal-card[data-id="${entryId}"]`);
+                const feedbackContainer = card?.querySelector('.ai-feedback-history-container');
+                if (feedbackContainer) afiseazaIstoricFeedbackJurnal(feedbackContainer, updatedDoc.data().feedbackAI_history || []);
             }
-            containerElement.appendChild(itemContainer);
+            alert("Feedback AI regenerat!");
+        } catch (e) { console.error("Eroare regenerare:", e); alert("Eroare la regenerare feedback.");
+        } finally { if (btn) { btn.textContent = originalText; btn.disabled = false; } }
+    }
+
+    async function stergeUltimulFeedbackJurnal(entryId) {
+        if (!confirm("Ștergi ultimul feedback AI pentru această intrare?")) return;
+        const btn = document.querySelector(`.journal-card[data-id="${entryId}"] .delete-last-feedback-button`);
+        const originalText = btn ? btn.textContent : "";
+        if (btn) { btn.textContent = "Se șterge..."; btn.disabled = true; }
+
+        try {
+            const entryDocRef = doc(db, "intrariJurnal", entryId);
+            const entrySnap = await getDoc(entryDocRef);
+            if (!entrySnap.exists() || !entrySnap.data().feedbackAI_history?.length) {
+                alert("Nu există feedback de șters."); return;
+            }
+            const history = entrySnap.data().feedbackAI_history;
+            const lastFeedback = history.pop(); // Scoate ultimul și îl avem în `lastFeedback`
+
+            await updateDoc(entryDocRef, {
+                feedbackAI_history: history, // Salvează istoricul fără ultimul element
+                feedbackAI_latest: history.length > 0 ? history[history.length - 1] : null 
+            });
+            
+            const card = document.querySelector(`.journal-card[data-id="${entryId}"]`);
+            const feedbackContainer = card?.querySelector('.ai-feedback-history-container');
+            if (feedbackContainer) afiseazaIstoricFeedbackJurnal(feedbackContainer, history);
+            alert("Ultimul feedback AI șters.");
+        } catch (e) { console.error("Eroare ștergere ultim feedback:", e); alert("Eroare la ștergere feedback.");
+        } finally { if (btn) { btn.textContent = originalText; btn.disabled = false; } }
+    }
+    
+    function afiseazaIstoricFeedbackJurnal(containerEl, history) {
+        containerEl.innerHTML = ''; 
+        if (!history?.length) {
+            containerEl.innerHTML = "<p style='font-style:italic;text-align:center;'>Niciun feedback AI generat.</p>"; return;
+        }
+        history.slice().reverse().forEach((entry, index) => { 
+            const itemDiv = document.createElement("div");
+            itemDiv.className = "feedback-entry-card";
+            itemDiv.innerHTML = `
+                <p class="feedback-timestamp"><strong>Feedback #${history.length - index}</strong> (${new Date(entry.timestamp).toLocaleString("ro-RO")} - ${entry.model || 'N/A'})</p>
+                <p style="white-space: pre-wrap; ${entry.error ? 'color:red;font-weight:bold;' : ''}">${(entry.rawText || 'Conținut indisponibil.').replace(/\n/g, '<br>')}</p>
+            `;
+            containerEl.appendChild(itemDiv);
         });
     }
 
     function afiseazaCardJurnal(entryData) {
         const container = document.getElementById("journalEntriesContainer");
-        // Verifică dacă există deja un card pentru această intrare pentru a evita duplicarea
         let card = container.querySelector(`.journal-card[data-id="${entryData.id}"]`);
         const cardExists = !!card;
+
+        const entryDate = entryData.dataIntrare || (entryData.timestampCreare?.toDate ? new Date(entryData.timestampCreare.toDate()).toLocaleDateString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Dată necunoscută');
+        const entryTitle = entryData.titlu || `Intrare din ${entryDate}`;
 
         if (!card) {
             card = document.createElement("div");
             card.className = "response-card journal-card"; 
             card.setAttribute("data-id", entryData.id);
-            
-            const entryDate = entryData.dataIntrare || (entryData.timestampCreare?.toDate ? new Date(entryData.timestampCreare.toDate()).toLocaleDateString("ro-RO") : 'Dată necunoscută');
-            const entryTitle = entryData.titlu || `Intrare din ${entryDate}`;
-
             card.innerHTML = `
-                <div class="card-header"> 
-                    ${entryTitle} 
-                </div>
+                <div class="card-header">${entryTitle}</div>
                 <div class="card-content">
                     <p><strong>Data intrării:</strong> ${entryDate}</p>
                     <p><strong>Conținut Jurnal:</strong></p>
                     <p class="journal-entry-content">${entryData.continut.replace(/\n/g, '<br>')}</p>
-                    
                     <h4>Feedback AI PsihoGPT</h4>
-                    <div class="ai-feedback-history-container">
-                        <!-- Feedback AI istoric -->
-                    </div>
+                    <div class="ai-feedback-history-container"></div>
                     <div class="card-actions">
-                         <button class="delete-journal-entry-button" title="Șterge Intrarea și Feedback-ul">Șterge Intrarea</button>
+                         <button class="regenerate-feedback-button" title="Regenerează Feedback AI">Regenerează</button>
+                         <button class="delete-last-feedback-button" title="Șterge Ultimul Feedback AI">Șterge Ultimul</button>
+                         <button class="delete-journal-entry-button" title="Șterge Intrarea și Tot Feedback-ul">Șterge Intrarea</button>
                     </div>
-                </div>
-            `;
-            card.querySelector('.card-header').addEventListener('click', () => {
-                card.classList.toggle('open');
-            });
-            card.querySelector('.delete-journal-entry-button').addEventListener('click', (e) => {
-                e.stopPropagation();
-                stergeIntrareJurnal(entryData.id, card);
-            });
+                </div>`;
+            card.querySelector('.card-header').addEventListener('click', () => card.classList.toggle('open'));
+            card.querySelector('.regenerate-feedback-button').addEventListener('click', (e) => { e.stopPropagation(); regenereazaFeedbackJurnal(entryData.id); });
+            card.querySelector('.delete-last-feedback-button').addEventListener('click', (e) => { e.stopPropagation(); stergeUltimulFeedbackJurnal(entryData.id); });
+            card.querySelector('.delete-journal-entry-button').addEventListener('click', (e) => { e.stopPropagation(); stergeIntrareJurnal(entryData.id, card); });
 
-            if (container.firstChild) {
+            if (container.firstChild && container.firstChild.nodeName !== 'P') { // Adaugă înaintea primului card, dacă există și nu e mesajul "nici o intrare"
                 container.insertBefore(card, container.firstChild);
-            } else {
+            } else { // Altfel, dacă e gol sau are mesajul "nici o intrare", curăță și adaugă
+                if (container.firstChild && container.firstChild.nodeName === 'P') container.innerHTML = '';
                 container.appendChild(card);
             }
+        } else { // Update existing card's content (important for UI consistency after regeneration)
+             card.querySelector('.journal-entry-content').innerHTML = entryData.continut.replace(/\n/g, '<br>');
+             card.querySelector('.card-header').textContent = entryTitle; // Update title too if it changed
         }
         
         const feedbackContainer = card.querySelector('.ai-feedback-history-container');
-        if (feedbackContainer) {
-            afiseazaIstoricFeedbackJurnal(feedbackContainer, entryData.feedbackAI_history || []);
-        }
-
-        // Pentru a preveni creșterea textului la fiecare update dacă cardul există deja
-        // Actualizăm doar conținutul, nu innerHTML întreg
-        if(cardExists){
-            const contentP = card.querySelector('.journal-entry-content');
-            if(contentP) contentP.innerHTML = entryData.continut.replace(/\n/g, '<br>');
-        }
-
+        if (feedbackContainer) afiseazaIstoricFeedbackJurnal(feedbackContainer, entryData.feedbackAI_history || []);
     }
 
     async function stergeIntrareJurnal(id, cardElement) {
-        if (confirm("Ești sigur că vrei să ștergi această intrare din jurnal și tot feedback-ul AI asociat?")) {
-            try {
-                await deleteDoc(doc(db, "intrariJurnal", id));
-                cardElement.remove();
-                // Afișează un mesaj de confirmare dacă nu mai sunt intrări
-                const container = document.getElementById("journalEntriesContainer");
-                if(container && container.childElementCount === 0) {
-                    container.innerHTML = `<p style="text-align:center; margin-top:20px; font-style:italic;">Nicio intrare în jurnal găsită.</p>`;
-                }
-                // Nu mai e nevoie de alert(), feedback-ul vizual e suficient
-            } catch (error) {
-                console.error("Eroare la ștergerea intrării din jurnal:", error);
-                alert("Eroare la ștergerea intrării.");
+        if (!confirm("Ștergi această intrare din jurnal și tot feedback-ul asociat?")) return;
+        try {
+            await deleteDoc(doc(db, "intrariJurnal", id));
+            cardElement.remove();
+            const container = document.getElementById("journalEntriesContainer");
+            if(container && !container.querySelector('.journal-card')) { // Verifică dacă mai sunt carduri
+                container.innerHTML = `<p style="text-align:center; margin-top:20px; font-style:italic;">Nicio intrare în jurnal găsită.</p>`;
             }
-        }
+        } catch (error) { console.error("Eroare ștergere intrare:", error); alert("Eroare la ștergere."); }
     }
 
     async function incarcaIntrariJurnal(userId) {
         const container = document.getElementById("journalEntriesContainer");
-        if (!container || !userId) {
-            console.warn("Containerul pentru jurnal sau userId lipsesc la încărcare.");
-            return;
+        if (!container || !userId) return;
+        const loadingP = container.querySelector("p");
+        if (!loadingP || !loadingP.textContent.includes("Se încarcă")) { // Adaugă loadingP doar dacă nu există deja și nu sunt carduri
+             if(!container.querySelector('.journal-card')) {
+                container.innerHTML = '<p style="text-align:center; margin-top:20px;">Se încarcă intrările...</p>';
+             }
         }
-        container.innerHTML = '<p style="text-align:center; margin-top:20px;">Se încarcă intrările din jurnal...</p>';
+
 
         try {
             const q = query(collection(db, "intrariJurnal"), where("ownerUid", "==", userId), orderBy("timestampCreare", "desc"));
             const querySnapshot = await getDocs(q);
-            container.innerHTML = ''; // Curăță mesajul "Se încarcă..."
-
-            if (querySnapshot.empty) {
-                container.innerHTML = `<p style="text-align:center; margin-top:20px; font-style:italic;">Nicio intrare în jurnal găsită. Începe prin a scrie una!</p>`;
-                return;
-            }
-            querySnapshot.forEach((doc) => {
-                afiseazaCardJurnal({ id: doc.id, ...doc.data() });
+            
+            const currentCards = {}; // Map for existing cards to avoid full re-render
+            container.querySelectorAll('.journal-card').forEach(card => {
+                currentCards[card.dataset.id] = card;
             });
+
+            let hasNewData = false;
+            const newDocs = [];
+
+            querySnapshot.forEach((docSnap) => {
+                newDocs.push({ id: docSnap.id, ...docSnap.data() });
+                if (!currentCards[docSnap.id]) {
+                    hasNewData = true;
+                }
+                delete currentCards[docSnap.id]; // Remove from map, remaining ones will be deleted
+            });
+
+            // Remove old cards that are no longer in Firestore
+            Object.values(currentCards).forEach(oldCard => oldCard.remove());
+            
+            if (querySnapshot.empty) {
+                if(!container.querySelector('.journal-card')) container.innerHTML = `<p style="text-align:center; margin-top:20px; font-style:italic;">Nicio intrare. Începe prin a scrie una!</p>`;
+            } else {
+                 if (container.querySelector("p") && container.firstChild.nodeName === 'P') container.innerHTML = ''; // Clear "Se încarcă..." sau "Nicio intrare..."
+                 newDocs.forEach(docData => afiseazaCardJurnal(docData)); // Will update or add
+            }
+
         } catch (error) {
-            console.error("Eroare la încărcarea intrărilor din jurnal:", error);
-            container.innerHTML = '<p style="text-align:center; margin-top:20px; color:red;">A apărut o eroare la încărcarea intrărilor din jurnal.</p>';
+            console.error("Eroare încărcare jurnal:", error);
+            if(!container.querySelector('.journal-card')) container.innerHTML = '<p style="text-align:center; color:red;">Eroare încărcare jurnal.</p>';
         }
     }
     </script>
     <style>
-    /* --- AICI VA FI CODUL CSS COMPLET (body, form-container, card-uri etc. FĂRĂ CHAT) --- */
-    /* Asigură-te că ai stilurile pentru Ubuntu aplicate pe body și elemente */
+    /* Reset și Stiluri Generale */
+    *, *::before, *::after { box-sizing: border-box; }
     body {
-        font-family: 'Ubuntu', 'Roboto', 'Montserrat', 'Nunito Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Oxygen, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-        margin: 0; padding: 20px; background: linear-gradient(to right, #f4f6f8, #e9eef2); color: #34495e; box-sizing: border-box;
+        font-family: 'Ubuntu', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        margin: 0; padding: 20px; background: #f4f7f9; /* Un gri mai deschis și modern */
+        color: #333a40; /* Text mai închis pentru contrast */
+        line-height: 1.6; font-size: 16px; /* O bază bună */
     }
-    .journal-form-container { /* Renumit din .form-container pentru specificitate */
-        max-width: 800px; margin: 30px auto; background: #fff; padding: 30px; 
-        box-shadow: 0 10px 25px rgba(0,0,0,0.08); border-radius: 12px;
+    .journal-form-container {
+        max-width: 760px; margin: 30px auto; background: #fff; padding: 30px 35px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.07); border-radius: 10px;
     }
-    .journal-form-container h2, h3 { /* h3 este pentru titlul listei de intrări */
-        color: #2c3e50; text-align: center; margin-bottom: 25px; font-weight: 500;
+    h2, h3 {
+        color: #2c3840; text-align: center; margin-bottom: 20px; font-weight: 500;
     }
-    textarea#journalContent, input#journalTitle { /* Aplicăm stiluri mai specifice pentru a nu afecta alte input-uri/textarea dacă ar exista */
-        width: 100%; /* Mai simplu cu box-sizing: border-box */
-        padding: 12px; 
-        margin-bottom: 15px; /* Spațiu între titlu și conținut */
-        font-size: 1em; 
-        font-family: inherit; 
-        border-radius: 8px; 
-        border: 1px solid #dce4ec; 
-        resize: vertical; 
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04) inset; 
-        transition: border-color 0.3s, box-shadow 0.3s;
-        box-sizing: border-box; /* Important */
+    h2 { font-size: 1.8em; margin-bottom: 10px; }
+    h3 { font-size: 1.5em; margin-top: 40px; }
+    label { display:block; margin-bottom: 6px; font-weight: 500; color: #455058; font-size: 0.95em;}
+    
+    /* Formular */
+    textarea#journalContent, input#journalTitle {
+        width: 100%; padding: 12px 15px; margin-bottom: 15px; font-size: 1em;
+        font-family: inherit; border-radius: 6px; border: 1px solid #d5dde5;
+        transition: border-color 0.2s, box-shadow 0.2s;
     }
-    textarea#journalContent {
-        min-height: 200px;
-        line-height: 1.6;
-    }
-    input#journalTitle {
-        font-weight: 500; /* Titlu puțin mai proeminent */
-    }
+    textarea#journalContent { min-height: 200px; line-height: 1.65; }
     textarea#journalContent:focus, input#journalTitle:focus {
-        border-color: #6c92f2; box-shadow: 0 0 0 3.5px rgba(108, 146, 242, 0.18); outline: none;
+        border-color: #5c85d6; box-shadow: 0 0 0 3px rgba(92, 133, 214, 0.15); outline: none;
     }
-    button#saveJournalEntryButton { /* Butonul specific pentru jurnal */
-        display: block; /* Pentru a ocupa toată lățimea și a centra textul dacă e nevoie */
-        width: 100%;
-        margin-top: 10px; /* Spațiu redus după textarea */
-        padding: 14px 25px; /* Buton mai proeminent */
-        font-family: inherit; font-size: 1.05em; font-weight: 500; 
-        background: #6c92f2;
-        color: white; border: none; border-radius: 8px; cursor: pointer; 
-        transition: background-color 0.3s, transform 0.2s;
-        box-shadow: 0 3px 8px rgba(108, 146, 242, 0.25);
+    
+    /* Butoane Prompt Reflecție */
+    #reflectionPromptsContainer { margin: 15px 0 20px 0; padding: 12px; background-color: #f8f9fa; border-radius: 6px; border: 1px solid #e8ecf0; }
+    #reflectionPromptsContainer p { margin-top: 0; margin-bottom: 10px; font-weight: 500; color: #4a5560; font-size: 0.9em; }
+    .prompt-button-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    button.prompt-button {
+        background-color: #e7f0ff; color: #4a69bd; border: 1px solid #cddcff;
+        padding: 6px 12px; font-size: 0.8em; font-weight: 500; border-radius: 16px;
+        cursor: pointer; transition: all 0.2s; margin-top: 0; box-shadow: none;
     }
-    button#saveJournalEntryButton:hover:not(:disabled) { background-color: #5478d6; transform: translateY(-2px); }
-    button#saveJournalEntryButton:disabled { background: #b0c4de !important; color: #7e8c9e !important; cursor: not-allowed !important; transform: translateY(0) !important; box-shadow: none !important;}
+    button.prompt-button:hover { background-color: #d6e4ff; color: #3a539b; transform: translateY(-1px); }
 
-    .confirmation-message {
-        display: none; text-align: center; padding: 15px; 
-        border: 1px solid transparent; border-radius: 8px; 
-        margin-top: 20px; animation: fadeIn 0.5s; font-weight: 500;
+    /* Buton Principal Salvare */
+    button#saveJournalEntryButton {
+        display: block; width: 100%; margin-top: 15px; padding: 12px 20px;
+        font-size: 1.05em; font-weight: 500; background: #5c85d6; color: white;
+        border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s;
+        box-shadow: 0 2px 5px rgba(92, 133, 214, 0.2);
     }
-    .confirmation-message.success { background-color: #e6f9f0; color: #1f794d; border-color: #b3e6d1; }
-    .confirmation-message.error { background-color: #fdeded; color: #c0392b; border-color: #f8c9c9; }
-    @keyframes fadeIn { 0% {opacity: 0; transform: translateY(10px);} 100% {opacity: 1; transform: translateY(0);} }
+    button#saveJournalEntryButton:hover:not(:disabled) { background-color: #4a6fb5; transform: translateY(-1px); box-shadow: 0 3px 7px rgba(92, 133, 214, 0.25); }
+    button#saveJournalEntryButton:disabled { background: #aebfD4 !important; color: #707c8b !important; cursor: not-allowed !important; box-shadow: none !important; }
+
+    /* Mesaj Confirmare */
+    .confirmation-message { display: none; text-align: center; padding: 12px; border: 1px solid transparent; border-radius: 6px; margin-top: 18px; animation: fadeIn 0.4s; font-weight: 500; font-size: 0.95em;}
+    .confirmation-message.success { background-color: #e6f4ea; color: #1e6a39; border-color: #b3d9c0; }
+    .confirmation-message.error { background-color: #fdebea; color: #b32d21; border-color: #f8c6c1; }
+    @keyframes fadeIn { 0% {opacity: 0; transform: translateY(8px);} 100% {opacity: 1; transform: translateY(0);} }
     
-    .card-view {display: flex; flex-direction: column; gap: 25px; max-width: 800px; margin: 30px auto;}
-    .response-card { /* Comun pentru toate cardurile (dacă mai apar și altele) */
-        background: #ffffff; padding: 0; border-radius: 12px; 
-        box-shadow: 0 8px 20px rgba(0,0,0,0.07);
-        overflow: hidden;
-    }
+    /* Vizualizare Carduri */
+    .card-view {display: flex; flex-direction: column; gap: 20px; max-width: 760px; margin: 25px auto;}
+    .response-card { background: #ffffff; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.06); overflow: hidden; }
     .response-card .card-header {
-        font-weight: 500; font-size: 1.1em; cursor: pointer; 
-        background: #f8faff;
-        padding: 15px 25px; color: #34495e; text-align: left; position: relative; 
+        font-weight: 500; font-size: 1.05em; cursor: pointer; background: #fdfdfe;
+        padding: 12px 20px; color: #3a4550; border-bottom: 1px solid #eaeff3;
         display: flex; justify-content: space-between; align-items: center;
-        border-bottom: 1px solid #e9eef2;
     }
-    .response-card .card-header::after {content: '▼'; font-size: 0.8em; transition: transform 0.3s ease; color: #7f8c8d;}
+    .response-card .card-header::after {content: '▼'; font-size: 0.75em; transition: transform 0.2s ease; color: #707c8b;}
     .response-card.open .card-header::after {transform: rotate(180deg);}
-    .response-card .card-content {
-        max-height: 0; margin-top: 0; padding: 0 25px; 
-        line-height: 1.65; overflow-y: auto; /* overflow-x ascuns by default */
-        transition: max-height 0.6s cubic-bezier(0.25, 0.1, 0.25, 1), 
-                    padding-top 0.6s cubic-bezier(0.25, 0.1, 0.25, 1), 
-                    padding-bottom 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
-    } 
-    .response-card.open .card-content {
-        max-height: 6000px; /* Valoare mare pentru a permite conținut lung */
-        padding-top: 20px; padding-bottom: 20px;
-    }
-    .response-card .card-content p {margin-bottom: 12px;}
-    .response-card .card-content p.journal-entry-content { /* Clasa specifică pentru conținutul jurnalului */
-        white-space: pre-wrap; /* Păstrează formatarea textului */
-        font-size: 1.02em; /* Puțin mai mare pentru lizibilitate */
-        color: #34495e;
-    }
-    .response-card .card-content p strong {font-weight: 700; color: #2c3e50;}
+    .response-card .card-content { max-height: 0; padding: 0 20px; overflow-y: auto; transition: all 0.4s ease-in-out; } 
+    .response-card.open .card-content { max-height: 5000px; padding: 18px 20px; }
+    .response-card .card-content p {margin-bottom: 10px; color: #455058;}
+    .response-card .card-content p.journal-entry-content { white-space: pre-wrap; font-size: 1em; line-height: 1.65;}
+    .response-card .card-content p strong {font-weight: 600; color: #2c3840;}
     .response-card h4 {
-        text-align: left; color: #6c92f2; font-weight: 500; margin-top: 25px; 
-        margin-bottom: 15px; font-size: 1.05em;
-        border-bottom: 1px dashed #dce4ec; padding-bottom: 8px;
+        color: #5c85d6; font-weight: 500; margin-top: 20px; margin-bottom: 12px; font-size: 1em;
+        border-bottom: 1px solid #e6eaee; padding-bottom: 6px;
     }
-    .response-card h4:first-child {margin-top: 0;} /* Dacă e primul element */
-     .ai-feedback-history-container {
-        margin-top: 10px;
-    }
-    .feedback-entry-card {
-        background:#f0f4f8; 
-        padding:15px; 
-        border-left:4px solid #6c92f2; 
-        border-radius:8px; 
-        margin-bottom:15px; 
-        font-size:0.95em; 
-        line-height:1.6;
-    }
-    .feedback-timestamp {
-        color:#555; font-size:0.85em; margin-bottom:10px; font-style: italic;
-    }
-    .card-actions {text-align: right; margin-top: 25px; padding-bottom: 0px; border-top: 1px solid #e9eef2; padding-top: 15px;}
+    .response-card h4:first-child {margin-top: 0;}
+     .ai-feedback-history-container { margin-top: 8px; }
+    .feedback-entry-card { background:#f8f9fc; padding:12px; border-left:3px solid #5c85d6; border-radius:6px; margin-bottom:12px; font-size:0.9em; line-height:1.55; }
+    .feedback-timestamp { color:#606f7b; font-size:0.8em; margin-bottom:8px; font-style: italic; }
+    .card-actions { text-align: right; margin-top: 18px; padding-top: 12px; border-top: 1px solid #eaeff3; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
     .card-actions button {
-        padding: 8px 18px; font-size: 0.9em; margin-left: 10px;
-        background-color: transparent; box-shadow: none;
-        border-radius: 6px; /* Rotunjire pentru butoane în card */
+        padding: 7px 14px; font-size: 0.8em; font-weight:500; border-radius: 5px;
+        transition: all 0.2s; margin-top: 0; /* Suprascrie margin-top general */
     }
-    button.delete-journal-entry-button { color: #e74c3c; border: 1px solid #f1c0ba;}
-    button.delete-journal-entry-button:hover { background-color: #e74c3c; color: white; border-color: #e74c3c;}
+    button.delete-journal-entry-button { background-color:transparent; color: #c0392b; border: 1px solid #f1c0ba;}
+    button.delete-journal-entry-button:hover { background-color: #c0392b; color: white; border-color: #c0392b;}
+    button.regenerate-feedback-button { background-color:transparent; color: #228b22; border: 1px solid #b3d9b3;}
+    button.regenerate-feedback-button:hover { background-color: #228b22; color: white; border-color: #228b22;}
+    button.delete-last-feedback-button { background-color:transparent; color: #d39e00; border: 1px solid #ffe180;}
+    button.delete-last-feedback-button:hover { background-color: #d39e00; color: white; border-color: #d39e00;}
     
-    /* Stiluri Responsive */
+    /* Responsive */
     @media (max-width: 768px) {
-        body {padding:15px;}
-        .journal-form-container, .card-view {padding:20px; margin-left:0; margin-right:0; max-width:100%;}
-        textarea#journalContent, input#journalTitle {font-size: 0.95em;}
-        button#saveJournalEntryButton {font-size: 1em;}
-        .response-card .card-header {font-size: 1.05em; padding: 12px 20px;}
-        .response-card .card-content {padding-left: 20px; padding-right: 20px;}
+        body {padding:15px; font-size: 15px;}
+        .journal-form-container, .card-view {padding:20px; margin: 20px auto;}
+        h2 {font-size: 1.6em;} h3 {font-size: 1.3em;}
+        .card-actions {justify-content: center;}
+        .card-actions button { flex-basis: calc(50% - 4px); /* Două pe rând, cu gap */}
     }
     @media (max-width: 480px) {
-        body {padding:10px;}
+        body {padding:10px; font-size: 14px;}
         .journal-form-container, .card-view {padding:15px;}
-        textarea#journalContent { min-height: 150px; }
-        .response-card .card-header {font-size: 1em; padding: 10px 15px;}
-        .response-card.open .card-content {padding-top: 15px; padding-bottom: 15px;}
-        .card-actions {text-align: center;}
-        .card-actions button {margin-left: 5px; margin-right: 5px; display: block; width: calc(100% - 10px); margin-bottom:10px;}
-        .card-actions button:last-child {margin-bottom:0;}
-
+        h2 {font-size: 1.4em;} h3 {font-size: 1.2em;}
+        textarea#journalContent { min-height: 180px; }
+        .prompt-button-group {gap: 6px;}
+        button.prompt-button {padding: 5px 10px; font-size: 0.75em;}
+        button#saveJournalEntryButton {padding: 10px 18px; font-size: 1em;}
+        .card-actions button { flex-basis: 100%; margin-left: 0;}
     }
+
     </style>
 </head>
 <body>
 
     <div class="journal-form-container">
         <h2>Jurnal Terapeutic Personal</h2>
-        <p style="text-align: center; margin-top: -15px; margin-bottom: 25px; font-size: 0.9em; color: #555;">
-            Acesta este spațiul tău de reflecție. Explorează-ți gândurile și emoțiile.
+        <p style="text-align: center; margin-top: -10px; margin-bottom: 25px; font-size: 0.9em; color: #556575;">
+            Spațiul tău pentru reflecție și integrare.
         </p>
     
-        <form id="therapeuticJournalForm" onsubmit="return false;"> <!-- Previne submit-ul default al formei -->
-            <label for="journalTitle" style="display:block; margin-bottom: 5px; font-weight: 500; color: #34495e;">Titlu (Opțional):</label>
-            <input type="text" id="journalTitle" name="journalTitle" placeholder="Ex: Reflecții despre ziua de azi, O conversație dificilă...">
+        <form id="therapeuticJournalForm" onsubmit="return false;">
+            <label for="journalTitle">Titlu (Opțional):</label>
+            <input type="text" id="journalTitle" name="journalTitle" placeholder="Ex: Reflecții despre ziua de azi...">
             
-            <label for="journalContent" style="display:block; margin-bottom: 5px; margin-top: 15px; font-weight: 500; color: #34495e;">Intrarea ta în jurnal:</label>
-            <textarea id="journalContent" name="journalContent" rows="12" placeholder="Scrie liber aici despre ce simți, ce gândești, ce ai experimentat..."></textarea>
+            <div id="reflectionPromptsContainer" style="margin-top: 20px;">
+                <p>Puncte de start pentru reflecție (click pentru a insera):</p>
+                <div class="prompt-button-group" id="reflectionPrompts">
+                    <!-- Butoanele vor fi generate de JavaScript -->
+                </div>
+            </div>
+
+            <label for="journalContent" style="margin-top: 20px;">Intrarea ta în jurnal:</label>
+            <textarea id="journalContent" name="journalContent" rows="12" placeholder="Scrie liber aici... sau alege un ghid de mai sus."></textarea>
             
-            <button type="button" id="saveJournalEntryButton">Salvează Intrarea și Cere Feedback AI</button>
+            <button type="button" id="saveJournalEntryButton">Salvează și Cere Feedback AI</button>
         </form>
 
-        <div id="journalConfirmationMessage" class="confirmation-message">
-            <!-- Mesajul de confirmare/eroare va fi setat de JavaScript -->
-        </div>
+        <div id="journalConfirmationMessage" class="confirmation-message"></div>
     </div>
     
-    <h3 style="text-align: center; margin-top: 40px; margin-bottom: 20px; color: #2c3e50; font-weight: 500;">Istoricul Intrărilor din Jurnal:</h3>
+    <h3>Istoricul Intrărilor din Jurnal</h3>
     
     <div class="card-view" id="journalEntriesContainer">
-        <!-- Cardurile cu intrările din jurnal și feedback AI vor fi adăugate aici de JavaScript -->
-        <!-- Exemplu de mesaj dacă nu sunt intrări, gestionat de JS -->
-        <!-- <p style="text-align:center; margin-top:20px; font-style:italic;">Nicio intrare în jurnal găsită. Începe prin a scrie una!</p> -->
+        <!-- Carduri -->
     </div>
     
 </body>
