@@ -1309,6 +1309,360 @@ ${initialContextSummary}---`;
     });
     </script>
     <style>
+body {
+    font-family: 'Ubuntu', 'Roboto', 'Montserrat', 'Nunito Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Oxygen, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(to right, #ece9e6, #ffffff);
+    color: #333;
+    box-sizing: border-box;
+}
+.form-container {max-width: 900px; margin: 20px auto; background: #fff; padding: 30px; box-shadow: 0 16px 24px rgba(0,0,0,0.2); border-radius: 15px; border: 3px solid #87CEFA; transition: transform 0.3s ease;}
+.form-container:hover {transform: scale(1.01);}
+.progress-bar {width: 100%; background-color: #f3f3f3; border-radius: 25px; overflow: hidden; margin-bottom: 20px;}
+.progress {height: 20px; width: 0; background-color: #87CEFA; transition: width 0.4s ease;}
+.question-card {margin-bottom: 20px; padding: 20px; background: #fff; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.3s;}
+.question-card:hover {box-shadow: 0 6px 15px rgba(0,0,0,0.15);}
+.question-card h3 {font-weight: 700; font-size: 1.2em; margin-top: 0; margin-bottom: 10px;} /* Va moșteni Ubuntu */
+.question-card p {font-weight: 400; font-size: 0.95em; margin-bottom: 15px; color: #555; line-height: 1.6;} /* Am ajustat la font-weight: 400 pentru lizibilitate mai bună cu Ubuntu */
+
+textarea { /* Stiluri generale pentru textarea; textarea din chat e stilizat separat */
+    width: calc(100% - 22px);
+    padding: 10px;
+    font-size: 16px; /* Poate fi ajustat la 1rem sau 0.95em pentru consistență */
+    font-family: inherit; /* Va moșteni Ubuntu */
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    resize: vertical;
+    min-height: 60px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: border-color 0.3s;
+}
+textarea:focus {border-color: #87CEFA; box-shadow: 0 2px 8px rgba(135,206,250,0.5); outline: none;}
+
+input[type="submit"], button { /* Butoanele generale, cele din chat sunt stilizate separat */
+    margin-top: 20px;
+    padding: 12px 25px;
+    font-family: inherit; /* Va moșteni Ubuntu */
+    font-size: 1em; /* Recomandat să folosim em sau rem pentru consistență */
+    font-weight: 500; /* Ubuntu Medium */
+    background: linear-gradient(to right, #87CEFA, #6bb9e7);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+}
+input[type="submit"]:hover, button:hover {background: linear-gradient(to right, #6bb9e7, #4A90E2); transform: translateY(-2px);}
+button:disabled { background: #ccc !important; color: #666 !important; cursor: not-allowed !important; transform: translateY(0) !important; }
+
+.form-step {display: none;}
+.form-step-active {display: block; animation: fadeIn 0.7s ease-in-out;}
+@keyframes fadeIn { 0% {opacity: 0; transform: translateY(10px);} 100% {opacity: 1; transform: translateY(0);} }
+.step-navigation {text-align: center; margin-top: 20px;}
+.step-navigation button {margin: 0 10px;}
+.table-container {margin:30px auto; padding:20px; background:#fff; border-radius:15px; box-shadow:0 4px 10px rgba(0,0,0,0.1); overflow-x:auto; max-width:900px;}
+.card-view {display: flex; flex-direction: column; gap: 20px; max-width: 900px; margin: 30px auto;}
+.response-card {background: #f9f9ff; padding: 0; border-radius: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.12); transition: box-shadow 0.3s ease; position: relative; overflow: hidden;}
+.response-card:hover {box-shadow: 0 10px 20px rgba(0,0,0,0.18);}
+.response-card .card-header {font-weight: 500; font-size: 1.1em; cursor: pointer; background: #87CEFA; padding: 12px 20px; color: #fff; text-align: left; position: relative; display: flex; justify-content: space-between; align-items: center;}
+.response-card .card-header::after {content: '▼'; font-size: 0.8em; transition: transform 0.3s ease;}
+.response-card.open .card-header::after {transform: rotate(180deg);}
+.response-card .card-content {max-height: 0; margin-top: 0; padding: 0 20px; background: #fff; line-height: 1.6; overflow: auto; transition: max-height 0.5s ease-out, padding-top 0.5s ease-out, padding-bottom 0.5s ease-out;}
+.response-card.open .card-content {max-height: 3500px; padding-top: 15px; padding-bottom: 15px;}
+.response-card .card-content p {margin-bottom: 12px; border-left: 3px solid #87CEFA; padding-left: 10px;}
+.response-card .card-content p strong {font-weight: 700;} /* Ubuntu Bold pentru strong */
+.response-card h4 {text-align: left; color: #4A90E2; font-weight: 700; margin-top: 20px; margin-bottom: 10px; font-size: 1.05em;}
+.response-card h4:first-child {margin-top: 0;}
+.card-actions {text-align: center; margin-top: 20px; padding-bottom: 10px; border-top: 1px solid #eee; padding-top: 15px;}
+.card-actions button {font-size: 0.9em; margin: 5px;} /* Va moșteni Ubuntu, font-weight 500 de la regulile generale pentru butoane */
+.generate-ai-feedback-button {background-color: #5cb85c;}
+.generate-ai-feedback-button:hover {background-color: #4cae4c;}
+.delete-all-feedback-button {background-color: #ffc107;}
+.delete-all-feedback-button:hover {background-color: #e0a800;}
+.delete-button {background-color: #dc3545 !important;}
+.delete-button:hover {background-color: #c82333 !important;}
+
+.confirmation-message {
+    display: none; text-align: center; padding: 15px;
+    border: 1px solid transparent; border-radius: 5px;
+    margin-top: 20px; animation: fadeIn 0.5s;
+    font-weight: 500; /* Ubuntu Medium */
+}
+.confirmation-message.success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+.confirmation-message.error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+.confirmation-message.warning { background-color: #fff3cd; color: #856404; border-color: #ffeeba; }
+
+.collaboration-section {text-align:center; margin-top:30px; padding-bottom:20px;}
+.collaboration-section button {background-color:#f0ad4e;} /* Va moșteni Ubuntu, font-weight 500 */
+.collaboration-section button:hover {background-color:#ec971f;}
+.feedback-entry-card {background:#eef6ff; padding:15px; border-left:4px solid #4A90E2; border-radius:5px; margin-bottom:15px; font-size:0.95em; line-height:1.6;}
+.feedback-timestamp {color:#555; font-size:0.9em; margin-bottom:12px;}
+.feedback-section {margin-bottom:12px;}
+.feedback-section h5 {font-size:1em; font-weight:700; color:#2c5282; margin-top:0; margin-bottom:6px;} /* Ubuntu Bold */
+.feedback-section p, .feedback-section ul {margin-top:0; margin-bottom:8px; color:#1e293b;}
+.feedback-section ul {padding-left:25px; list-style-position:outside; list-style-type:disc;}
+.feedback-section li {margin-bottom:4px;}
+
+/* --- MODERN CHAT STYLING with UBUNTU FONT --- */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: clamp(350px, 50vw, 450px);
+    max-height: calc(100vh - 100px);
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    z-index: 1000;
+    padding: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    font-family: 'Ubuntu', 'Nunito Sans', 'Roboto', 'system-ui', -apple-system, BlinkMacSystemFont, "Segoe UI", Oxygen, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+.chat-container h3 {
+    text-align: center;
+    color: #3d425c;
+    margin: 0;
+    padding: 18px 20px;
+    font-size: 1.15em;
+    font-weight: 500; /* Ubuntu Medium */
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e9edf2;
+    flex-shrink: 0;
+}
+
+#chatMessages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#chatMessages::-webkit-scrollbar { width: 6px; }
+#chatMessages::-webkit-scrollbar-track { background: #f0f2f5; border-radius: 10px; }
+#chatMessages::-webkit-scrollbar-thumb { background: #bfc8d3; border-radius: 10px; }
+#chatMessages::-webkit-scrollbar-thumb:hover { background: #a8b3bf; }
+
+.chat-message {
+    padding: 12px 18px;
+    border-radius: 20px;
+    max-width: 82%;
+    word-wrap: break-word;
+    line-height: 1.55;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+    font-size: 0.96em;
+    font-weight: 400; /* Ubuntu Regular for message text */
+    position: relative;
+}
+
+.user-message {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    align-self: flex-end;
+    margin-left: auto;
+    border-bottom-right-radius: 6px;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    border-bottom-left-radius: 20px;
+}
+
+.ai-message {
+    background: #f0f2f5;
+    color: #2c3e50;
+    align-self: flex-start;
+    margin-right: auto;
+    border-bottom-left-radius: 6px;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
+    /* JavaScript-ul va seta white-space: pre-wrap; care va ajuta la afișarea artei ASCII
+       cu fontul monospace definit mai jos, chiar dacă textul normal moștenește Ubuntu. */
+    font-family: 'Ubuntu', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+}
+.ai-message em, .ai-message i {
+    font-family: 'Ubuntu', inherit; /* Asigură Ubuntu și moștenirea, 'inherit' preia fallback-urile */
+    font-style: italic;
+    font-weight: 400; /* Greutatea italic importată */
+}
+.ai-message strong, .ai-message b {
+    font-family: 'Ubuntu', inherit;
+    font-weight: 700; /* Greutatea bold importată */
+}
+
+.ai-message.ai-error {
+    background-color: #ffe3e3;
+    color: #b71c1c;
+    border: 1px solid #ffc5c5;
+    font-family: 'Ubuntu', 'Nunito Sans', 'Roboto', 'system-ui', sans-serif;
+}
+
+.chat-input-area {
+    padding: 15px 20px;
+    border-top: 1px solid #e9edf2;
+    background-color: #f8f9fc;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#chatInput {
+    width: 100%;
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: 1px solid #d9e0ea;
+    resize: none;
+    min-height: 48px;
+    max-height: 120px;
+    box-sizing: border-box;
+    font-family: 'Ubuntu', 'Nunito Sans', 'Roboto', 'system-ui', sans-serif;
+    font-size: 0.96em;
+    font-weight: 400;
+    line-height: 1.5;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background-color: #ffffff;
+}
+#chatInput:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3.5px rgba(0,123,255,.18);
+    outline: none;
+}
+
+#sendChatMessageButton {
+    padding: 12px 20px;
+    width: 100%;
+    font-family: 'Ubuntu', 'Nunito Sans', 'Roboto', 'system-ui', sans-serif;
+    font-size: 1em;
+    font-weight: 500; /* Ubuntu Medium */
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    transition: background-color 0.2s, transform 0.15s ease-out;
+    cursor: pointer;
+}
+#sendChatMessageButton:hover:not(:disabled) { background-color: #0069d9; transform: translateY(-2px); }
+#sendChatMessageButton:active:not(:disabled) { transform: translateY(-1px); }
+#sendChatMessageButton:disabled { background-color: #c3d9f0 !important; color: #7c8da3 !important; cursor: not-allowed !important; transform: translateY(0) !important; }
+
+#chatStatus {
+    font-size: 0.85em;
+    color: #6c757d;
+    text-align: center;
+    min-height: 1.2em;
+    padding-bottom: 0;
+    flex-shrink: 0;
+    font-weight: 400; /* Ubuntu Regular */
+}
+
+#toggleChatButton {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    padding: 0;
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 28px; /* Va folosi un simbol, nu litere Ubuntu direct */
+    box-shadow: 0 5px 15px rgba(0, 123, 255, 0.25);
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+#toggleChatButton:hover { background-color: #0062cc; transform: scale(1.12) rotate(12deg); box-shadow: 0 7px 20px rgba(0, 98, 204, 0.35); }
+
+.chat-container:not([style*="display: flex"]) { display: none !important; }
+/* --- SFÂRȘITUL STILURILOR MODERNE PENTRU CHAT --- */
+
+@media (max-width: 768px) {
+    body {padding:10px;} /* Ubuntu va fi moștenit */
+    .form-container, .table-container, .card-view {padding:15px; margin-left:10px; margin-right:10px; max-width:calc(100% - 20px);}
+    .form-container > button, .step-navigation button {font-size:16px; padding:10px 20px;} /* Ubuntu Medium moștenit/setat */
+    .card-actions button {font-size:0.85em; padding:7px 12px;}
+    .question-card h3, .response-card .card-header {font-size:1.05em;}
+    .question-card p, .response-card .card-content p {font-size:0.9em; font-weight: 400;} /* Ubuntu Regular */
+    
+    .chat-container { 
+        width: calc(100% - 30px);
+        max-height: calc(100vh - 110px);
+        bottom: 15px;
+        left: 15px;
+        right: 15px;
+        border-radius: 12px;
+        font-family: 'Ubuntu', 'Nunito Sans', 'Roboto', 'system-ui', sans-serif; /* Se asigură aplicarea */
+    }
+    .chat-container h3 { padding: 15px; font-size: 1.1em; }
+    #chatMessages { padding: 15px; gap: 10px; } 
+    .chat-message { padding: 10px 15px; font-size: 0.92em; max-width: 85%; border-radius: 18px; }
+     .user-message { border-bottom-right-radius: 5px; border-top-left-radius: 18px; border-top-right-radius: 18px; border-bottom-left-radius: 18px;}
+     .ai-message { border-bottom-left-radius: 5px; border-top-left-radius: 18px; border-top-right-radius: 18px; border-bottom-right-radius: 18px;}
+
+    #toggleChatButton { width: 55px; height: 55px; font-size: 24px; bottom: 20px; right: 20px;}
+
+    .chat-input-area { padding: 12px 15px; gap: 8px; }
+    #chatInput { padding: 10px 15px; font-size: 0.92em; min-height: 44px; border-radius: 10px; }
+    #sendChatMessageButton { padding: 10px 15px; font-size: 0.95em; border-radius: 10px; }
+
+    .table-container {overflow-x:auto;}
+    table {display:block; width:100%;}
+    thead, tbody, tr {display:block;}
+    th {display:none;} 
+    tr {margin-bottom:15px; border:1px solid #ddd; border-radius:5px; display:flex; flex-direction:column;}
+    td {display:flex; justify-content:space-between; padding:10px; text-align:right; border-bottom:1px solid #eee; position:relative;}
+    td:last-child {border-bottom:none;}
+    td::before {content:attr(data-label); font-weight:700; text-align:left; margin-right:10px; color:#555; flex-shrink:0; width:auto; padding-right: 10px;} /* Ubuntu Bold pentru label */
+    td > *:not(button) {flex-grow:1; word-break:break-word; text-align:left;} 
+    td button {width:auto; padding:6px 12px; font-size:0.85em; margin-left:auto; flex-shrink:0;}
+    td[colspan="10"] {display:block;}
+}
+@media (max-width: 480px) {
+    .form-container, .table-container, .card-view {padding:10px; margin-left:5px; margin-right:5px; max-width:calc(100% - 10px);}
+    .question-card h3, .response-card .card-header {font-size:1em;}
+    .question-card p, .response-card .card-content p {font-size:0.85em; font-weight: 400;} /* Ubuntu Regular */
+    .form-container textarea {font-size:0.9em; padding:6px; width:calc(100% - 14px);} /* Folosire em */
+
+    .form-container > button, .step-navigation button {font-size:0.9em; padding:8px 15px;} /* Folosire em */
+    .card-actions button {font-size:0.8em; padding:6px 10px;}
+    .response-card .card-header {padding:10px;}
+    .response-card .card-content {padding-left:15px; padding-right:15px; font-size:0.85em;}
+    td {flex-direction:column; align-items:flex-start;} 
+    td::before {width:100%; margin-bottom:5px; margin-right: 0;}
+    td button {align-self:flex-end;}
+
+    .chat-container { 
+        max-height: calc(100vh - 90px); 
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        width: calc(100% - 20px);
+        border-radius: 10px;
+        font-family: 'Ubuntu', 'Nunito Sans', 'Roboto', 'system-ui', sans-serif;
+    }
+    .chat-container h3 { font-size: 1.05em; padding: 12px 15px; }
+    #chatMessages { padding: 12px; gap: 8px; }
+    .chat-message { font-size: 0.9em; padding: 9px 14px; border-radius: 16px; }
+     .user-message { border-bottom-right-radius: 4px; border-top-left-radius: 16px; border-top-right-radius: 16px; border-bottom-left-radius: 16px;}
+     .ai-message { border-bottom-left-radius: 4px; border-top-left-radius: 16px; border-top-right-radius: 16px; border-bottom-right-radius: 16px;}
+
+    .chat-input-area { padding: 10px 12px; gap: 8px;}
+    #chatInput {font-size: 0.9em; min-height: 42px; padding: 9px 12px; border-radius: 8px;}
+    #sendChatMessageButton {font-size: 0.9em; padding: 9px 12px; border-radius: 8px;}
+    #toggleChatButton { width: 50px; height: 50px; font-size: 22px; bottom: 15px; right: 15px; }
+}
+
         /* CSS combinat și ajustat */
         body {
             font-family: 'Ubuntu', 'Roboto', 'Montserrat', 'Nunito Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Oxygen, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
