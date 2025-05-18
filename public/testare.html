@@ -59,31 +59,35 @@
         const urlParams = new URLSearchParams(window.location.search);
         const collabId = urlParams.get('collabId');
 
-        function initializeFormFunctionality() {
-            const formSteps = document.querySelectorAll('.form-step');
-            if (formSteps.length > 0) {
-                totalSteps = formSteps.length;
-                const firstStep = document.getElementById('step-1');
-                 // Asigură-te că toți ceilalți pași sunt inactivi și primul e activ
-                document.querySelectorAll('.form-step').forEach((step, index) => {
-                    if (index === 0) { // Primul element din NodeList (ar trebui să fie step-1)
-                        step.classList.add('form-step-active');
-                    } else {
-                        step.classList.remove('form-step-active');
-                    }
-                });
-                currentStep = 1;
-                updateProgressBar(); 
-            } else {
-                totalSteps = 0;
-            }
+function initializeFormFunctionality() {
+    const formSteps = document.querySelectorAll('.form-step');
+    if (formSteps.length > 0) {
+        totalSteps = formSteps.length;
 
-            document.getElementById("nextButton")?.addEventListener("click", nextStep);
-            document.getElementById("prevButton")?.addEventListener("click", previousStep);
-            document.getElementById("addButton")?.addEventListener("click", salveazaRaspunsSiGenereazaFeedback);
-            document.getElementById("generateLinkButton")?.addEventListener("click", generateCollaborationLink);
-            console.log("Psiho Fișă: Funcționalitatea formularului inițializată. Pași:", totalSteps);
+        // CURĂȚĂ clasele 'form-step-active' de pe toți pașii întâi
+        formSteps.forEach(step => step.classList.remove('form-step-active'));
+        
+        // ADAUGĂ clasa 'form-step-active' DOAR primului pas
+        if (formSteps[0]) { // Verifică dacă există măcar un pas
+            formSteps[0].classList.add('form-step-active');
+            console.log("Psiho Fișă: Primul pas al formularului a fost activat:", formSteps[0].id);
+        } else {
+            console.warn("Psiho Fișă: Nu s-au găsit elemente .form-step pentru activare.");
         }
+        
+        currentStep = 1; // Asigură-te că pasul curent este setat corect
+        updateProgressBar(); 
+    } else {
+        totalSteps = 0;
+        console.warn("Psiho Fișă: Niciun .form-step găsit în document.");
+    }
+
+    document.getElementById("nextButton")?.addEventListener("click", nextStep);
+    document.getElementById("prevButton")?.addEventListener("click", previousStep);
+    document.getElementById("addButton")?.addEventListener("click", salveazaRaspunsSiGenereazaFeedback);
+    document.getElementById("generateLinkButton")?.addEventListener("click", generateCollaborationLink);
+    console.log("Psiho Fișă: Funcționalitatea formularului inițializată. Pași:", totalSteps);
+}
 
         if (!collabId) {
             onAuthStateChanged(auth, async (user) => {
