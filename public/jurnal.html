@@ -278,51 +278,107 @@ Folosește un limbaj clar, profesionist, dar empatic. Nu ezita să folosești te
         });
     }
 
-    function afiseazaCardJurnal(entryData) {
-        const container = document.getElementById("journalEntriesContainer");
-        let card = container.querySelector(`.journal-card[data-id="${entryData.id}"]`);
-        const cardExists = !!card;
+    function afiseazaIstoricFeedbackJurnal(containerEl, feedbackHistory) {
+    containerEl.innerHTML = ''; // Golește containerul existent
 
-        const entryDate = entryData.dataIntrare || (entryData.timestampCreare?.toDate ? new Date(entryData.timestampCreare.toDate()).toLocaleDateString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Dată necunoscută');
-        const entryTitle = entryData.titlu || `Intrare din ${entryDate}`;
-
-        if (!card) {
-            card = document.createElement("div");
-            card.className = "response-card journal-card"; 
-            card.setAttribute("data-id", entryData.id);
-            card.innerHTML = `
-                <div class="card-header">${entryTitle}</div>
-                <div class="card-content">
-                    <p><strong>Data intrării:</strong> ${entryDate}</p>
-                    <p><strong>Conținut Jurnal:</strong></p>
-                    <p class="journal-entry-content">${entryData.continut.replace(/\n/g, '<br>')}</p>
-                    <h4>Feedback AI PsihoGPT</h4>
-                    <div class="ai-feedback-history-container"></div>
-                    <div class="card-actions">
-                         <button class="regenerate-feedback-button" title="Regenerează Feedback AI">Regenerează</button>
-                         <button class="delete-last-feedback-button" title="Șterge Ultimul Feedback AI">Șterge Ultimul</button>
-                         <button class="delete-journal-entry-button" title="Șterge Intrarea și Tot Feedback-ul">Șterge Intrarea</button>
-                    </div>
-                </div>`;
-            card.querySelector('.card-header').addEventListener('click', () => card.classList.toggle('open'));
-            card.querySelector('.regenerate-feedback-button').addEventListener('click', (e) => { e.stopPropagation(); regenereazaFeedbackJurnal(entryData.id); });
-            card.querySelector('.delete-last-feedback-button').addEventListener('click', (e) => { e.stopPropagation(); stergeUltimulFeedbackJurnal(entryData.id); });
-            card.querySelector('.delete-journal-entry-button').addEventListener('click', (e) => { e.stopPropagation(); stergeIntrareJurnal(entryData.id, card); });
-
-            if (container.firstChild && container.firstChild.nodeName !== 'P') { // Adaugă înaintea primului card, dacă există și nu e mesajul "nici o intrare"
-                container.insertBefore(card, container.firstChild);
-            } else { // Altfel, dacă e gol sau are mesajul "nici o intrare", curăță și adaugă
-                if (container.firstChild && container.firstChild.nodeName === 'P') container.innerHTML = '';
-                container.appendChild(card);
-            }
-        } else { // Update existing card's content (important for UI consistency after regeneration)
-             card.querySelector('.journal-entry-content').innerHTML = entryData.continut.replace(/\n/g, '<br>');
-             card.querySelector('.card-header').textContent = entryTitle; // Update title too if it changed
-        }
-        
-        const feedbackContainer = card.querySelector('.ai-feedback-history-container');
-        if (feedbackContainer) afiseazaIstoricFeedbackJurnal(feedbackContainer, entryData.feedbackAI_history || []);
+    if (!feedbackHistory || !Array.isArray(feedbackHistory) || feedbackHistory.length === 0) {
+        const noHistoryMsg = document.createElement("p");
+        noHistoryMsg.textContent = "Niciun feedback AI generat pentru această intrare.";
+        noHistoryMsg.style.fontStyle = "italic";
+        noHistoryMsg.style.textAlign = "center";
+        noHistoryMsg.style.padding = "10px 0";
+        containerEl.appendChild(noHistoryMsg);
+        return;
     }
+
+    feedbackHistory.slice().reverse().forEach((entry, index) => {
+        const itemContainer = document.createElement("div");
+        itemContainer.className = "feedback-entry-card"; // Clasa generală pentru un card de feedback
+
+        const timestampAndModel = document.createElement("p");
+        timestampAndModel.className = "feedback-timestamp";
+        timestampAndModel.innerHTML = `<strong>Feedback #${feedbackHistory.length - index}</strong> (${new Date(entry.timestamp).toLocaleString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} - ${entry.model || 'N/A'})`;
+        itemContainer.appendChild(timestampAndModel);
+
+        const contentWrapper = document.createElement("div"); // Un wrapper pentru conținutul AI
+        contentWrapper.className = "content-ai"; // Pentru stilizarea generală a textului AI
+
+        if (entry.error) {
+            const errorP = document.createElement("p");
+            errorP.style.color = "red";
+            errorP.style.fontWeight = "bold";
+            errorP.style.whiteSpace = "pre-wrap";
+            errorP.innerHTML = (entry.rawText || "Eroare la generarea acestui feedback.").replace(/\n/g, '<br>');
+            contentWrapper.appendChild(errorP);
+        } else {
+            let processedHTML = entry.rawText || 'Conținut indisponibil.';
+
+            // Securizează HTML-ul brut înainte de a injecta regex-uri (minimal)
+            // Acest pas este important dacă textul ar putea conține caractere care interferează cu HTML-ul.
+            // Dar, pentru moment, ne bazăm că textul e predominant text simplu cu markdown-ul Gemini.
+            // processedHTML = processedHTML.replace(/</g, "<").replace(/>/g, ">"); // Prea agresiv, strică dacă AI-ul AR da HTML
+
+            // 1. Procesează Titlurile de Secțiune Principale (Ex: "1. **Sumar...**" sau "**Observații...**")
+            // Caută linii care încep (opțional cu spații) cu un număr, punct, opțional spații, "**", text, "**"
+            processedHTML = processedHTML.replace(/^(\s*\d+\.\s*\*\*)(.*?)(\*\*)/gm, '<div class="ai-main-section-title">$1$2$3</div>');
+            // Caută linii care încep (opțional cu spații) cu "**", text, "**", DAR NU cele numerotate deja (evită dubla potrivire)
+            processedHTML = processedHTML.replace(/^(\s*\*\*)(?!\s*\d+\.\s)(.*?)(\*\*)/gm, '<div class="ai-main-section-title">$1$2$3</div>');
+            
+            // 2. Procesează Elementele de Listă (Ex: "* Textul listei")
+            // Caută linii care încep (opțional cu spații) cu un asterisc, un spațiu, apoi textul.
+            // Regex-ul este conceput să încerce să prindă și continuarea item-ului pe linii noi,
+            // până la o linie goală sau un nou item/titlu.
+            processedHTML = processedHTML.replace(/^\s*(\*\s+((?:.|\n(?!\n\n|^\s*(\d+\.|\*\*|\*\s))))+))/gm, (match, listItemContent) => {
+                // Eliminăm asteriscul și spațiul inițial din conținutul efectiv, pentru a nu-l afișa de două ori cu pseudo-elementul
+                const cleanedItemContent = listItemContent.replace(/^\*\s+/, '');
+                return `<div class="ai-list-item">${cleanedItemContent}</div>`;
+            });
+
+
+            // 3. După procesarea structurilor (titluri, liste), înlocuiește newline-urile rămase cu <br>
+            // și înfășoară blocurile de text non-procesate în paragrafe pentru spațiere.
+            // Acest pas este mai complex de făcut corect doar cu regex-uri pentru a nu strica HTML-ul deja format.
+            // O abordare mai robustă ar fi să faci split pe \n și să construiești HTML-ul linie cu linie,
+            // verificând dacă linia a fost deja procesată.
+            // Pentru acum, o variantă simplificată:
+            
+            const lines = processedHTML.split('\n');
+            let finalHtmlContent = "";
+            let inParagraph = false;
+
+            lines.forEach(line => {
+                if (line.trim().startsWith('<div class="ai-main-section-title">') || line.trim().startsWith('<div class="ai-list-item">')) {
+                    if (inParagraph) {
+                        finalHtmlContent += '</p>'; // Închide paragraful anterior dacă există
+                        inParagraph = false;
+                    }
+                    finalHtmlContent += line; // Adaugă direct div-ul procesat
+                } else if (line.trim() === "") { // Linie goală
+                    if (inParagraph) {
+                        finalHtmlContent += '</p>';
+                        inParagraph = false;
+                    }
+                     finalHtmlContent += '<br>'; // Poate fi un separator <p> </p> sau un div.spacer
+                } else { // Linie de text normal
+                    if (!inParagraph) {
+                        finalHtmlContent += '<p class="ai-text-paragraph">';
+                        inParagraph = true;
+                    } else {
+                         finalHtmlContent += '<br>'; // Pentru linii noi în interiorul aceluiași paragraf logic
+                    }
+                    finalHtmlContent += line;
+                }
+            });
+            if (inParagraph) { // Închide ultimul paragraf dacă a rămas deschis
+                finalHtmlContent += '</p>';
+            }
+            
+            contentWrapper.innerHTML = finalHtmlContent;
+        }
+        itemContainer.appendChild(contentWrapper);
+        containerEl.appendChild(itemContainer);
+    });
+}
 
     async function stergeIntrareJurnal(id, cardElement) {
         if (!confirm("Ștergi această intrare din jurnal și tot feedback-ul asociat?")) return;
@@ -494,7 +550,129 @@ Folosește un limbaj clar, profesionist, dar empatic. Nu ezita să folosești te
         button#saveJournalEntryButton {padding: 10px 18px; font-size: 1em;}
         .card-actions button { flex-basis: 100%; margin-left: 0;}
     }
+/* === STILURI NOI PENTRU COSMETIZAREA FEEDBACK-ULUI AI === */
 
+.feedback-entry-card .content-ai { /* Adaugă o clasă nouă la paragraful care conține textul AI în JS */
+    font-size: 0.98em; /* Ajustează după preferință */
+    line-height: 1.65;
+    color: #3a4a58; /* O culoare de text puțin mai soft */
+}
+
+/* 
+   Pentru a stiliza titlurile și listele, vom folosi o abordare combinată:
+   1. În JavaScript, când primești `rawText` de la AI, ai putea să-l procesezi puțin
+      pentru a înfășura titlurile de secțiune și listele în tag-uri HTML simple DUPĂ ce le-ai primit,
+      înainte de a le afișa. Acest lucru ar oferi cel mai bun control.
+
+   Exemplu de procesare în JavaScript (în funcția afiseazaIstoricFeedbackJurnal):
+   let aiHtml = entry.rawText.replace(/\n/g, '<br>'); // Păstrează newlines ca <br>
+   // Evidențiază titlurile (ex: "1. **Sumar Empatic Concis:**" sau "**Conexiuni Conceptuale:**")
+   aiHtml = aiHtml.replace(/(\d+\.\s*\*\*|^\*\*)(.*?)(\*\*)/g, '<strong class="ai-section-title">$1$2$3</strong>');
+   // Evidențiază elementele de listă (ex: "* Ai identificat...") - puțin mai tricky fără a strica formatarea
+   // S-ar putea să fie mai simplu să stilizezi paragrafele care încep cu "* " direct în CSS
+   
+   Dacă NU vrei să modifici JavaScript-ul pentru a adăuga HTML, CSS-ul de mai jos 
+   este o încercare de a stiliza pe baza textului brut, dar este mai limitat.
+*/
+
+/* Varianta 1: Fără procesare JS a textului AI (mai limitată) */
+.feedback-entry-card p[style*="white-space: pre-wrap"] strong { /* Orice text bold în feedback */
+    font-weight: 600; /* Ubuntu are un bold bun la 500-700 */
+    color: #2c3e50; 
+}
+
+/* Încercare de a stiliza titlurile de secțiune - acest selector e general */
+/* Ar fi mai bine dacă ai putea înfășura titlurile într-un <span> sau <strong> cu o clasă */
+.feedback-entry-card p[style*="white-space: pre-wrap"] br + strong, /* Un strong după un <br> poate fi un titlu */
+.feedback-entry-card p[style*="white-space: pre-wrap"] > strong:first-child { /* Primul strong din paragraf */
+    /* Acest lucru e foarte speculativ și depinde de cum Gemini structurează */
+}
+
+/* Varianta 2: Cu procesare minimă în JS pentru a adăuga clase (RECOMANDATĂ) */
+/* 
+Presupunem că în funcția `afiseazaIstoricFeedbackJurnal` ai făcut:
+let processedText = entry.rawText;
+// Titlurile principale de secțiune (ex: "1. **Sumar Empatic Concis:**" sau "**Observații Cheie:**")
+processedText = processedText.replace(/^(\d+\.\s*\*\*.*?\*\*)/gm, '<div class="ai-main-section-title">$1</div>'); // Titluri numerotate
+processedText = processedText.replace(/^(\*\*[^:\n]+?\*\*)/gm, (match, p1) => { // Titluri non-numerotate (ex: **Conexiuni:**)
+    if (!match.match(/^\d+\./)) { // Asigură-te că nu e deja capturat de regex-ul anterior
+        return '<div class="ai-main-section-title">' + p1 + '</div>';
+    }
+    return match; 
+});
+
+// Elementele de listă (ex: "* Textul listei")
+processedText = processedText.replace(/^\s*(\*\s+.*)/gm, '<div class="ai-list-item">$1</div>');
+
+// Apoi înlocuiești \n cu <br> DUPĂ ce ai aplicat transformările de mai sus, DAR cu grijă la <br>-urile din div-uri
+// Este mai sigur să faci split pe \n și să înfășori fiecare linie într-un <p> sau <div> dacă nu e goală
+// SAU să lași `white-space: pre-wrap` și să stilizezi pe baza selectorilor de mai jos.
+// Cel mai robust: procesezi liniile și înfășori ce trebuie în div-uri cu clase, apoi faci .innerHTML = processedHTML;
+// ---
+// Pentru HTML final: contentP.innerHTML = processedText.replace(/\n/g, '<br>'); // după ce ai adăugat clasele.
+*/
+
+.feedback-entry-card .ai-main-section-title { /* Dacă ai adăugat clasa .ai-main-section-title în JS */
+    display: block; /* Asigură că este pe linia proprie */
+    font-weight: 600; /* Ubuntu medium-bold */
+    color: #5c85d6; /* Culoarea ta accent */
+    margin-top: 18px;
+    margin-bottom: 8px;
+    font-size: 1.05em;
+    /* border-bottom: 1px dashed #d5dde5; */ /* Opțional, o linie subtilă */
+    padding-bottom: 3px;
+}
+.feedback-entry-card .ai-main-section-title:first-child {
+    margin-top: 5px; /* Mai puțin spațiu pentru primul titlu */
+}
+
+/* Stil pentru textul bold standard din AI care NU este un titlu principal */
+.feedback-entry-card p strong:not(.ai-main-section-title *) { /* Să nu stilizăm ce e deja în titlu */
+    font-weight: 500; /* Ubuntu medium */
+    color: #3a4a58;
+}
+
+/* Stil pentru elementele de listă dacă le-ai înfășurat într-un div cu clasa .ai-list-item */
+.feedback-entry-card .ai-list-item {
+    display: block; /* Fiecare pe linia sa */
+    margin-left: 20px; /* Indentare */
+    margin-bottom: 6px;
+    position: relative; /* Pentru pseudo-elementul `::before` */
+    padding-left: 18px; /* Spațiu pentru bullet */
+    line-height: 1.6;
+}
+
+.feedback-entry-card .ai-list-item::before {
+    content: "•"; /* Bullet point */
+    color: #5c85d6; /* Culoarea accent */
+    font-weight: bold;
+    display: inline-block; 
+    position: absolute;
+    left: 0;
+    top: 0; /* Ajustează fin dacă e necesar */
+}
+
+/* Dacă nu poți adăuga clasa .ai-list-item, poți încerca să stilizezi direct
+   paragrafele care ȘTII că vor începe cu "* ", dar e mai puțin fiabil.
+   Exemplu:
+.feedback-entry-card p[style*="white-space: pre-wrap"]::first-line { 
+    // Acest lucru e foarte problematic dacă ai și text normal înainte de listă în același <p>
+}
+*/
+/* === STILURI NOI PENTRU COSMETIZAREA FEEDBACK-ULUI AI (continuare) === */
+
+.feedback-entry-card .ai-text-paragraph {
+    margin-top: 5px; /* Spațiu între paragrafele de text normal */
+    margin-bottom: 10px;
+    line-height: 1.65;
+}
+/* Asigură-te că primul paragraf după un titlu nu are prea mult spațiu sus */
+.feedback-entry-card .ai-main-section-title + .ai-text-paragraph {
+    margin-top: 3px;
+}
+.feedback-entry-card .ai-list-item + .ai-text-paragraph {
+    margin-top: 8px; /* Spațiu dacă un paragraf urmează după un item de listă */
+}
     </style>
 </head>
 <body>
