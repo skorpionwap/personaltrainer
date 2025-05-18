@@ -79,6 +79,57 @@
             { label: "Analizează o situație", text: "Situația care mă preocupă este: [DESCRIE SITUAȚIA]\n\nCe s-a întâmplat exact? (Fapte)\nInterpretarea mea inițială: [GÂNDURI AUTOMATE]\nEmoțiile principale: [LISTEAZĂ EMOȚIILE]\nO altă perspectivă: [REFRAMING]\nCe am învățat/pot învăța? [LECȚII]\n" },
             { label: "Dialog Voce Critică", text: "Vocea mea critică îmi spune: \"[MESAJUL CRITIC]\"\n\nMă face să mă simt: [EMOȚII GENERATE]\nDin perspectiva Adultului Sănătos, aș răspunde: \"[RĂSPUNS COMPASIONAL]\"\nO nevoie ascunsă: [NEVOIA SUBIACENTĂ]\n" },
             { label: "Recunoștință & Resurse", text: "Astăzi sunt recunoscător/oare pentru:\n1. \n2. \n3. \n\nO resursă interioară pe care mă pot baza: \nUn gest de auto-îngrijire: \n" }
+            {
+        label: "🌀 Ritual Reconstrucție Interioară", // Am adăugat un emoji
+        text: `🧭 MASTER TEMPLATE – Scriere Terapeutică de Integrare și Vindecare\n` +
+              `Denumire: „Ritual de reconstrucție interioară”\n` +
+              `Scop: Eliberare, Clarificare, Conținere, Înțelepciune, Direcție\n\n` +
+              `I. 🔍 INVITAȚIE LA AUTENTICITATE\n` +
+              `„Ce parte din mine cere atenție acum?”\n\n` +
+              `   * Ce trăiesc cu adevărat, fără filtru, fără poveste cosmetizată?\n` +
+              `   * Ce mi-e rușine să simt sau să recunosc chiar și în scris?\n` +
+              `   * Ce parte din mine se simte exclusă, neauzită, ignorată?\n` +
+              `   [RĂSPUNSUL TĂU AICI]\n\n` + // Am adăugat un placeholder
+              `II. 🌊 CONTAINERE EMOȚIONALE\n` +
+              `„Ce simte corpul meu? Unde locuiește durerea?”\n\n` +
+              `   * Unde simt emoția în corp? Cum se manifestă? (Tensiune, înțepături, etc.)\n` +
+              `   * Dacă ar avea o culoare, formă, textură – cum ar arăta?\n` +
+              `   * Pot respira în acea zonă 3 minute, fără să fug?\n` +
+              `   [RĂSPUNSUL TĂU AICI]\n\n` +
+              `III. 🧠 DECODIFICARE NARATIVĂ\n` +
+              `„Ce poveste îmi spun? Este întreagă?”\n\n` +
+              `   * Ce narațiune inconștientă guvernează trăirea mea? (ex: „Nu sunt dorit.”)\n` +
+              `   * De unde vine această narațiune? Când am mai trăit ceva similar?\n` +
+              `   * Ce parte din mine (copil rănit, etc.) scrie această poveste?\n` +
+              `   [RĂSPUNSUL TĂU AICI]\n\n` +
+              `IV. 🧩 INTEGRARE EXPLICATIVĂ\n` +
+              `„Ce înțeleg nou despre mine din această durere?”\n\n` +
+              `   * Ce nevoi profunde au fost ignorate sau negate?\n` +
+              `   * Ce am protejat, de fapt, prin reacția mea?\n` +
+              `   * Ce emoții contradictorii coexistă în mine și ce spun ele?\n` +
+              `   [RĂSPUNSUL TĂU AICI]\n\n` +
+              `V. 🪞 COMPASIUNE ȘI BLÂNDEȚE\n` +
+              `„Cum pot fi părinte pentru mine acum?”\n\n` +
+              `   * Dacă mi-aș ține partea rănită în brațe, ce i-aș spune?\n` +
+              `   * Ce aș vrea să aud din partea unei figuri ideale de susținere?\n` +
+              `   * Pot lăsa iubirea, nu logica, să conducă acest moment?\n` +
+              `   [RĂSPUNSUL TĂU AICI]\n\n` +
+              `VI. 🔮 RECONFIGURARE IDENTITARĂ\n` +
+              `„Cine sunt eu dincolo de această rană?”\n\n` +
+              `   * Ce adevăr despre mine rămâne valabil, chiar și în durere?\n` +
+              `   * Cine devin dacă învăț să stau cu mine în acest spațiu?\n` +
+              `   * Dacă aș fi un personaj simbolic acum, cine aș fi?\n` +
+              `   [RĂSPUNSUL TĂU AICI]\n\n` +
+              `VII. ✍️ ACTUL SACRU DE ALEGERE\n` +
+              `„Ce aleg de azi, pentru mine?”\n\n` +
+              `   * Ce merită să las să plece?\n` +
+              `   * Ce îmi iau ca învățătură de încredere în viață?\n` +
+              `   * Ce ritual zilnic/mic obicei pot începe pentru a onora această transformare?\n` +
+              `   [RĂSPUNSUL TĂU AICI]\n\n` +
+              `VIII. (Opțional) 📜 SCRISOARE-RITUAL\n` +
+              `Scrie o scrisoare către...\n` +
+              `   [ALEGE ȘI SCRIE AICI]\n`
+    }
         ];
         promptsContainerEl.innerHTML = ''; // Clear previous
         prompts.forEach(prompt => {
@@ -126,25 +177,31 @@
     async function genereazaSauRegenereazaFeedbackJurnal(entryData, entryId) {
         if (!geminiModelJournalFeedback) return "EROARE: Funcționalitatea AI pentru jurnal nu este disponibilă.";
         
-        const promptJurnal = `
-Rolul meu personalizat pentru PsihoGPT Jurnal (pentru uz personal, sunt în terapie):
-"Ești PsihoGPT, asistentul meu personal AI pentru scriere terapeutică și auto-reflecție. Te consider un 'partener de dialog' informat de diverse școli psihoterapeutice (TCC, Scheme, ACT, IFS, Psihodinamică, Centrată pe Emoții). Scopul tău este să mă ajuți să adâncesc înțelegerea propriei mele experiențe, să identific tipare, să explorez perspective și să facilitez procesul de integrare emoțională. Abordarea ta este una de curiositate empatică, provocare blândă și rezonanță cu conceptele terapeutice. Am suport terapeutic uman, deci poți fi mai direct în reflecții și poți folosi termeni tehnici relevanți, atâta timp cât menții un ton suportiv și cald."
+        const promptJurnalPentruRitual = `
+"Ești PsihoGPT, un partener de dialog avansat, un psihoterapeut experimentat format în toate abordarile moderne de psihoterapie. Vei integra teorie relevanta, vei cita si vei parafraza.
+Specializat în analiza profundă a scrierilor terapeutice structurate. 
+Tocmai am completat un exercițiu numit 'Ritual de Reconstrucție Interioară', care are următoarele secțiuni: I. Invitație la Autenticitate, II. Continere Emotionala, III. Decodificare Narativă, IV. Integrare Explicativă, V. Compasiune și Blândețe, VI. Reconfigurare Identitară, VII. Actul Sacru de Alegere, și opțional VIII. Scrisoare-Ritual.
 
-Intrarea mea de jurnal este:
+Scopul tău este să-mi oferi un feedback care:
+1.  **Recunoaște și validează** efortul și vulnerabilitatea implicate în completarea acestui ritual.
+2.  **Reflectă temele și insight-urile cheie** care reies DIN FIECARE SECȚIUNE a ritualului meu (unde am oferit răspunsuri semnificative). Fii specific și referă-te la conținutul meu.
+3.  **Identifică conexiuni** între diferitele secțiuni ale ritualului (ex: cum autenticitatea din secțiunea I se leagă de nevoia identificată în IV sau de alegerea din VII).
+4.  **Pune întrebări de aprofundare** care să mă ajute să integrez și mai mult cele descoperite (câte 1-2 întrebări per secțiune relevantă sau câteva întrebări globale de sinteză).
+5.  **Oglindește limbajul și conceptele psihoterapeutice** pe care le-am folosit sau care par relevante pentru răspunsurile mele (ex: dacă vorbesc despre 'copilul interior', poți reflecta pe marginea acestuia).
+6.  **Încurajează și susține** procesul de transformare schițat în secțiunea VII (Actul Sacru de Alegere).
+
+Abordarea ta să fie profund empatică, analitică, dar și provocatoare constructiv. Sunt familiarizat cu concepte terapeutice. Folosește un format clar, poate reluând titlurile secțiunilor mele și oferind comentarii/întrebări specifice pentru fiecare."
+
+Intrarea mea completată în cadrul 'Ritualului de Reconstrucție Interioară' este:
 Titlu: ${entryData.titlu}
-Conținut:
+Conținut (cu secțiunile marcate):
 ---
-${entryData.continut}
+${entryData.continut} 
 ---
+// Nota pentru AI: Răspunsurile mele sunt sub fiecare set de întrebări/secțiune a Ritualului.
 
-Te rog să-mi oferi un feedback structurat după cum urmează, adaptat pentru mine:
-1.  **Sumar Empatic Concis:** (1-2 propoziții, validând esența emoțională sau tema principală.)
-2.  **Observații Cheie și Tipare Identificate:** (2-4 puncte relevante, potențiale tipare de gândire, emoționale, sau comportamentale observate. Poți fi direct.)
-3.  **Conexiuni Conceptuale (Opțional, unde e cazul):** (Menționează 1-2 concepte/modele psihoterapeutice care par a ilumina ce am scris. Ex: cum se manifestă o schemă, un mecanism de coping, o distorsiune cognitivă, o nevoie neîndeplinită, principii ACT etc.)
-4.  **Întrebări Specifice pentru Aprofundare:** (2-3 întrebări deschise, tăioase dar constructive, care să mă invite la o reflecție mai profundă asupra celor scrise, bazate pe conținutul meu și pe conceptele identificate.)
-5.  **Sugestie de Focalizare (pentru auto-lucru):** (O scurtă sugestie despre un aspect pe care l-aș putea explora mai departe în următoarea intrare, sau un micro-exercițiu de reflecție bazat pe discuția noastră. Ex: "Pentru următoarea intrare, ai putea explora [tema] din perspectiva [model terapeutic]".)
+Oferă-mi un feedback detaliat și structurat. Mulțumesc!`;
 
-Folosește un limbaj clar, profesionist, dar empatic. Nu ezita să folosești termeni tehnici pe care i-am putea discuta în terapie. Mulțumesc!`;
         console.log("Trimitere prompt către Gemini (jurnal):", promptJurnal.substring(0, 100) + "...");
         const feedbackText = await callGeminiAPI(promptJurnal, geminiModelJournalFeedback);
         return proceseazaSiStructureazaFeedbackJurnal(feedbackText, entryId);
@@ -262,22 +319,6 @@ Folosește un limbaj clar, profesionist, dar empatic. Nu ezita să folosești te
         } finally { if (btn) { btn.textContent = originalText; btn.disabled = false; } }
     }
     
-    function afiseazaIstoricFeedbackJurnal(containerEl, history) {
-        containerEl.innerHTML = ''; 
-        if (!history?.length) {
-            containerEl.innerHTML = "<p style='font-style:italic;text-align:center;'>Niciun feedback AI generat.</p>"; return;
-        }
-        history.slice().reverse().forEach((entry, index) => { 
-            const itemDiv = document.createElement("div");
-            itemDiv.className = "feedback-entry-card";
-            itemDiv.innerHTML = `
-                <p class="feedback-timestamp"><strong>Feedback #${history.length - index}</strong> (${new Date(entry.timestamp).toLocaleString("ro-RO")} - ${entry.model || 'N/A'})</p>
-                <p style="white-space: pre-wrap; ${entry.error ? 'color:red;font-weight:bold;' : ''}">${(entry.rawText || 'Conținut indisponibil.').replace(/\n/g, '<br>')}</p>
-            `;
-            containerEl.appendChild(itemDiv);
-        });
-    }
-
     function afiseazaIstoricFeedbackJurnal(containerEl, feedbackHistory) {
     containerEl.innerHTML = ''; // Golește containerul existent
 
@@ -379,6 +420,51 @@ Folosește un limbaj clar, profesionist, dar empatic. Nu ezita să folosești te
         containerEl.appendChild(itemContainer);
     });
 }
+    function afiseazaCardJurnal(entryData) {
+        const container = document.getElementById("journalEntriesContainer");
+        let card = container.querySelector(`.journal-card[data-id="${entryData.id}"]`);
+        const cardExists = !!card;
+
+        const entryDate = entryData.dataIntrare || (entryData.timestampCreare?.toDate ? new Date(entryData.timestampCreare.toDate()).toLocaleDateString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Dată necunoscută');
+        const entryTitle = entryData.titlu || `Intrare din ${entryDate}`;
+
+        if (!card) {
+            card = document.createElement("div");
+            card.className = "response-card journal-card"; 
+            card.setAttribute("data-id", entryData.id);
+            card.innerHTML = `
+                <div class="card-header">${entryTitle}</div>
+                <div class="card-content">
+                    <p><strong>Data intrării:</strong> ${entryDate}</p>
+                    <p><strong>Conținut Jurnal:</strong></p>
+                    <p class="journal-entry-content">${entryData.continut.replace(/\n/g, '<br>')}</p>
+                    <h4>Feedback AI PsihoGPT</h4>
+                    <div class="ai-feedback-history-container"></div>
+                    <div class="card-actions">
+                         <button class="regenerate-feedback-button" title="Regenerează Feedback AI">Regenerează</button>
+                         <button class="delete-last-feedback-button" title="Șterge Ultimul Feedback AI">Șterge Ultimul</button>
+                         <button class="delete-journal-entry-button" title="Șterge Intrarea și Tot Feedback-ul">Șterge Intrarea</button>
+                    </div>
+                </div>`;
+            card.querySelector('.card-header').addEventListener('click', () => card.classList.toggle('open'));
+            card.querySelector('.regenerate-feedback-button').addEventListener('click', (e) => { e.stopPropagation(); regenereazaFeedbackJurnal(entryData.id); });
+            card.querySelector('.delete-last-feedback-button').addEventListener('click', (e) => { e.stopPropagation(); stergeUltimulFeedbackJurnal(entryData.id); });
+            card.querySelector('.delete-journal-entry-button').addEventListener('click', (e) => { e.stopPropagation(); stergeIntrareJurnal(entryData.id, card); });
+
+            if (container.firstChild && container.firstChild.nodeName !== 'P') { // Adaugă înaintea primului card, dacă există și nu e mesajul "nici o intrare"
+                container.insertBefore(card, container.firstChild);
+            } else { // Altfel, dacă e gol sau are mesajul "nici o intrare", curăță și adaugă
+                if (container.firstChild && container.firstChild.nodeName === 'P') container.innerHTML = '';
+                container.appendChild(card);
+            }
+        } else { // Update existing card's content (important for UI consistency after regeneration)
+             card.querySelector('.journal-entry-content').innerHTML = entryData.continut.replace(/\n/g, '<br>');
+             card.querySelector('.card-header').textContent = entryTitle; // Update title too if it changed
+        }
+        
+        const feedbackContainer = card.querySelector('.ai-feedback-history-container');
+        if (feedbackContainer) afiseazaIstoricFeedbackJurnal(feedbackContainer, entryData.feedbackAI_history || []);
+    }
 
     async function stergeIntrareJurnal(id, cardElement) {
         if (!confirm("Ștergi această intrare din jurnal și tot feedback-ul asociat?")) return;
