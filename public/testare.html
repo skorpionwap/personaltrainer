@@ -1196,68 +1196,90 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
 
 
     async function loadTableData(userId, collabIdForLoad = null, ownerIdForCollabView = null) {
-        // ... (Funcția loadTableData - cu corecții minore pentru mesaje și class names)
-         const cardViewContainer = document.getElementById("cardViewContainer");
-        if ((!userId && !ownerIdForCollabView) || !cardViewContainer) {
-            if (cardViewContainer) cardViewContainer.innerHTML = '<p class="error-loading-message">Datele nu pot fi încărcate (informații utilizator invalide).</p>';
+        if (!userId && !ownerIdForCollabView) {
+            console.warn("loadTableData apelat fără userId sau ownerIdForCollabView. Nu se încarcă datele pentru carduri.");
             return;
         }
-        if (collabIdForLoad && dataAlreadyLoaded && document.body.classList.contains('collab-view-loaded')) return;
-        
-        let loadingMsg = cardViewContainer.querySelector(".loading-message");
-        if (!cardViewContainer.querySelector('.response-card') && !cardViewContainer.querySelector('.no-entries-message') && !loadingMsg) {
-            loadingMsg = document.createElement("p"); loadingMsg.className = "loading-message";
-            loadingMsg.textContent = collabIdForLoad ? "Se încarcă fișele partajate..." : "Se încarcă fișele tale...";
-            cardViewContainer.innerHTML = ''; cardViewContainer.appendChild(loadingMsg);
+
+        if (collabIdForLoad && dataAlreadyLoaded && document.body.classList.contains('collab-view-loaded')) { 
+            console.log("Cardurile pentru colaborator par a fi deja încărcate și vizualizarea e setată.");
+            return;
         }
+        
+        console.log("Încărcare/Reîncărcare carduri din Firestore...");
+        const cardViewContainer = document.getElementById("cardViewContainer");
+        if (!cardViewContainer) return;
+        cardViewContainer.innerHTML = '<p style="text-align:center; margin-top:20px;">Se încarcă fișele...</p>'; 
 
         try {
             let q;
-            const collectionRef = collection(db, "raspunsuri");
             if (ownerIdForCollabView) { 
-                q = query(collectionRef, where("ownerUid", "==", ownerIdForCollabView), orderBy("timestamp", "desc"));
+                console.log(`Filtrare carduri pentru colaborare (owner: ${ownerIdForCollabView})`);
+                q = query(collection(db, "raspunsuri"), where("ownerUid", "==", ownerIdForCollabView));
             } else if (userId) { 
-                q = query(collectionRef, where("ownerUid", "==", userId), orderBy("timestamp", "desc"));
-            } else { if (loadingMsg) loadingMsg.remove(); return; }
+                console.log(`Filtrare carduri pentru utilizatorul logat: ${userId}`);
+                q = query(collection(db, "raspunsuri"), where("ownerUid", "==", userId));
+            } else { return; }
 
             const querySnapshot = await getDocs(q);
-            if (loadingMsg) loadingMsg.remove();
+             cardViewContainer.innerHTML = ''; 
 
-            const currentCardsMap = new Map();
-            cardViewContainer.querySelectorAll('.response-card').forEach(card => currentCardsMap.set(card.dataset.id, card));
-            
-            const newDocsData = [];
-            querySnapshot.forEach((docSnap) => {
-                newDocsData.push({ id: docSnap.id, ...docSnap.data() });
-                if (currentCardsMap.has(docSnap.id)) currentCardsMap.delete(docSnap.id);
-            });
-            currentCardsMap.forEach(oldCard => oldCard.remove());
-            
-            if (newDocsData.length === 0 && !cardViewContainer.querySelector('.response-card')) {
-                if (!cardViewContainer.querySelector('.no-entries-message')) {
-                    const noEntriesMsgElement = document.createElement("p");
-                    noEntriesMsgElement.className = "no-entries-message";
-                    noEntriesMsgElement.textContent = collabIdForLoad ? "Nicio fișă partajată nu a fost găsită." : "Nicio fișă de monitorizare. Completează una pentru a începe!";
-                    cardViewContainer.appendChild(noEntriesMsgElement);
+            if (querySnapshot.empty) {
+                console.log("Nicio fișă găsită pentru filtrele aplicate.");
+                cardViewContainer.innerHTML = `<p style="text-align:center; margin-top:20px; font-style:italic;">Nicio fișă de monitorizare găsită ${ownerIdForCollabView ? 'pentru acest utilizator.' : 'pentru contul tău.' }</p>`;
+                if(collabIdForLoad) {
+                    dataAlreadyLoaded = true; 
+                    document.body.classList.add('collab-view-loaded');
                 }
-            } else {
-                 const noEntriesMsgIfAny = cardViewContainer.querySelector('.no-entries-message');
-                 if (noEntriesMsgIfAny) noEntriesMsgIfAny.remove();
-                 newDocsData.forEach(docData => adaugaCard(docData));
+                return;
             }
-            if (collabIdForLoad) { dataAlreadyLoaded = true; document.body.classList.add('collab-view-loaded'); }
+            
+            const documents = [];
+            querySnapshot.forEach((doc) => {
+                documents.push({ id: doc.id, ...doc.data() });
+            });
+
+            documents.sort((a, b) => {
+                let dateA, dateB;
+                // Încearcă să parsezi `a.date` (DD.MM.YYYY)
+                if (a.date && typeof a.date === 'string' && a.date.includes('.')) {
+                    const partsA = a.date.split('.');
+                    if (partsA.length === 3) {
+                         // Creează un obiect Date corect: an, lună (0-indexat), zi
+                        dateA = new Date(parseInt(partsA[2]), parseInt(partsA[1]) - 1, parseInt(partsA[0])).getTime();
+                    } else dateA = 0;
+                } else dateA = 0;
+
+                // Încearcă să parsezi `b.date` (DD.MM.YYYY)
+                if (b.date && typeof b.date === 'string' && b.date.includes('.')) {
+                     const partsB = b.date.split('.');
+                     if (partsB.length === 3) {
+                        dateB = new Date(parseInt(partsB[2]), parseInt(partsB[1]) - 1, parseInt(partsB[0])).getTime();
+                     } else dateB = 0;
+                } else dateB = 0;
+                
+                // Fallback la timestamp-ul din Firestore (dacă există și 'date' e invalid)
+                const timeA = (dateA && !isNaN(dateA)) ? dateA : (a.timestamp?.seconds ? a.timestamp.toMillis() : 0);
+                const timeB = (dateB && !isNaN(dateB)) ? dateB : (b.timestamp?.seconds ? b.timestamp.toMillis() : 0);
+                
+                return timeB - timeA; 
+            });
+            
+            documents.forEach(docData => {
+                adaugaCard(docData);
+            });
+
+            if (collabIdForLoad) {
+                dataAlreadyLoaded = true; 
+                document.body.classList.add('collab-view-loaded');
+            }
+
         } catch (error) {
-            console.error("Psiho Fișă: Eroare la încărcarea cardurilor:", error.message, error.stack);
-            if (loadingMsg) loadingMsg.remove();
-            if(!cardViewContainer.querySelector('.response-card') && !cardViewContainer.querySelector('.error-loading-message')) {
-                const errorMsgElement = document.createElement("p"); errorMsgElement.className = "error-loading-message";
-                errorMsgElement.textContent = "Eroare la încărcarea fișelor. Reîncărcați pagina.";
-                const noEntriesMsg = cardViewContainer.querySelector('.no-entries-message');
-                if(noEntriesMsg) noEntriesMsg.remove();
-                cardViewContainer.appendChild(errorMsgElement);
-            }
+            console.error("Eroare la încărcarea cardurilor din Firestore:", error.message, error.stack);
+            cardViewContainer.innerHTML = '<p style="text-align:center; margin-top:20px; color:red;">A apărut o eroare la încărcarea datelor din fișe.</p>';
         }
     }
+
 
     async function stergeCard(id, cardElement) { 
         // ... (codul funcției stergeCard - rămâne la fel, dar asigură consistența mesajului 'no-entries')
