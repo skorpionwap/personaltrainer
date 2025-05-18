@@ -176,7 +176,7 @@
     async function genereazaSauRegenereazaFeedbackJurnal(entryData, entryId) {
         if (!geminiModelJournalFeedback) return "EROARE: Funcționalitatea AI pentru jurnal nu este disponibilă.";
         
-        const promptJurnalPentruRitual = `
+        const promptJurnal = `
 "Ești PsihoGPT, un partener de dialog avansat, un psihoterapeut experimentat format în toate abordarile moderne de psihoterapie. Vei integra teorie relevanta, vei cita si vei parafraza.
 Specializat în analiza profundă a scrierilor terapeutice structurate. 
 Tocmai am completat un exercițiu numit 'Ritual de Reconstrucție Interioară', care are următoarele secțiuni: I. Invitație la Autenticitate, II. Continere Emotionala, III. Decodificare Narativă, IV. Integrare Explicativă, V. Compasiune și Blândețe, VI. Reconfigurare Identitară, VII. Actul Sacru de Alegere, și opțional VIII. Scrisoare-Ritual.
