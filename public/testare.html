@@ -24,8 +24,8 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // <--- ÎNLOCUIEȘTE AICI !!!
-    const GEMINI_MODEL_NAME_JOURNAL_FEEDBACK = "gemini-2.5-flash-preview-04-17"; // Sau modelul tău preferat
+    const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // <--- ÎNLOCUIEȘTE AICI !!! (Asigură-te că NU este placeholder-ul!)
+    const GEMINI_MODEL_NAME_JOURNAL_FEEDBACK = "gemini-2.5-flash-preview-04-17";
     let genAI, geminiModelJournalFeedback;
 
     console.log("Jurnal - Cheia API configurată:", "'" + GEMINI_API_KEY + "'");
@@ -53,7 +53,7 @@
     }
 
     let dataAlreadyLoaded = false;
-    let selectedPrompt = null; // Stochează obiectul promptului selectat
+    let selectedPrompt = null; 
 
     window.onload = function () {
         onAuthStateChanged(auth, async (user) => {
@@ -68,32 +68,60 @@
             }
         });
         document.getElementById("saveJournalEntryButton")?.addEventListener("click", salveazaIntrareJurnalSiGenereazaFeedback);
+        
+        // Global click listener to potentially hide activePromptBox if clicked outside form/prompts (optional UX enhancement)
+        // document.addEventListener('click', function(event) {
+        //     const formContainer = document.querySelector('.journal-form-container');
+        //     const activePromptBox = document.getElementById('activePromptBox');
+        //     if (activePromptBox && activePromptBox.style.display === 'block' && formContainer && !formContainer.contains(event.target)) {
+        //          // toggleActivePrompt(false); // Comentat pentru a evita închideri nedorite la click pe body
+        //     }
+        // });
     };
 
     function toggleActivePrompt(show, promptData = null) {
         const box = document.getElementById('activePromptBox');
         const titleEl = document.getElementById('activePromptTitle');
         const contentEl = document.getElementById('activePromptContent');
+        const journalTextarea = document.getElementById("journalContent");
 
         if (show && promptData) {
             selectedPrompt = promptData;
             titleEl.textContent = `Ghid activ: ${promptData.label}`;
-            contentEl.textContent = promptData.text;
+            contentEl.textContent = promptData.text; // Afișează textul ghidului
             box.style.display = 'block';
-            // Scroll to the top of the prompt box content if it's long
             if(contentEl) contentEl.scrollTop = 0;
-        } else {
-            selectedPrompt = null;
+             // Opțional: Curăță textarea dacă se dorește și confirmă utilizatorul
+            if (journalTextarea && journalTextarea.value.trim() !== "" && promptData.id !== (selectedPrompt?.previousIdForClearCheck)) {
+                if (confirm("Dorești să ștergi conținutul actual al jurnalului pentru a începe cu acest nou ghid?")) {
+                   journalTextarea.value = "";
+                }
+            }
+            if(selectedPrompt) selectedPrompt.previousIdForClearCheck = promptData.id;
+
+
+        } else { // Când se ascunde programatic (ex. după salvare) sau de către utilizator
+            selectedPrompt = null; // Asigură-te că se resetează
             box.style.display = 'none';
         }
     }
+    
+    // Adaugă această funcție globală pentru butonul de închidere al prompt boxului
+    window.hideActivePromptManual = function() {
+        const box = document.getElementById('activePromptBox');
+        box.style.display = 'none';
+        // Nu reseta selectedPrompt aici, pentru că utilizatorul poate doar să-l ascundă temporar,
+        // dar tot vrea să se considere că acel prompt e "activ" pentru AI.
+        // SelectedPrompt se resetează în toggleActivePrompt(false) sau după salvare.
+    }
+
 
     function initializeReflectionPrompts() {
         const promptsContainerEl = document.getElementById("reflectionPrompts");
         const journalTextarea = document.getElementById("journalContent");
         if (!promptsContainerEl || !journalTextarea) return;
 
-        const prompts = [
+        const prompts = [ // Structura ID-urilor e importantă pentru buildAdaptiveAIPrompt
             {
                 label: "🌡️ Explorează o emoție",
                 id: "explorare_emotie",
@@ -111,7 +139,7 @@
                       "Ce mi-aș spune? Ce gest aș face pentru mine? ________________\n"
             },
             {
-                label: "📝 Analizează o situație", // Păstrăm acest prompt clasic, poate fi util
+                label: "📝 Analizează o situație",
                 id: "analiza_situatie",
                 text: "Situația care mă preocupă este: ________________\n\n" +
                       "Ce s-a întâmplat exact? (Fapte): ________________\n" +
@@ -154,49 +182,49 @@
                       `Denumire: „Ritual de reconstrucție interioară”\n` +
                       `Scop: Eliberare, Clarificare, Conținere, Înțelepciune, Direcție\n\n` +
                       `I. 🔍 INVITAȚIE LA AUTENTICITATE\n` +
-                      `„Ce parte din mine cere atenție acum?”\n\n` +
+                      `„Ce parte din mine cere atenție acum?”\n` +
                       `   * Ce trăiesc cu adevărat, fără filtru, fără poveste cosmetizată?\n` +
                       `   * Ce mi-e rușine să simt sau să recunosc chiar și în scris?\n` +
                       `   * Ce parte din mine se simte exclusă, neauzită, ignorată?\n` +
                       `Răspuns: ________________\n\n` +
                       `II. 🌊 CONTAINERE EMOȚIONALE\n` +
-                      `„Ce simte corpul meu? Unde locuiește durerea?”\n\n` +
+                      `„Ce simte corpul meu? Unde locuiește durerea?”\n` +
                       `   * Unde simt emoția în corp? Cum se manifestă? (Tensiune, înțepături, etc.)\n` +
                       `   * Dacă ar avea o culoare, formă, textură – cum ar arăta?\n` +
                       `   * Pot respira în acea zonă 3 minute, fără să fug?\n` +
                       `Răspuns: ________________\n\n` +
                       `III. 🧠 DECODIFICARE NARATIVĂ\n` +
-                      `„Ce poveste îmi spun? Este întreagă?”\n\n` +
+                      `„Ce poveste îmi spun? Este întreagă?”\n` +
                       `   * Ce narațiune inconștientă guvernează trăirea mea? (ex: „Nu sunt dorit.”)\n` +
                       `   * De unde vine această narațiune? Când am mai trăit ceva similar?\n` +
                       `   * Ce parte din mine (copil rănit, etc.) scrie această poveste?\n` +
                       `Răspuns: ________________\n\n` +
                       `IV. 🧩 INTEGRARE EXPLICATIVĂ\n` +
-                      `„Ce înțeleg nou despre mine din această durere?”\n\n` +
+                      `„Ce înțeleg nou despre mine din această durere?”\n` +
                       `   * Ce nevoi profunde au fost ignorate sau negate?\n` +
                       `   * Ce am protejat, de fapt, prin reacția mea?\n` +
                       `   * Ce emoții contradictorii coexistă în mine și ce spun ele?\n` +
                       `Răspuns: ________________\n\n` +
                       `V. 🪞 COMPASIUNE ȘI BLÂNDEȚE\n` +
-                      `„Cum pot fi părinte pentru mine acum?”\n\n` +
+                      `„Cum pot fi părinte pentru mine acum?”\n` +
                       `   * Dacă mi-aș ține partea rănită în brațe, ce i-aș spune?\n` +
                       `   * Ce aș vrea să aud din partea unei figuri ideale de susținere?\n` +
                       `   * Pot lăsa iubirea, nu logica, să conducă acest moment?\n` +
                       `Răspuns: ________________\n\n` +
                       `VI. 🔮 RECONFIGURARE IDENTITARĂ\n` +
-                      `„Cine sunt eu dincolo de această rană?”\n\n` +
+                      `„Cine sunt eu dincolo de această rană?”\n` +
                       `   * Ce adevăr despre mine rămâne valabil, chiar și în durere?\n` +
                       `   * Cine devin dacă învăț să stau cu mine în acest spațiu?\n` +
                       `   * Dacă aș fi un personaj simbolic acum, cine aș fi?\n` +
                       `Răspuns: ________________\n\n` +
                       `VII. ✍️ ACTUL SACRU DE ALEGERE\n` +
-                      `„Ce aleg de azi, pentru mine?”\n\n` +
+                      `„Ce aleg de azi, pentru mine?”\n` +
                       `   * Ce merită să las să plece?\n` +
                       `   * Ce îmi iau ca învățătură de încredere în viață?\n` +
                       `   * Ce ritual zilnic/mic obicei pot începe pentru a onora această transformare?\n` +
                       `Răspuns: ________________\n\n` +
                       `VIII. (Opțional) 📜 SCRISOARE-RITUAL\n` +
-                      `Scrie o scrisoare către...\n` +
+                      `Scrie o scrisoare către... (persoana, partea din tine, situația):\n` + // Clarificare
                       `Răspuns: ________________\n`
             }
         ];
@@ -206,39 +234,32 @@
             button.textContent = prompt.label;
             button.className = "prompt-button";
             button.type = "button";
-            button.title = "Inserează acest ghid în jurnal și afișează-l";
+            button.title = "Afișează acest ghid și folosește-l ca referință";
             button.onclick = () => {
-                const insertText = prompt.text;
-                if (journalTextarea.value.trim() !== "" && !confirm("Vrei să înlocuiești textul curent cu acest ghid? OK pentru a înlocui, Anulare pentru a adăuga la sfârșit.")) {
-                    journalTextarea.value += "\n\n---\n" + insertText;
-                } else {
-                    journalTextarea.value = insertText;
-                }
                 toggleActivePrompt(true, prompt);
                 journalTextarea.focus();
-                // Scroll to the top of the textarea to see the newly inserted prompt
-                journalTextarea.scrollTop = 0;
             };
             promptsContainerEl.appendChild(button);
         });
     }
 
     async function callGeminiAPI(promptText, modelToUse, generationConfigOptions = {}) {
+        // ... (Funcția callGeminiAPI rămâne la fel ca în versiunea anterioară pe care ți-am dat-o, cu logarea și gestionarea erorilor)
         if (!modelToUse) return "EROARE: Model AI neinițializat (jurnal).";
         try {
             console.log("Trimitem la Gemini (jurnal, primele 200 caractere):", promptText.substring(0, 200));
             const result = await modelToUse.generateContent({
                 contents: [{ role: "user", parts: [{ text: promptText }] }],
-                generationConfig: { temperature: 0.7, maxOutputTokens: 3500, ...generationConfigOptions } // Temp. 0.7, max token ajustat
+                generationConfig: { temperature: 0.7, maxOutputTokens: 4000, ...generationConfigOptions } // Max token crescut ușor
             });
             const response = result.response;
             if (response?.candidates?.[0]?.content?.parts?.[0]?.text) {
                 if (response.candidates[0].finishReason && !["STOP", "MAX_TOKENS"].includes(response.candidates[0].finishReason)) {
-                    return `EROARE Gemini: Generare oprită (Motiv: ${response.candidates[0].finishReason}). Detalii: ${JSON.stringify(response.candidates[0].safetyRatings)}`;
+                    return `EROARE Gemini: Generare oprită (Motiv: ${response.candidates[0].finishReason}). Detalii: ${JSON.stringify(response.candidates[0].safetyRatings || 'N/A')}`;
                 }
                 return response.candidates[0].content.parts[0].text;
             } else if (response?.promptFeedback?.blockReason) {
-                return `EROARE Gemini: Prompt blocat (Motiv: ${response.promptFeedback.blockReason}). Detalii: ${JSON.stringify(response.promptFeedback.blockReasonDetail || response.promptFeedback.safetyRatings)}`;
+                 return `EROARE Gemini: Prompt blocat (Motiv: ${response.promptFeedback.blockReason}). Detalii: ${JSON.stringify(response.promptFeedback.blockReasonDetail || response.promptFeedback.safetyRatings || 'N/A')}`;
             }
             console.warn("Răspuns Gemini neașteptat sau gol:", JSON.stringify(response, null, 2));
             return "EROARE Gemini: Răspuns invalid/gol.";
@@ -247,24 +268,30 @@
             let userFriendlyError = `EROARE Gemini: ${error.message || "Eroare API necunoscută."}`;
             if (error.message && error.message.toLowerCase().includes("api key not valid")) {
                 userFriendlyError = "EROARE: Cheia API Gemini nu este validă sau nu are permisiuni. Verificați configurația.";
-            } else if (error.message && error.message.toLowerCase().includes("quota has been exceeded")) {
+            } else if (error.message && (error.message.toLowerCase().includes("quota") || (error.message.toLowerCase().includes("resource has been exhausted")) ) ){
                 userFriendlyError = "EROARE: Limita de utilizare API Gemini a fost depășită. Încercați mai târziu.";
-            } else if (error.message && error.message.toLowerCase().includes("candidate.finish_reason") || error.message.toLowerCase().includes("safety")){
-                 userFriendlyError = "EROARE Gemini: Generarea a fost oprită, posibil din motive de siguranță sau din cauza conținutului. Încercați să reformulați."
+            } else if (error.message && (error.message.toLowerCase().includes("candidate.finish_reason") || error.message.toLowerCase().includes("safety") || error.message.toLowerCase().includes("blocked due to safety_settings"))){
+                 userFriendlyError = "EROARE Gemini: Generarea a fost oprită, posibil din motive de siguranță sau din cauza conținutului. Încercați să reformulați sau verificați setările de siguranță dacă aveți acces."
+            } else if (error.status && error.status === 400 && error.message.toLowerCase().includes("model") && error.message.toLowerCase().includes("doesn't support")){
+                 userFriendlyError = `EROARE Gemini: Modelul ${GEMINI_MODEL_NAME_JOURNAL_FEEDBACK} ar putea să nu suporte anumite funcționalități sau configurare. Verificați documentația.`;
             }
             return userFriendlyError;
         }
     }
     
     function getSelectedPromptType() {
+        // Dacă un ghid a fost selectat (este în `activePromptBox`), folosim ID-ul lui.
         if (selectedPrompt && selectedPrompt.id) {
             return selectedPrompt.id;
         }
+        // Ca fallback, dacă utilizatorul a scris liber dar a inclus cumva cuvinte cheie
+        // (mai puțin probabil acum, dar bun pentru robustețe/intrări vechi):
         const journalContent = document.getElementById("journalContent")?.value || "";
         return detectPromptUsed(journalContent);
     }
 
     function detectPromptUsed(content) {
+        // ... (Funcția detectPromptUsed rămâne la fel ca în versiunea anterioară)
         if (!content) return "prompt_personalizat";
         content = content.toLowerCase();
 
@@ -276,123 +303,169 @@
         return "prompt_personalizat";
     }
 
-    function buildAdaptiveAIPrompt(entryTitle, journalText, promptType) {
+    function buildAdaptiveAIPrompt(entryTitle, journalText, promptType, guideText = null) {
+        // ... (Funcția buildAdaptiveAIPrompt rămâne la fel ca în versiunea anterioară,
+        // dar am adăugat parametrul opțional `guideText`)
         let specificInstructions = "";
         let modelFocus = "feedback general și reflecție";
 
-        let basePrompt = `Ești PsihoGPT – un terapeut AI avansat, extrem de empatic, cu o profundă înțelegere a psihologiei umane, antrenat în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor, Terapia prin Acceptare și Angajament (ACT), Scrierea Expresivă și principii de mindfulness. Comunică într-un limbaj cald, validant și ușor de înțeles, dar păstrează profunzimea analitică. Folosește formatare Markdown pentru structurare (titluri cu \`**Titlu**\`, liste cu \`* Element listă\`, text bold cu \`**text bold**\` și italic cu \`*text italic*\` unde e cazul). Evită citatele direct din literatură dacă nu sunt absolut esențiale, concentrează-te pe limbajul tău.
+        let basePrompt = `Ești PsihoGPT – un terapeut AI avansat, extrem de empatic, cu o profundă înțelegere a psihologiei umane, antrenat în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor, Terapia prin Acceptare și Angajament (ACT), Scrierea Expresivă și principii de mindfulness. Comunică într-un limbaj cald, validant și ușor de înțeles, dar păstrează profunzimea analitică. Folosește formatare Markdown pentru structurare (titluri principale cu \`**Titlu Principal**\`, subtitluri dacă e cazul cu \`### Subtitlu\`, liste cu \`* Element listă\`, text bold cu \`**text bold**\` și italic cu \`*text italic*\` unde e cazul). Evită citatele direct din literatură dacă nu sunt absolut esențiale, concentrează-te pe limbajul tău.
 
-Obiectivul tău este să oferi un feedback personalizat, constructiv și profund pentru următoarea intrare în jurnal. Nu oferi sfaturi medicale sau diagnostice. Concentrează-te pe facilitarea auto-înțelegerii și a creșterii personale.`;
-
+Obiectivul tău este să oferi un feedback personalizat, constructiv și profund pentru următoarea intrare în jurnal. Nu oferi sfaturi medicale sau diagnostice. Concentrează-te pe facilitarea auto-înțelegerii și a creșterii personale. Utilizatorul a avut la dispoziție un ghid vizual (tipul: "${promptType}") pentru a-și structura gândurile, iar textul de mai jos reprezintă răspunsurile sale la acel ghid sau o reflecție liberă inspirată de el.`;
+        
+        // Instrucțiuni specifice (rămân la fel)
         switch (promptType) {
             case "ritual_reconstructie":
                 specificInstructions = `
-Utilizatorul a completat un exercițiu profund numit "Ritual de Reconstrucție Interioară", care are 7 secțiuni principale (I. Invitație la Autenticitate, II. Containere Emoționale, III. Decodificare Narativă, IV. Integrare Explicativă, V. Compasiune și Blândețe, VI. Reconfigurare Identitară, VII. Actul Sacru de Alegere) și poate include o secțiune VIII (Scrisoare-Ritual).
-Feedback-ul tău AR TREBUI SĂ URMEZE ACEASTĂ STRUCTURĂ. Pentru FIECARE secțiune relevantă (unde utilizatorul a scris ceva semnificativ):
-1.  **Numește secțiunea** (ex: "**I. Invitație la Autenticitate:**").
-2.  **Recunoaște și Validează** efortul specific pentru acea secțiune și oferă o scurtă validare empatică a conținutului.
-3.  **Reflectă principalele teme și insight-uri** care reies din răspunsurile utilizatorului la acea secțiune. Fii specific și poți cita scurt (1-5 cuvinte) din textul utilizatorului pentru ancorare.
-4.  **Pune o întrebare de aprofundare specifică** (sau 2 maxim, doar dacă este pertinent) pentru acea secțiune, care să invite la o reflecție și mai adâncă asupra celor descoperite acolo.
-După ce ai parcurs secțiunile, adaugă o secțiune de **Concluzii și Încurajare:**
-*   **Identifică Conexiuni Generale:** Evidențiază pe scurt legături sau tipare observate între diferitele secțiuni (ex: cum autenticitatea din I se leagă de nevoile din IV sau de alegerile din VII).
-*   **Încurajează** procesul de transformare schițat în secțiunea VII (Actul Sacru de Alegere) și apreciază vulnerabilitatea.
-Evită generalitățile. Fii țintit pe conținutul specific fiecărei secțiuni a ritualului. Răspunsul total trebuie să fie detaliat, dar structurat și ușor de parcurs.`;
-                modelFocus = "analiză structurată a ritualului de reconstrucție, pas cu pas, cu focus pe integrare, reflecție aprofundată per secțiune și transformare";
+Utilizatorul a folosit ghidul "Ritual de Reconstrucție Interioară", care are 7 secțiuni principale (I. Invitație la Autenticitate, II. Containere Emoționale, III. Decodificare Narativă, IV. Integrare Explicativă, V. Compasiune și Blândețe, VI. Reconfigurare Identitară, VII. Actul Sacru de Alegere) și poate o secțiune VIII (Scrisoare-Ritual).
+Feedback-ul tău AR TREBUI SĂ URMEZE ACEASTĂ STRUCTURĂ. Pentru FIECARE secțiune a ritualului (I-VII și opțional VIII):
+1.  **Numește secțiunea clar** (ex: \`**I. Invitație la Autenticitate:**\`).
+2.  Pe baza textului utilizatorului (\`Text Complet Jurnal Utilizator\` de mai jos), **extrage și reflectă** ce a scris sau ce pare să fi explorat pentru ACEASTĂ secțiune specifică. Fii concis și la obiect. Dacă utilizatorul nu pare să fi adresat o secțiune, menționează scurt (ex: "Pentru această secțiune, nu par să existe răspunsuri detaliate în textul furnizat.") sau sari peste ea cu eleganță dacă e goală.
+3.  **Oferă o scurtă validare empatică** dacă a completat ceva relevant pentru secțiune.
+4.  **Pune 1-2 întrebări de aprofundare SPECIFICE** pentru acea secțiune, care să invite la o reflecție mai adâncă asupra celor descoperite acolo *de către utilizator*. Întrebările trebuie să fie direct legate de conținutul reflectat de la punctul 2.
+După ce ai parcurs secțiunile individuale, adaugă o secțiune de \`**### Concluzii și Reflecții Finale:**\`
+*   **Sinteza Conexiunilor:** Identifică și subliniază pe scurt 1-2 conexiuni sau teme generale care par să lege diferitele răspunsuri ale utilizatorului de-a lungul ritualului.
+*   **Încurajare și Pași Următori:** Încurajează procesul de transformare schițat în special în secțiunea VII (Actul Sacru de Alegere) și apreciază vulnerabilitatea. Poți sugera o mică intenție sau un focus pentru zilele următoare, bazat pe întregul ritual.
+Fii analitic și profund, dar și uman și susținător. Evită răspunsurile generice; personalizează feedback-ul la maximum pe baza textului furnizat de utilizator.`;
+                modelFocus = "analiză structurată a ritualului de reconstrucție, pas cu pas, corelând textul utilizatorului cu fiecare secțiune a ghidului, oferind reflecție și întrebări de aprofundare per secțiune, plus o sinteză finală.";
                 break;
             case "dialog_voce_critica":
                 specificInstructions = `
-Utilizatorul a explorat un dialog cu "Vocea Critică". Feedback-ul tău ar trebui să fie structurat astfel:
-1.  **Validare Empatică:** Recunoaște dificultatea și durerea asociate cu auzirea mesajelor critice.
-2.  **Analiza Mesajului Critic:** Identifică mesajul critic principal. Ce temă sau frică de bază pare să exprime? (Ex: frica de eșec, de respingere, de a nu fi suficient de bun).
-3.  **Rolul Protector (Disfuncțional):** Explorează posibilul rol protector al vocii critice. Ce nevoie fundamentală (ex: siguranță, apartenență, control) ar putea încerca această voce să satisfacă într-un mod neîndemânatic?
-4.  **Perspectiva Adultului Sănătos:** Reflectează asupra răspunsului Adultului Sănătos. Este compasional? Asertiv? Cum întărește o perspectivă mai echilibrată și auto-susținătoare?
-5.  **Întrebări de Aprofundare (1-2):** Acestea ar putea viza originile vocii critice (ex: "Această voce pare să ecouze pe cineva din trecutul tău, sau este un mesaj pe care l-ai internalizat de-a lungul timpului?") sau strategii de a cultiva mai mult vocea Adultului Sănătos (ex: "Ce mic gest de blândețe sau acțiune aliniată cu Adultul Sănătos ai putea practica mâine, chiar și pentru câteva minute?").
-6.  **Notă despre Scheme (discret):** Dacă mesajul critic este foarte puternic și pare legat de o schemă (ex: "Nu ești bun de nimic" -> Defectivitate), poți menționa la final, cu delicatețe: "*Uneori, astfel de voci critice pot fi ecouri ale unor tipare de gândire și simțire mai vechi, pe care în terapie le numim 'scheme'. Explorarea lor poate aduce și mai multă claritate.*" Nu insista, nu diagnostica.`;
-                modelFocus = "analiză aprofundată a dinamicii vocii critice versus Adultul Sănătos, identificarea nevoilor subiacente și oferirea de piste pentru reflecție ulterioară";
+Utilizatorul a folosit ghidul "Dialog Voce Critică". Analizează răspunsurile sale și structurează feedback-ul astfel:
+1.  **\`**Validare Empatică Inițială:\`** Recunoaște dificultatea și curajul de a confrunta vocea critică.
+2.  **\`**Analiza Mesajului Critic:\`** Pe baza răspunsului la "Vocea mea interioară îmi spune...", reflectă mesajul central al vocii critice. Ce temeri sau convingeri de bază par să fie active?
+3.  **\`**Impactul Emoțional și Corporal:\`** Cum descrie utilizatorul impactul vocii critice ("Când aud acest mesaj, mă simt...")? Validează aceste trăiri.
+4.  **\`**Originea Vocii (dacă e explorată):\`** Dacă utilizatorul a răspuns la "Această voce seamănă cu...", comentează pe scurt această asociere și ce ar putea implica.
+5.  **\`**Nevoia Neîmplinită:\`** Ce nevoie neîmplinită a identificat utilizatorul în spatele mesajului critic? Este aceasta o pistă importantă?
+6.  **\`**Forța Adultului Sănătos:\`** Cum a formulat utilizatorul răspunsul Adultului Sănătos? Reflectă punctele forte ale acestui răspuns (compasiune, asertivitate, realism etc.).
+7.  **\`**### Întrebări de Aprofundare și Direcții:\`** (1-2 întrebări) Ex: "*Ce mic pas ai putea face săptămâna aceasta pentru a întări și mai mult vocea Adultului tău Sănătos în fața criticii interne?*", "*Există vreo situație specifică recentă unde ai putea exersa conștient acest răspuns al Adultului Sănătos?*"
+8.  **\`**Notă despre Scheme (opțional, foarte discret):\`** Dacă este foarte evident, poți adăuga: "*Uneori, aceste voci critice pot fi legate de tipare mai vechi de auto-percepție, numite în terapie 'scheme'. Dacă simți că rezonează, ar putea fi o direcție de explorat.*"`;
+                modelFocus = "analiză detaliată a dialogului cu vocea critică, evidențiind fiecare componentă a ghidului și oferind piste concrete de reflecție și acțiune pentru cultivarea Adultului Sănătos.";
                 break;
             case "explorare_emotie":
                 specificInstructions = `
-Utilizatorul a explorat o emoție specifică. Feedback-ul tău ar trebui să aibă următoarea structură:
-1.  **Validarea Emoției:** Începe prin a valida emoția numită și intensitatea ei. Recunoaște curajul de a o explora.
-2.  **Conexiunea Corp-Emoție:** Comentează descrierea senzațiilor corporale. Cum ajută această conștientizare la înțelegerea mai profundă și la "simțirea" emoției, nu doar la "gândirea" ei?
-3.  **Relația Gânduri-Emoție:** Analizează cum gândurile automate menționate par să influențeze (să genereze, intensifice sau mențină) emoția. Există tipare de gândire evidente?
-4.  **Context și Declanșator:** Reflectează asupra contextului și a declanșatorului. Ce anume din situația descrisă pare să fi activat această emoție?
-5.  **Nevoia Fundamentală:** Analizează nevoia semnalată. Cât de pertinentă pare? Cum se leagă aceasta de emoție și de situație? Este o nevoie recurentă?
-6.  **Auto-Compasiune și Acțiune:** Apreciază gestul de auto-compasiune descris. Cum ar putea fi acesta un pas concret spre reglare emoțională sau spre împlinirea nevoii identificate?
-7.  **Întrebări de Reflecție Finală (1-2):** Pune întrebări deschise, orientate spre viitor sau spre o înțelegere mai profundă. Ex: "*Ce ai învățat despre tine sau despre această emoție prin acest exercițiu?*", "*Ce mic pas ai putea face în următoarele zile pentru a onora nevoia pe care ai identificat-o, atunci când simți din nou această emoție?*"`;
-                modelFocus = "înțelegerea detaliată a emoției în context (corp, gânduri, trigger, nevoie) și promovarea auto-compasiunii și a acțiunilor conștiente";
+Utilizatorul a folosit ghidul "Explorează o emoție". Feedback-ul tău trebuie să parcurgă pașii ghidului:
+1.  **\`**Validarea Emoției Denumite:\`** Recunoaște și validează emoția pe care utilizatorul a identificat-o.
+2.  **\`**Conexiunea Corp-Emoție:\`** Cum a descris utilizatorul senzațiile corporale? Ce ne spune asta despre cum trăiește emoția respectivă?
+3.  **\`**Relația Gânduri-Emoție:\`** Ce gânduri automate a asociat utilizatorul cu emoția? Cum par acestea să influențeze intensitatea sau calitatea emoției? Există distorsiuni cognitive evidente?
+4.  **\`**Contextul și Declanșatorul:\`** Pe baza descrierii contextului, ce pare să fi fost elementul declanșator principal?
+5.  **\`**Nevoia Fundamentală Semnalată:\`** Ce nevoie a identificat utilizatorul? Cât de conectată pare această nevoie de emoție și situație? Este o nevoie universală sau una mai specifică?
+6.  **\`**Gestul de Auto-Compasiune:\`** Cum a intenționat utilizatorul să-și ofere compasiune? Cât de important și vindecător poate fi acest gest?
+7.  **\`**### Reflecții Suplimentare și Întrebări:\`** (1-2 întrebări) Ex: "*Ce ai învățat nou despre această emoție (sau despre tine în raport cu ea) prin acest exercițiu?*", "*Dacă ai putea menține vie intenția de auto-compasiune, ce mică schimbare ar aduce asta în modul cum gestionezi această emoție data viitoare când apare?*"`;
+                modelFocus = "analiză pas cu pas a explorării emoției, de la denumire la auto-compasiune, cu accent pe înțelegerea profundă a componentelor și încurajarea integrării.";
                 break;
             case "recunostinta_resurse":
                 specificInstructions = `
-Utilizatorul a completat un exercițiu de recunoștință și identificare a resurselor interioare. Feedback-ul tău ar trebui să:
-1.  **Aprecierea Practicii:** Începe prin a aprecia efortul de a se conecta cu recunoștința și resursele interioare.
-2.  **Analiza Recunoștinței:** Observă temele recurente în motivele de recunoștință, dacă există. Ce spun acestea despre valorile, prioritățile sau domeniile de viață importante pentru utilizator?
-3.  **Explorarea Resursei Interioare:** Reflectează asupra resursei interioare menționate. Cum poate fi aceasta o ancoră în momente dificile? Cum poate fi cultivată și mai mult în viața de zi cu zi? Poți oferi o micro-sugestie practică (ex: o vizualizare scurtă, o afirmație).
-4.  **Impactul Auto-Îngrijirii:** Comentează gestul de auto-îngrijire. Cât de important este acest act, chiar și mic, în contextul general al stării de bine și al echilibrului emoțional?
-5.  **Încurajarea Continuității:** Încurajează integrarea acestor practici (recunoștință, conectare la resurse, auto-îngrijire) în rutina zilnică, subliniind beneficiile pe termen lung.
-6.  **Întrebări de Final (1-2):** Pune întrebări care să ancoreze experiența. Ex: "*Cum te-a făcut să te simți acest exercițiu? Ce mică schimbare de perspectivă (dacă există) îți aduce?*", "*Cum ai putea să îți reamintești de această resursă interioară atunci când te confrunți cu o provocare?*"`;
-                modelFocus = "consolidarea practicii recunoștinței, ancorarea în resurse interioare și auto-îngrijire, și încurajarea integrării lor în viața cotidiană";
+Utilizatorul a folosit ghidul "Recunoștință & Resurse". Structurează feedback-ul astfel:
+1.  **\`**Aprecierea Practicii Recunoștinței:\`** Începe prin a valoriza gestul de a se concentra pe recunoștință.
+2.  **\`**Observații asupra Elementelor de Recunoștință:\`** Există teme comune în cele trei lucruri pentru care este recunoscător/oare? Ce arată acestea despre ce prețuiește utilizatorul?
+3.  **\`**Explorarea Resursei Interioare:\`** Cum poate resursa interioară menționată să fie o ancoră sau un sprijin în viața de zi cu zi, mai ales în provocări? Cum ar putea fi cultivată și mai conștient?
+4.  **\`**Impactul Gestului de Auto-Îngrijire:\`** Cât de important este acest gest, fie el și mic, pentru bunăstarea generală? Încurajează regularitatea.
+5.  **\`**### Întrebări pentru Consolidare:\`** (1-2 întrebări) Ex: "*Cum te-a făcut să te simți acest exercițiu de conectare cu recunoștința și resursele tale?*", "*Ce ai putea face mâine pentru a te reconecta, chiar și pentru un minut, cu sentimentul de recunoștință sau cu resursa interioară pe care ai identificat-o?*"`;
+                modelFocus = "încurajarea și validarea practicii recunoștinței și a conectării la resursele interioare, cu sugestii de integrare și consolidare.";
                 break;
             case "analiza_situatie":
                 specificInstructions = `
-Utilizatorul a analizat o situație specifică folosind un ghid structurat. Feedback-ul tău ar trebui să:
-1.  **Recunoașterea Efortului:** Validează efortul de structurare și analiză a situației.
-2.  **Sumarizarea Elementelor Cheie:** Reflectă pe scurt elementele principale identificate de utilizator: situația, faptele, interpretarea inițială (gândurile automate) și emoțiile.
-3.  **Analiza Perspectivei Alternative (Reframing):** Comentează perspectiva alternativă. Cât de diferită este aceasta de interpretarea inițială? Ce impact ar putea avea adoptarea conștientă a acestei noi perspective asupra emoțiilor și comportamentelor viitoare?
-4.  **Evidențierea Învățămintelor (Lecțiilor):** Subliniază lecțiile învățate sau cele potențiale identificate. Ce se poate extrage constructiv și valoros din această situație, chiar dacă a fost dificilă?
-5.  **Întrebări de Aprofundare și Acțiune (1-2):** Pune întrebări care să stimuleze integrarea. Ex: "*Ce te-ar ajuta să accesezi mai ușor această 'altă perspectivă' în situații similare viitoare?*", "*Ce mic pas concret, bazat pe lecția învățată, ai putea face în următoarea săptămână dacă o situație similară ar apărea?*"`;
-                modelFocus = "analiza constructivă a situației, cu accent pe reframing, identificarea lecțiilor și transpunerea lor în pași acționabili";
+Utilizatorul a folosit ghidul "Analizează o situație". Feedback-ul tău trebuie să reflecte structura ghidului:
+1.  **\`**Recunoașterea Efortului Analitic:\`** Validează demersul structurat de a înțelege situația.
+2.  **\`**Situația și Faptele:\`** Reflectă pe scurt situația și faptele, așa cum au fost descrise.
+3.  **\`**Interpretarea Inițială și Emoțiile:\`** Care au fost gândurile automate și emoțiile principale identificate de utilizator? Există vreo distorsiune evidentă în gândurile automate?
+4.  **\`**Puterea Reîncadrării (Reframing):\`** Comentează perspectiva alternativă oferită. Cât de diferită este? Ce noi posibilități sau sentimente deschide această reîncadrare?
+5.  **\`**Lecții Învățate:\`** Care sunt învățămintele principale pe care utilizatorul le-a extras sau le poate extrage?
+6.  **\`**### Întrebări pentru Acțiune și Integrare:\`** (1-2 întrebări) Ex: "*Ce mică acțiune, inspirată de 'altă perspectivă' sau de 'lecțiile învățate', ai putea întreprinde dacă o situație similară ar apărea din nou?*", "*Cum te-ar ajuta să-ți reamintești de această 'altă perspectivă' în momentele tensionate?*"`;
+                modelFocus = "susținerea analizei de situație prin reflectarea pașilor, cu focus pe puterea reîncadrării și pe transpunerea lecțiilor în acțiuni concrete.";
                 break;
             default: // prompt_personalizat sau neidentificat
                 specificInstructions = `
-Utilizatorul a scris o intrare liberă în jurnal, fără un ghid specific. Feedback-ul tău ar trebui să fie empatic, reflexiv și să deschidă noi perspective:
-1.  **Validare Generală și Empatie:** Începe cu o validare caldă pentru ceea ce a fost exprimat. Recunoaște deschiderea și reflectă emoția sau tonul general care reiese din text.
-2.  **Identificarea Temelor Centrale (1-2):** Identifică cu grijă 1-2 teme, emoții sau preocupări principale care par să iasă în evidență din textul utilizatorului. Poți folosi citate foarte scurte (1-3 cuvinte) pentru a ilustra, dar nu excesiv.
-3.  **Întrebări Deschise și Evocatoare (2-3):** Pune 2-3 întrebări deschise, care să invite utilizatorul la o explorare mai adâncă a aspectelor menționate, fără a fi intruziv. Întrebările ar trebui să stimuleze auto-descoperirea. Exemple: "*Citind despre [temă specifică], mă întrebam ce altceva ai observat despre tine în acea experiență?*", "*Dacă ai putea da un mesaj părții din tine care a trăit [emoție/situație], care ar fi acela și de ce crezi că ar avea nevoie să-l audă?*", "*Ce nevoie mai profundă crezi că încearcă să se facă auzită prin aceste rânduri/sentimente?*".
-4.  **Oglindire și Reflecție (nu interpretare):** Reflectă înapoi ceea ce ai "auzit" în text, fără a adăuga interpretări personale sau a presupune prea mult. Folosește formulări de genul "Pare că...", "Am observat că menționezi...", "Sună ca și cum...".
-5.  **Încurajare Finală:** Oferă o scurtă încurajare pentru continuarea procesului valoros de scriere și auto-reflecție.`;
-                modelFocus = "reflecție empatică asupra textului liber, identificarea temelor centrale și facilitarea explorării prin întrebări deschise și susținătoare";
+Utilizatorul a scris o intrare liberă în jurnal. Feedback-ul tău ar trebui să fie empatic și să invite la explorare:
+1.  **\`**Validare Empatică Generală:\`** Începe cu o validare caldă pentru ceea ce a fost exprimat. Recunoaște deschiderea și reflectă emoția sau tonul general care reiese din text.
+2.  **\`**Identificarea Temelor Centrale (1-2):\`** Cu grijă, identifică 1-2 teme, emoții sau preocupări principale. Poți folosi citate foarte scurte (1-3 cuvinte) pentru a ilustra.
+3.  **\`**Reflecție Oglindă:\`** Ce pare să fie cel mai important pentru utilizator în această scriere? Ce anume iese în evidență?
+4.  **\`**### Întrebări Deschise și Evocatoare (2-3):\`** Pune întrebări care să stimuleze auto-descoperirea. Exemple: "*Citind despre [temă specifică], ce altceva ai observat despre tine sau despre perspectiva ta?*", "*Dacă această parte din tine care a scris ar putea cere ceva, ce crezi că ar fi?*", "*Ce simți că ai nevoie cel mai mult acum, după ce ai așternut aceste gânduri/emoții pe hârtie (digitală)?*".
+5.  **\`**Încurajare Finală:\`** Oferă o scurtă încurajare pentru continuarea procesului de auto-reflecție prin scris.`;
+                modelFocus = "reflecție empatică asupra textului liber, identificare teme și facilitarea explorării prin întrebări deschise, fără a fi directiv.";
                 break;
         }
+        
+        const ghidReferintaText = guideText ? `\n\n--- TEXTUL GHIDULUI DE REFERINȚĂ (NU RĂSPUNSURILE UTILIZATORULUI) ---\n\`\`\`\n${guideText}\n\`\`\`\nUtilizatorul a avut acest ghid afișat și a scris răspunsurile în secțiunea "Text Complet Jurnal Utilizator" de mai jos.` : "\n\nUtilizatorul a scris liber sau detaliile specifice ale ghidului nu sunt furnizate aici; concentrează-te pe răspunsurile utilizatorului și tipul de ghid general.";
+
 
         const finalPrompt = `${basePrompt}
+${ghidReferintaText}
 
 **Focusul specific pentru această intrare de jurnal (bazat pe ghidul "${promptType}") este: ${modelFocus}.**
 
 **Instrucțiuni specifice pentru feedback bazat pe tipul de ghid ("${promptType}"):**
 ${specificInstructions}
 ---
-**Conținutul Jurnalului Utilizatorului este:**
-Titlu: ${entryTitle || "Fără titlu"}
-Ghid utilizat (detectat/selectat): ${promptType}
+**INFORMAȚII DESPRE INTRAREA UTILIZATORULUI:**
+Titlu Jurnal: ${entryTitle || "Fără titlu"}
+Tipul de Ghid Utilizat (selectat de utilizator / detectat): ${promptType}
 
-Text Complet:
+**TEXT COMPLET JURNAL UTILIZATOR (RĂSPUNSURILE SALE):**
 \`\`\`
 ${journalText}
 \`\`\`
 ---
-Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii cât mai specific și personalizat pe textul oferit. Mulțumesc!`;
+Te rog să generezi un feedback AI detaliat, empatic și structurat conform instrucțiunilor de mai sus, personalizat pe baza textului furnizat de utilizator. Asigură-te că respecți formatarea Markdown cerută pentru lizibilitate. Mulțumesc!`;
 
         return finalPrompt;
     }
+
 
     async function genereazaSauRegenereazaFeedbackJurnal(entryData, entryId) {
         if (!geminiModelJournalFeedback) return "EROARE: Funcționalitatea AI pentru jurnal nu este disponibilă.";
         
         const promptType = entryData.promptTypeUtilizat || detectPromptUsed(entryData.continut);
-        const promptJurnalAdaptiv = buildAdaptiveAIPrompt(entryData.titlu, entryData.continut, promptType);
+        // Preluăm textul ghidului original, dacă e posibil și selectedPrompt corespunde (mai ales la generarea inițială)
+        let textGhidOriginal = null;
+        if (selectedPrompt && selectedPrompt.id === promptType) {
+            textGhidOriginal = selectedPrompt.text;
+        } else { // Fallback pentru regenerare dacă selectedPrompt nu mai e setat corect
+            const promptsList = (typeof initializeReflectionPrompts.prompts !== 'undefined') ? initializeReflectionPrompts.prompts : []; // Asumând că stocăm undeva lista de prompts
+            const ghidGasit = promptsList.find(p => p.id === promptType);
+            if (ghidGasit) textGhidOriginal = ghidGasit.text;
+        }
 
-        console.log(`Jurnal - Regenerare/Generare Feedback pentru tipul: ${promptType}.`);
+        const promptJurnalAdaptiv = buildAdaptiveAIPrompt(entryData.titlu, entryData.continut, promptType, textGhidOriginal);
+
+        console.log(`Jurnal - Regenerare/Generare Feedback pentru tipul: ${promptType}. Se trimite și textul ghidului original dacă este disponibil.`);
         const feedbackText = await callGeminiAPI(promptJurnalAdaptiv, geminiModelJournalFeedback);
         return proceseazaSiStructureazaFeedbackJurnal(feedbackText, entryId, promptType);
     }
     
-    async function proceseazaSiStructureazaFeedbackJurnal(feedbackText, docId, promptType = "necunoscut") { // Am adaugat promptType
-        const parsedFeedback = {
+    // Stocăm referința la lista de prompt-uri într-un loc accesibil pentru funcția de mai sus.
+    // O modalitate e să o atașăm funcției `initializeReflectionPrompts` după ce e definită.
+    // Sau o definim global în script, dar asta poate fi mai puțin curat.
+    // Alegem varianta mai simplă pentru contextul dat:
+    (function() {
+      const promptsInternal = [
+            { id: "explorare_emotie", text: "..." }, // prescurtat; copiază textul complet de la initializeReflectionPrompts
+            { id: "analiza_situatie", text: "..." },
+            { id: "dialog_voce_critica", text: "..." },
+            { id: "recunostinta_resurse", text: "..." },
+            { id: "ritual_reconstructie", text: "..." }
+      ];
+       // Trebuie completate textele aici ca în `initializeReflectionPrompts`
+       promptsInternal[0].text = `🌡️ *Astăzi simt...*\nNumește emoția dominantă: ________________\n\n🔍 *Unde o simt în corp?*\nDescrie senzațiile (tensiune, greutate, pulsație etc.): ________________\n\n💭 *Ce gânduri vin cu această emoție?*\nNotează gândurile automate, chiar dacă par „exagerate”: ________________\n\n📚 *În ce context a apărut?*\nCe s-a întâmplat exact? Ce a declanșat-o? ________________\n\n💧 *Ce nevoie ar putea semnala?*\nDe ce are nevoie această parte din tine? Ce lipsește? ________________\n\n💌 *Dacă aș avea compasiune pentru mine acum...*\nCe mi-aș spune? Ce gest aș face pentru mine? ________________\n`;
+       promptsInternal[1].text = `Situația care mă preocupă este: ________________\n\nCe s-a întâmplat exact? (Fapte): ________________\nInterpretarea mea inițială (Gânduri automate): ________________\nEmoțiile principale: ________________\nO altă perspectivă (Reframing): ________________\nCe am învățat/pot învăța? (Lecții): ________________\n`;
+       promptsInternal[2].text = `🗣️ *Vocea mea interioară îmi spune...*\n(\"Ești slab\", \"Nu faci destul\", \"O să fii respins\"...): ________________\n\n😔 *Când aud acest mesaj, mă simt...*\n(emoții și senzații fizice): ________________\n\n🧒 *Această voce seamănă cu...*\n(E o voce veche? un părinte? un profesor? un fost partener?): ________________\n\n🧠 *Ce nevoie neîmplinită e în spatele acestui mesaj?*\n(Poate recunoaștere, protecție, control, apartenență?): ________________\n\n🧘 *Răspunsul meu ca Adult Sănătos ar fi...*\n(\"Apreciez că vrei să mă protejezi, dar acum aleg altceva.\"): ________________\n`;
+       promptsInternal[3].text = `💖 *Astăzi aleg să văd ce e bun...*\nSunt recunoscător/oare pentru:\n1. ________________\n2. ________________\n3. ________________\n\n🌱 *O resursă interioară pe care mă pot baza astăzi este...*\n(ex: curaj, blândețe, claritate, capacitatea de a simți): ________________\n\n🛁 *Un gest de auto-îngrijire pe care îl pot face azi...*\n(chiar dacă e mic): ________________\n`;
+       promptsInternal[4].text = `🧭 MASTER TEMPLATE – Scriere Terapeutică de Integrare și Vindecare\nDenumire: „Ritual de reconstrucție interioară”\nScop: Eliberare, Clarificare, Conținere, Înțelepciune, Direcție\n\nI. 🔍 INVITAȚIE LA AUTENTICITATE\n„Ce parte din mine cere atenție acum?”\n   * Ce trăiesc cu adevărat, fără filtru, fără poveste cosmetizată?\n   * Ce mi-e rușine să simt sau să recunosc chiar și în scris?\n   * Ce parte din mine se simte exclusă, neauzită, ignorată?\nRăspuns: ________________\n\nII. 🌊 CONTAINERE EMOȚIONALE\n„Ce simte corpul meu? Unde locuiește durerea?”\n   * Unde simt emoția în corp? Cum se manifestă? (Tensiune, înțepături, etc.)\n   * Dacă ar avea o culoare, formă, textură – cum ar arăta?\n   * Pot respira în acea zonă 3 minute, fără să fug?\nRăspuns: ________________\n\nIII. 🧠 DECODIFICARE NARATIVĂ\n„Ce poveste îmi spun? Este întreagă?”\n   * Ce narațiune inconștientă guvernează trăirea mea? (ex: „Nu sunt dorit.”)\n   * De unde vine această narațiune? Când am mai trăit ceva similar?\n   * Ce parte din mine (copil rănit, etc.) scrie această poveste?\nRăspuns: ________________\n\nIV. 🧩 INTEGRARE EXPLICATIVĂ\n„Ce înțeleg nou despre mine din această durere?”\n   * Ce nevoi profunde au fost ignorate sau negate?\n   * Ce am protejat, de fapt, prin reacția mea?\n   * Ce emoții contradictorii coexistă în mine și ce spun ele?\nRăspuns: ________________\n\nV. 🪞 COMPASIUNE ȘI BLÂNDEȚE\n„Cum pot fi părinte pentru mine acum?”\n   * Dacă mi-aș ține partea rănită în brațe, ce i-aș spune?\n   * Ce aș vrea să aud din partea unei figuri ideale de susținere?\n   * Pot lăsa iubirea, nu logica, să conducă acest moment?\nRăspuns: ________________\n\nVI. 🔮 RECONFIGURARE IDENTITARĂ\n„Cine sunt eu dincolo de această rană?”\n   * Ce adevăr despre mine rămâne valabil, chiar și în durere?\n   * Cine devin dacă învăț să stau cu mine în acest spațiu?\n   * Dacă aș fi un personaj simbolic acum, cine aș fi?\nRăspuns: ________________\n\nVII. ✍️ ACTUL SACRU DE ALEGERE\n„Ce aleg de azi, pentru mine?”\n   * Ce merită să las să plece?\n   * Ce îmi iau ca învățătură de încredere în viață?\n   * Ce ritual zilnic/mic obicei pot începe pentru a onora această transformare?\nRăspuns: ________________\n\nVIII. (Opțional) 📜 SCRISOARE-RITUAL\nScrie o scrisoare către... (persoana, partea din tine, situația):\nRăspuns: ________________\n`;
+
+      // Expunem lista global prin atașare la o funcție (hacky, dar funcțional în context limitat)
+      // O soluție mai bună ar fi un mic modul de management al prompturilor dacă proiectul crește.
+      initializeReflectionPrompts.prompts = promptsInternal;
+    })();
+
+
+    async function proceseazaSiStructureazaFeedbackJurnal(feedbackText, docId, promptType = "necunoscut") {
+        // ... (Funcția proceseazaSiStructureazaFeedbackJurnal rămâne la fel)
+         const parsedFeedback = {
             rawText: feedbackText,
             model: `Gemini (${GEMINI_MODEL_NAME_JOURNAL_FEEDBACK})`,
             timestamp: new Date().toISOString(),
-            promptTypeAtGeneration: promptType, // Salvam si tipul de prompt folosit la generare
+            promptTypeAtGeneration: promptType, 
             error: typeof feedbackText === 'string' && feedbackText.toUpperCase().startsWith("EROARE:")
         };
         if (docId) {
@@ -408,11 +481,13 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
     }
 
     async function salveazaIntrareJurnalSiGenereazaFeedback() {
+        // ... (Funcția salveazaIntrareJurnalSiGenereazaFeedback rămâne aproape la fel,
+        // dar se asigură că `toggleActivePrompt(false)` și `selectedPrompt = null` se apelează la final)
         const journalTextarea = document.getElementById("journalContent");
         const journalTitleInput = document.getElementById("journalTitle");
         if (!journalTextarea || journalTextarea.value.trim() === "") { alert("Scrie ceva în jurnal."); return; }
 
-        const tipPromptFolosit = getSelectedPromptType();
+        const tipPromptFolosit = getSelectedPromptType(); // Determină tipul ghidului activ
 
         const entryData = {
             continut: journalTextarea.value,
@@ -420,7 +495,7 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
             timestampCreare: Timestamp.fromDate(new Date()),
             dataIntrare: new Date().toLocaleDateString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric' }),
             ownerUid: auth.currentUser?.uid,
-            promptTypeUtilizat: tipPromptFolosit // SALVEAZĂ TIPUL PROMPTULUI
+            promptTypeUtilizat: tipPromptFolosit 
         };
         if (!entryData.ownerUid) { alert("Eroare autentificare."); return; }
 
@@ -428,19 +503,20 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
         const originalButtonText = saveButton.textContent;
         saveButton.textContent = "Se salvează..."; saveButton.disabled = true;
         const confirmationMsg = document.getElementById('journalConfirmationMessage');
+        confirmationMsg.style.display = 'none'; // Ascunde mesajul anterior
 
         try {
             const docRef = await addDoc(collection(db, "intrariJurnal"), entryData);
             saveButton.textContent = "Se generează AI...";
-            // entryData.id = docRef.id; // Adaugă ID-ul pentru consistență dacă genereaza... are nevoie de el direct
-            const parsedFeedback = await genereazaSauRegenereazaFeedbackJurnal(entryData, docRef.id); // Trimite entryData complet
             
-            const docSnapshot = await getDoc(docRef); // Re-fetch pentru a avea și feedback-ul AI
+            const parsedFeedback = await genereazaSauRegenereazaFeedbackJurnal(entryData, docRef.id);
+            
+            const docSnapshot = await getDoc(docRef); 
             if (docSnapshot.exists()) {
                  afiseazaCardJurnal({ id: docSnapshot.id, ...docSnapshot.data() });
-            } else { // Fallback dacă docSnapshot nu e gata imediat, puțin probabil dar defensiv
+            } else { 
                  console.warn("Documentul nu a fost găsit imediat după adăugare/update. Afișare cu date parțiale.");
-                 entryData.id = docRef.id; // Asigură-te că ID-ul e setat
+                 entryData.id = docRef.id; 
                  entryData.feedbackAI_latest = parsedFeedback;
                  entryData.feedbackAI_history = [parsedFeedback];
                  afiseazaCardJurnal(entryData);
@@ -449,49 +525,46 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
             journalTextarea.value = ""; 
             if (journalTitleInput) journalTitleInput.value = "";
             toggleActivePrompt(false); // Ascunde ghidul activ
-            selectedPrompt = null; // Resetează promptul selectat
+            // selectedPrompt se resetează în interiorul toggleActivePrompt(false)
+            if(selectedPrompt) selectedPrompt.previousIdForClearCheck = null; // Reset pentru verificarea de curățare
 
-            confirmationMsg.textContent = parsedFeedback.error ? `Intrare salvată. Feedback AI: ${parsedFeedback.rawText}` : 'Intrare salvată și feedback AI generat!';
+            confirmationMsg.textContent = parsedFeedback.error ? `Intrare salvată. Feedback AI: ${parsedFeedback.rawText}` : 'Intrare salvată și feedback AI generat! Îl poți vedea în cardul nou creat.';
             confirmationMsg.className = `confirmation-message ${parsedFeedback.error ? 'error' : 'success'}`;
             
         } catch (error) {
             console.error("Eroare la salvare/generare feedback jurnal:", error);
-            confirmationMsg.textContent = 'Eroare la salvare sau generare feedback.';
+            confirmationMsg.textContent = 'Eroare la salvare sau la generarea feedback-ului AI. Verifică consola pentru detalii.';
             confirmationMsg.className = 'confirmation-message error';
         } finally {
             confirmationMsg.style.display = 'block';
-            setTimeout(() => { confirmationMsg.style.display = 'none'; }, 9000);
+            setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 9000);
             saveButton.textContent = originalButtonText;
             saveButton.disabled = false;
         }
     }
     
     async function regenereazaFeedbackJurnal(entryId) {
+        // ... (Funcția regenereazaFeedbackJurnal rămâne la fel)
         const btn = document.querySelector(`.journal-card[data-id="${entryId}"] .regenerate-feedback-button`);
         const originalText = btn ? btn.textContent : "";
         if (btn) { btn.textContent = "Se generează..."; btn.disabled = true; }
         const confirmationMsg = document.getElementById('journalConfirmationMessage');
+        if(confirmationMsg) confirmationMsg.style.display = 'none';
 
 
         try {
             const entryDoc = await getDoc(doc(db, "intrariJurnal", entryId));
             if (!entryDoc.exists()) { 
-                alert("Intrarea nu există."); 
-                if(confirmationMsg) {
-                    confirmationMsg.textContent = 'Eroare: Intrarea nu a fost găsită.';
-                    confirmationMsg.className = 'confirmation-message error';
-                    confirmationMsg.style.display = 'block';
-                }
+                const msg = "Eroare: Intrarea nu a fost găsită pentru regenerare.";
+                if(confirmationMsg) { confirmationMsg.textContent = msg; confirmationMsg.className = 'confirmation-message error'; confirmationMsg.style.display = 'block'; } 
+                else { alert(msg); }
                 return; 
             }
-            const parsedFeedback = await genereazaSauRegenereazaFeedbackJurnal(entryDoc.data(), entryId); // trimite entryDoc.data() care are promptTypeUtilizat
+            const parsedFeedback = await genereazaSauRegenereazaFeedbackJurnal(entryDoc.data(), entryId); 
             
             const updatedDoc = await getDoc(doc(db, "intrariJurnal", entryId)); 
             if (updatedDoc.exists()) {
                 const card = document.querySelector(`.journal-card[data-id="${entryId}"]`);
-                // Actualizează întregul card pentru a reflecta noul feedback, similar cu cum e făcut în salveaza...
-                // Cel mai simplu e să re-afișăm cardul. Dar asta poate închide cardul dacă era deschis.
-                // O soluție mai bună e să actualizăm doar containerul de feedback.
                 const feedbackContainer = card?.querySelector('.ai-feedback-history-container');
                 if (feedbackContainer) {
                     afiseazaIstoricFeedbackJurnal(feedbackContainer, updatedDoc.data().feedbackAI_history || []);
@@ -502,20 +575,19 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
                 confirmationMsg.textContent = message;
                 confirmationMsg.className = `confirmation-message ${parsedFeedback.error ? 'error' : 'success'}`;
                 confirmationMsg.style.display = 'block';
-                setTimeout(() => { confirmationMsg.style.display = 'none'; }, 7000);
+                setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);
             } else {
                 alert(message);
             }
 
         } catch (e) { 
             console.error("Eroare regenerare:", e); 
+            const msg = "Eroare la regenerarea feedback-ului AI. Verificați consola.";
             if(confirmationMsg) {
-                confirmationMsg.textContent = 'Eroare la regenerare feedback.';
-                confirmationMsg.className = 'confirmation-message error';
-                confirmationMsg.style.display = 'block';
-                setTimeout(() => { confirmationMsg.style.display = 'none'; }, 7000);
+                confirmationMsg.textContent = msg; confirmationMsg.className = 'confirmation-message error'; confirmationMsg.style.display = 'block';
+                setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);
             } else {
-                 alert("Eroare la regenerare feedback.");
+                 alert(msg);
             }
         } finally { 
             if (btn) { btn.textContent = originalText; btn.disabled = false; } 
@@ -523,23 +595,25 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
     }
 
     async function stergeUltimulFeedbackJurnal(entryId) {
+        // ... (Funcția stergeUltimulFeedbackJurnal rămâne la fel)
         if (!confirm("Ștergi ultimul feedback AI pentru această intrare? Această acțiune nu poate fi anulată.")) return;
         const btn = document.querySelector(`.journal-card[data-id="${entryId}"] .delete-last-feedback-button`);
         const originalText = btn ? btn.textContent : "";
         if (btn) { btn.textContent = "Se șterge..."; btn.disabled = true; }
         const confirmationMsg = document.getElementById('journalConfirmationMessage');
+        if(confirmationMsg) confirmationMsg.style.display = 'none';
 
         try {
             const entryDocRef = doc(db, "intrariJurnal", entryId);
             const entrySnap = await getDoc(entryDocRef);
             if (!entrySnap.exists() || !entrySnap.data().feedbackAI_history?.length) {
-                const msg = "Nu există feedback de șters.";
-                if(confirmationMsg) {confirmationMsg.textContent = msg; confirmationMsg.className = 'confirmation-message warning'; confirmationMsg.style.display = 'block'; setTimeout(() => { confirmationMsg.style.display = 'none'; }, 7000);}
+                const msg = "Nu există feedback de șters pentru această intrare.";
+                if(confirmationMsg) {confirmationMsg.textContent = msg; confirmationMsg.className = 'confirmation-message warning'; confirmationMsg.style.display = 'block'; setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);}
                 else { alert(msg); }
                 return;
             }
             const history = entrySnap.data().feedbackAI_history;
-            history.pop(); // Scoate ultimul
+            history.pop(); 
 
             await updateDoc(entryDocRef, {
                 feedbackAI_history: history,
@@ -550,14 +624,14 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
             const feedbackContainer = card?.querySelector('.ai-feedback-history-container');
             if (feedbackContainer) afiseazaIstoricFeedbackJurnal(feedbackContainer, history);
             
-            const msg = "Ultimul feedback AI șters.";
-            if(confirmationMsg) {confirmationMsg.textContent = msg; confirmationMsg.className = 'confirmation-message success'; confirmationMsg.style.display = 'block'; setTimeout(() => { confirmationMsg.style.display = 'none'; }, 7000);}
+            const msg = "Ultimul feedback AI a fost șters cu succes.";
+            if(confirmationMsg) {confirmationMsg.textContent = msg; confirmationMsg.className = 'confirmation-message success'; confirmationMsg.style.display = 'block'; setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);}
             else { alert(msg); }
 
         } catch (e) { 
             console.error("Eroare ștergere ultim feedback:", e); 
-             const msg = "Eroare la ștergere feedback.";
-            if(confirmationMsg) {confirmationMsg.textContent = msg; confirmationMsg.className = 'confirmation-message error'; confirmationMsg.style.display = 'block'; setTimeout(() => { confirmationMsg.style.display = 'none'; }, 7000);}
+            const msg = "Eroare la ștergerea feedback-ului. Verificați consola.";
+            if(confirmationMsg) {confirmationMsg.textContent = msg; confirmationMsg.className = 'confirmation-message error'; confirmationMsg.style.display = 'block'; setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);}
             else { alert(msg); }
         } finally { 
             if (btn) { btn.textContent = originalText; btn.disabled = false; } 
@@ -565,6 +639,7 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
     }
     
     function afiseazaIstoricFeedbackJurnal(containerEl, feedbackHistory) {
+        // ... (Funcția afiseazaIstoricFeedbackJurnal rămâne la fel, cu parsarea Markdown îmbunătățită)
         containerEl.innerHTML = ''; 
 
         if (!feedbackHistory || !Array.isArray(feedbackHistory) || feedbackHistory.length === 0) {
@@ -582,7 +657,7 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
             const timestampAndModel = document.createElement("p");
             timestampAndModel.className = "feedback-timestamp";
             const modelInfo = entry.model || 'N/A';
-            const promptTypeInfo = entry.promptTypeAtGeneration ? ` (Ghid: ${entry.promptTypeAtGeneration.replace(/_/g, ' ')})` : '';
+            const promptTypeInfo = entry.promptTypeAtGeneration ? ` (Ghid folosit la generare: ${entry.promptTypeAtGeneration.replace(/_/g, ' ')})` : '';
             timestampAndModel.innerHTML = `<strong>Feedback #${feedbackHistory.length - index}</strong> (${new Date(entry.timestamp).toLocaleString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} - ${modelInfo}${promptTypeInfo})`;
             itemContainer.appendChild(timestampAndModel);
 
@@ -592,25 +667,56 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
             if (entry.error) {
                 const errorP = document.createElement("p");
                 errorP.className = "ai-text-error";
-                errorP.innerHTML = (entry.rawText || "Eroare la generarea acestui feedback.").replace(/\n/g, '<br>');
+                errorP.innerHTML = (entry.rawText || "Eroare la generarea acestui feedback.").replace(/\n/g, '<br>'); // Simplu afișare eroare
                 contentWrapper.appendChild(errorP);
             } else {
                 let textToProcess = entry.rawText || 'Conținut indisponibil.';
                 let finalHtmlElements = []; 
                 const lines = textToProcess.split('\n');
                 let currentParagraphContent = [];
-                let inList = false; // Track if we are inside a list
-                let currentListElement = null;
-
+                let inList = false;
+                let currentListElement = null; // va fi UL sau OL
 
                 for (const line of lines) {
-                    // 1. Verifică Titlurile Principale (ex: **Titlu**)
-                    // Asigură-te că nu e parte dintr-un text bold în interiorul unei linii.
-                    const matchTitle = line.match(/^\s*(\*\*|###\s*|\#\#\s*|\#\s*)([^*#]+)\1?\s*$/);
+                    // 1. Verifică Titlurile Principale (ex: **Titlu**, ### Titlu)
+                    const matchTitle = line.match(/^\s*(?:(\*\*|###|\##|\#)\s*([^#*]+)\s*(?:\1)?\s*)$/);
 
+                    if (matchTitle && matchTitle[2] && matchTitle[2].trim().length > 0) {
+                        if (currentParagraphContent.length > 0) { // Adaugă paragraful anterior
+                            const p = document.createElement('p');
+                            p.className = 'ai-text-paragraph';
+                            let paragraphHtml = currentParagraphContent.join('<br>'); // Use <br> for newlines within a paragraph
+                            paragraphHtml = paragraphHtml.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/__(.*?)__/g, '<strong>$1</strong>');
+                            paragraphHtml = paragraphHtml.replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/_(.*?)_/g, '<em>$1</em>');
+                            p.innerHTML = paragraphHtml;
+                            finalHtmlElements.push(p);
+                            currentParagraphContent = [];
+                        }
+                         if (inList && currentListElement) { // Termină lista anterioară
+                            finalHtmlElements.push(currentListElement);
+                            inList = false; currentListElement = null;
+                        }
 
-                    if (matchTitle && matchTitle[2].trim().length > 0) {
-                        if (currentParagraphContent.length > 0) {
+                        const titleMarker = matchTitle[1]; // **, ###, ##, #
+                        let titleLevel = 2; // Default H2 pentru **
+                        if (titleMarker.startsWith('#')) {
+                            titleLevel = titleMarker.length;
+                            if (titleLevel > 4) titleLevel = 4; // Max H4 pentru consistență vizuală
+                        }
+                        const titleEl = document.createElement(`h${titleLevel}`);
+                        titleEl.className = 'ai-main-section-title';
+                        // Pentru **Titlu**, matchTitle[2] conține 'Titlu'. Pentru # Titlu, matchTitle[2] conține 'Titlu'.
+                        let titleText = matchTitle[2].trim();
+                        titleText = titleText.replace(/\*\*(.*?)\*\*/g, '$1').replace(/__(.*?)__/g, '$1'); // Curăță bold din titluri dacă AI-ul le dublează
+                        titleEl.textContent = titleText;
+                        finalHtmlElements.push(titleEl);
+                        continue; 
+                    }
+
+                    // 2. Verifică Elementele de Listă (ex: * Item, - Item, + Item, 1. Item)
+                    const matchListItem = line.match(/^\s*([\*\-\+]|\d+\.)\s+(.*)/);
+                    if (matchListItem) {
+                        if (currentParagraphContent.length > 0) { // Adaugă paragraful anterior
                             const p = document.createElement('p');
                             p.className = 'ai-text-paragraph';
                             let paragraphHtml = currentParagraphContent.join('<br>');
@@ -620,40 +726,23 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
                             finalHtmlElements.push(p);
                             currentParagraphContent = [];
                         }
-                         if (inList && currentListElement) {
-                            finalHtmlElements.push(currentListElement);
-                            inList = false; currentListElement = null;
-                        }
-                        const titleDiv = document.createElement(matchTitle[1].startsWith('#') ? `h${matchTitle[1].length}` : 'div'); // H_ sau DIV
-                        titleDiv.className = 'ai-main-section-title';
-                        // Scoat boldul din titlu dacă e cu ** și păstrează-l dacă e din #
-                        titleDiv.textContent = matchTitle[2].trim();
-                        finalHtmlElements.push(titleDiv);
-                        continue; 
-                    }
-
-                    // 2. Verifică Elementele de Listă (ex: * Item, - Item, 1. Item)
-                    const matchListItem = line.match(/^\s*([\*\-\+]|\d+\.)\s+(.*)/);
-                    if (matchListItem) {
-                        if (currentParagraphContent.length > 0) {
-                            const p = document.createElement('p');
-                            p.className = 'ai-text-paragraph';
-                             let paragraphHtml = currentParagraphContent.join('<br>');
-                            paragraphHtml = paragraphHtml.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/__(.*?)__/g, '<strong>$1</strong>');
-                            paragraphHtml = paragraphHtml.replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/_(.*?)_/g, '<em>$1</em>');
-                            p.innerHTML = paragraphHtml;
-                            finalHtmlElements.push(p);
-                            currentParagraphContent = [];
-                        }
-                        if (!inList) {
+                        if (!inList) { // Începe o listă nouă
                             inList = true;
                             currentListElement = document.createElement(matchListItem[1].match(/\d+\./) ? 'ol' : 'ul');
                             currentListElement.className = 'ai-list';
+                        } else { // Verifică dacă tipul de listă s-a schimbat (ex: de la * la 1.)
+                             const newListTypeIsOrdered = !!matchListItem[1].match(/\d+\./);
+                             const currentListIsOrdered = currentListElement.tagName === 'OL';
+                             if (newListTypeIsOrdered !== currentListIsOrdered) {
+                                 // Tipul listei s-a schimbat, încheie lista veche, începe una nouă
+                                 finalHtmlElements.push(currentListElement);
+                                 currentListElement = document.createElement(newListTypeIsOrdered ? 'ol' : 'ul');
+                                 currentListElement.className = 'ai-list';
+                             }
                         }
                         const listItem = document.createElement('li');
                         listItem.className = 'ai-list-item';
-                        // Parsează markdown simplu în interiorul itemului de listă
-                        let itemHtml = matchListItem[2];
+                        let itemHtml = matchListItem[2]; // Conținutul itemului de listă
                         itemHtml = itemHtml.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/__(.*?)__/g, '<strong>$1</strong>');
                         itemHtml = itemHtml.replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/_(.*?)_/g, '<em>$1</em>');
                         listItem.innerHTML = itemHtml;
@@ -669,25 +758,27 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
 
                     // 3. Text normal sau linie goală
                     if (line.trim() === "") {
-                        if (currentParagraphContent.length > 0) {
+                        if (currentParagraphContent.length > 0) { // Adaugă paragraful adunat
                             const p = document.createElement('p');
                             p.className = 'ai-text-paragraph';
-                             let paragraphHtml = currentParagraphContent.join('<br>');
+                            let paragraphHtml = currentParagraphContent.join('<br>');
                             paragraphHtml = paragraphHtml.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/__(.*?)__/g, '<strong>$1</strong>');
                             paragraphHtml = paragraphHtml.replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/_(.*?)_/g, '<em>$1</em>');
                             p.innerHTML = paragraphHtml;
                             finalHtmlElements.push(p);
                             currentParagraphContent = [];
                         }
-                        // Adaugă un <br> doar dacă nu e ultimul element sau dacă nu e urmat de alt conținut
-                        if (lines.indexOf(line) < lines.length -1 && lines[lines.indexOf(line)+1].trim() !== "") {
-                           finalHtmlElements.push(document.createElement('br'));
+                        // Pentru linii goale, adăugăm un <br> dacă urmează conținut, pentru spațiere
+                        const nextNonEmptyLineIndex = lines.findIndex((l, i) => i > lines.indexOf(line) && l.trim() !== "");
+                        if (nextNonEmptyLineIndex !== -1) {
+                           // Nu adăugăm <br> explicit, paragrafele vor crea spațiu
                         }
-                    } else {
+                    } else { // Linie de text normal, adaug-o la paragraful curent
                         currentParagraphContent.push(line);
                     }
                 }
 
+                // Adaugă ultimul paragraf adunat, dacă există
                 if (currentParagraphContent.length > 0) {
                     const p = document.createElement('p');
                     p.className = 'ai-text-paragraph';
@@ -697,7 +788,8 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
                     p.innerHTML = paragraphHtml;
                     finalHtmlElements.push(p);
                 }
-                 if (inList && currentListElement) { // Adaugă lista dacă era ultima
+                // Adaugă ultima listă, dacă eram într-una
+                 if (inList && currentListElement) {
                     finalHtmlElements.push(currentListElement);
                 }
 
@@ -709,41 +801,49 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
     }
 
     function afiseazaCardJurnal(entryData) {
+        // ... (Funcția afiseazaCardJurnal rămâne la fel ca în versiunea anterioară, cu detaliile jurnalului în <details>)
         const container = document.getElementById("journalEntriesContainer");
         let card = container.querySelector(`.journal-card[data-id="${entryData.id}"]`);
         
         const entryDate = entryData.dataIntrare || (entryData.timestampCreare?.toDate ? new Date(entryData.timestampCreare.toDate()).toLocaleDateString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Dată necunoscută');
         const entryTitle = entryData.titlu || `Intrare din ${entryDate}`;
-        const promptTypeUsedDisplay = entryData.promptTypeUtilizat ? ` (Ghid: ${entryData.promptTypeUtilizat.replace(/_/g, ' ')})` : '';
+        // Formatăm tipul de prompt pentru afișare
+        let promptTypeDisplay = "";
+        if (entryData.promptTypeUtilizat && entryData.promptTypeUtilizat !== "prompt_personalizat") {
+            promptTypeDisplay = entryData.promptTypeUtilizat.replace(/_/g, ' ');
+            promptTypeDisplay = promptTypeDisplay.charAt(0).toUpperCase() + promptTypeDisplay.slice(1); // Capitalize
+            promptTypeDisplay = ` (Ghid: ${promptTypeDisplay})`;
+        } else if (entryData.promptTypeUtilizat === "prompt_personalizat"){
+            promptTypeDisplay = " (Scriere liberă)";
+        }
 
-        if (!card) { // Creare card nou
+
+        if (!card) { 
             card = document.createElement("div");
             card.className = "response-card journal-card"; 
             card.setAttribute("data-id", entryData.id);
-            // Nota: Am simplificat card-content inițial; detaliile jurnalului sunt într-un <details>
             card.innerHTML = `
                 <div class="card-header">
-                    <span>${entryTitle}${promptTypeUsedDisplay}</span>
+                    <span>${entryTitle}${promptTypeDisplay}</span>
                     <span class="card-date">${entryDate}</span>
                 </div>
                 <div class="card-content">
                     <details class="journal-entry-details">
-                        <summary>Vezi/Ascunde textul jurnalului</summary>
+                        <summary>Vezi/Ascunde textul intrării de jurnal</summary>
                         <p class="journal-entry-content-text">${entryData.continut.replace(/\n/g, '<br>')}</p>
                     </details>
-                    <h4>Feedback AI PsihoGPT</h4>
+                    <h4>Feedback AI <span style="font-weight:300; font-style:italic; font-size:0.85em;">(PsihoGPT)</span></h4>
                     <div class="ai-feedback-history-container"></div>
                     <div class="card-actions">
-                         <button class="regenerate-feedback-button" title="Regenerează Feedback AI">Regenerează</button>
-                         <button class="delete-last-feedback-button" title="Șterge Ultimul Feedback AI">Șterge Ultimul</button>
-                         <button class="delete-journal-entry-button" title="Șterge Intrarea și Tot Feedback-ul">Șterge Intrarea</button>
+                         <button class="regenerate-feedback-button" title="Regenerează Feedback AI pentru această intrare">Regenerează</button>
+                         <button class="delete-last-feedback-button" title="Șterge Ultimul Feedback AI generat">Șterge Ultimul</button>
+                         <button class="delete-journal-entry-button" title="Șterge Această Intrare din Jurnal și Tot Feedback-ul">Șterge Intrarea</button>
                     </div>
                 </div>`;
             
             const header = card.querySelector('.card-header');
             header.addEventListener('click', (e) => {
-                 // Toggle 'open' class only if the click is not on the date span or other specific elements
-                 if (!e.target.classList.contains('card-date')) {
+                 if (!e.target.closest('button') && !e.target.closest('details')) { // Nu deschide/închide dacă se apasă pe butoane sau pe zona <details>
                     card.classList.toggle('open');
                  }
             });
@@ -754,29 +854,31 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
             const noEntriesMsg = container.querySelector('.no-entries-message');
             if (noEntriesMsg) noEntriesMsg.remove();
 
-            if (container.firstChild) { 
+            if (container.firstChild && container.firstChild.nodeName !== 'P') { // Adaugă înaintea primului card, dacă există și nu e mesajul "nici o intrare"
                 container.insertBefore(card, container.firstChild);
-            } else { 
+            } else { // Altfel, dacă e gol sau are un mesaj placeholder, curăță și adaugă
+                if (container.firstChild && container.firstChild.nodeName === 'P') container.innerHTML = '';
                 container.appendChild(card);
             }
-        } else { // Update card existent (ex: după regenerare, dacă am alege să actualizăm tot cardul)
-             card.querySelector('.card-header span:first-child').textContent = `${entryTitle}${promptTypeUsedDisplay}`;
+        } else { 
+             card.querySelector('.card-header span:first-child').textContent = `${entryTitle}${promptTypeDisplay}`;
              card.querySelector('.journal-entry-content-text').innerHTML = entryData.continut.replace(/\n/g, '<br>');
         }
         
         const feedbackContainer = card.querySelector('.ai-feedback-history-container');
-        if (feedbackContainer) afiseazaIstoricFeedbackJurnal(feedbackContainer, entryData.feedbackAI_history || entryData.feedbackAI_latest ? (entryData.feedbackAI_history || [entryData.feedbackAI_latest].filter(Boolean)) : []);
+        if (feedbackContainer) afiseazaIstoricFeedbackJurnal(feedbackContainer, entryData.feedbackAI_history || (entryData.feedbackAI_latest ? [entryData.feedbackAI_latest] : []));
     }
 
     async function stergeIntrareJurnal(id, cardElement) {
+        // ... (Funcția stergeIntrareJurnal rămâne la fel)
         if (!confirm("Ștergi această intrare din jurnal și tot feedback-ul asociat? Acțiunea este ireversibilă.")) return;
         try {
             await deleteDoc(doc(db, "intrariJurnal", id));
             cardElement.remove();
             const container = document.getElementById("journalEntriesContainer");
-            if(container && !container.querySelector('.journal-card')) {
+            if(container && !container.querySelector('.journal-card') && !container.querySelector('.no-entries-message')) { // Verifică dacă mai sunt carduri
                 const noEntriesMsg = document.createElement("p");
-                noEntriesMsg.className = "no-entries-message";
+                noEntriesMsg.className = "no-entries-message"; // Folosește clasa consistentă
                 noEntriesMsg.textContent = "Nicio intrare în jurnal. Începe prin a scrie una!";
                 container.appendChild(noEntriesMsg);
             }
@@ -784,14 +886,15 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
     }
 
     async function incarcaIntrariJurnal(userId) {
+        // ... (Funcția incarcaIntrariJurnal rămâne la fel)
         const container = document.getElementById("journalEntriesContainer");
         if (!container || !userId) return;
         
         let loadingMsg = container.querySelector(".loading-message");
-        if (!container.querySelector('.journal-card') && !loadingMsg) {
+        if (!container.querySelector('.journal-card') && !container.querySelector('.no-entries-message') && !loadingMsg) {
             loadingMsg = document.createElement("p");
-            loadingMsg.className = "loading-message";
-            loadingMsg.textContent = "Se încarcă intrările...";
+            loadingMsg.className = "loading-message"; // Folosește clasa consistentă
+            loadingMsg.textContent = "Se încarcă intrările din jurnal...";
             container.appendChild(loadingMsg);
         }
 
@@ -799,49 +902,56 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
             const q = query(collection(db, "intrariJurnal"), where("ownerUid", "==", userId), orderBy("timestampCreare", "desc"));
             const querySnapshot = await getDocs(q);
             
-            if (loadingMsg) loadingMsg.remove(); // Înlătură "Se încarcă..."
+            if (loadingMsg) loadingMsg.remove(); 
 
-            const currentCardIds = new Set();
-            container.querySelectorAll('.journal-card').forEach(card => currentCardIds.add(card.dataset.id));
-            
-            const docsData = [];
+            // Optimizare: Înlătură doar cardurile care nu mai există
+            const currentCardsMap = new Map();
+            container.querySelectorAll('.journal-card').forEach(card => currentCardsMap.set(card.dataset.id, card));
+
+            const newDocsData = [];
             querySnapshot.forEach((docSnap) => {
-                docsData.push({ id: docSnap.id, ...docSnap.data() });
-            });
-
-            // Șterge cardurile care nu mai sunt în Firestore (dacă există o astfel de logică de ștergere externă)
-            container.querySelectorAll('.journal-card').forEach(card => {
-                if (!docsData.find(d => d.id === card.dataset.id)) {
-                    card.remove();
+                newDocsData.push({ id: docSnap.id, ...docSnap.data() });
+                if (currentCardsMap.has(docSnap.id)) {
+                    currentCardsMap.delete(docSnap.id); // Acest card este încă valid, nu-l șterge
                 }
             });
 
-            if (docsData.length === 0) {
-                if(!container.querySelector('.journal-card') && !container.querySelector('.no-entries-message')) { // Adaugă mesajul doar dacă nu există deja carduri
+            // Șterge cardurile rămase în map (cele care nu mai sunt în Firestore)
+            currentCardsMap.forEach(oldCard => oldCard.remove());
+            
+            if (newDocsData.length === 0 && !container.querySelector('.journal-card')) {
+                if (!container.querySelector('.no-entries-message')) { // Adaugă mesajul doar dacă e gol
                     const noEntriesMsg = document.createElement("p");
                     noEntriesMsg.className = "no-entries-message";
-                    noEntriesMsg.textContent = "Nicio intrare. Începe prin a scrie una!";
+                    noEntriesMsg.textContent = "Nicio intrare în jurnal. Începe prin a scrie una!";
                     container.appendChild(noEntriesMsg);
                 }
             } else {
-                 const noEntriesMessage = container.querySelector('.no-entries-message');
-                 if (noEntriesMessage) noEntriesMessage.remove();
-                 docsData.forEach(docData => afiseazaCardJurnal(docData));
+                 const noEntriesMessageIfAny = container.querySelector('.no-entries-message');
+                 if (noEntriesMessageIfAny) noEntriesMessageIfAny.remove();
+                 
+                 // Adaugă sau actualizează cardurile
+                 newDocsData.forEach(docData => afiseazaCardJurnal(docData));
             }
 
         } catch (error) {
             console.error("Eroare încărcare jurnal:", error);
              if (loadingMsg) loadingMsg.remove();
-            if(!container.querySelector('.journal-card') && !container.querySelector('.error-loading-message')) {
-                const errorMsg = document.createElement("p");
-                errorMsg.className = "error-loading-message";
-                errorMsg.textContent = "Eroare la încărcarea jurnalului. Vă rugăm reîncărcați pagina.";
-                container.appendChild(errorMsg);
+            if(!container.querySelector('.journal-card') && !container.querySelector('.error-loading-message')) { // Verifică să nu fie deja un mesaj de eroare
+                const errorMsgElement = document.createElement("p");
+                errorMsgElement.className = "error-loading-message"; // Folosește clasa consistentă
+                errorMsgElement.textContent = "Eroare la încărcarea jurnalului. Vă rugăm reîncărcați pagina sau verificați consola.";
+                // Șterge orice mesaj de "nicio intrare" înainte de a adăuga eroarea
+                const noEntriesMsg = container.querySelector('.no-entries-message');
+                if(noEntriesMsg) noEntriesMsg.remove();
+                container.appendChild(errorMsgElement);
             }
         }
     }
+
     </script>
     <style>
+    /* Stilurile rămân identice cu cele din răspunsul anterior, sunt deja adaptate */
     *, *::before, *::after { box-sizing: border-box; }
     body {
         font-family: 'Ubuntu', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
@@ -869,7 +979,6 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
         border-color: #5c85d6; box-shadow: 0 0 0 3.5px rgba(92, 133, 214, 0.2); outline: none;
     }
     
-    /* Prompturi de Reflecție Activi */
     .prompt-box {
         background: #f8f9fc;
         border: 1px solid #e6eaf0;
@@ -900,11 +1009,11 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
     .hide-prompt-button { 
         background: none; border: none; color: #88929e;
         font-size: 1.6em; font-weight: bold; cursor: pointer;
-        padding: 0 5px; line-height: 0.8; float:right;
+        padding: 0 5px; line-height: 0.8; 
+        /* float:right; // Eliminat float pentru o mai bună aliniere cu flex pe containerul părintelui */
     }
     .hide-prompt-button:hover { color: #333; }
 
-    /* Butoane Prompt Reflecție - listă */
     #reflectionPromptsContainer { margin: 15px 0 20px 0; padding: 15px; background-color: #f8f9fc; border-radius: 8px; border: 1px solid #e8ecf0; }
     #reflectionPromptsContainer p { margin-top: 0; margin-bottom: 12px; font-weight: 500; color: #4a5560; font-size: 0.9em; }
     .prompt-button-group { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -930,7 +1039,6 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
     .confirmation-message.warning { background-color: #fff8e1; color: #795508; border-color: #ffecb3; }
     @keyframes fadeIn { 0% {opacity: 0; transform: translateY(8px);} 100% {opacity: 1; transform: translateY(0);} }
     
-    /* Carduri Istoric Jurnal */
     .card-view {display: flex; flex-direction: column; gap: 22px; max-width: 800px; margin: 25px auto;}
     .response-card { background: #ffffff; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.07); overflow: hidden; border: 1px solid #e4e9f0;}
     .response-card .card-header {
@@ -939,18 +1047,18 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
         display: flex; justify-content: space-between; align-items: center;
     }
     .response-card .card-header span:first-child { flex-grow: 1; margin-right: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
-    .response-card .card-header .card-date { font-size: 0.85em; color: #64748b; white-space: nowrap;}
+    .response-card .card-header .card-date { font-size: 0.85em; color: #64748b; white-space: nowrap; font-weight: 400;}
 
     .response-card .card-header::after {content: '▼'; font-size: 0.75em; transition: transform 0.2s ease; color: #707c8b; margin-left: 10px;}
     .response-card.open .card-header::after {transform: rotate(180deg);}
-    .response-card .card-content { max-height: 0; padding: 0 20px; overflow-y: hidden; /* Allow auto for scroll if needed, but pre-wrap on text content handles overflow better */ transition: max-height 0.45s ease-in-out, padding-top 0.45s ease-in-out, padding-bottom 0.45s ease-in-out; } 
-    .response-card.open .card-content { max-height: 7000px; /* generous max height */ padding: 20px 20px; }
+    .response-card .card-content { max-height: 0; padding: 0 20px; overflow-y: hidden; transition: max-height 0.45s ease-in-out, padding-top 0.45s ease-in-out, padding-bottom 0.45s ease-in-out; } 
+    .response-card.open .card-content { max-height: 7000px; padding: 20px 20px; }
     
     .journal-entry-details { margin-bottom: 18px; border: 1px solid #eef2f7; border-radius: 6px; background: #fdfdfe;}
     .journal-entry-details summary { 
         cursor: pointer; padding: 10px 12px; font-weight: 500; color: #475569; 
         background-color: #f8f9fa; border-radius: 6px 6px 0 0; 
-        list-style-position: inside; /* For better alignment of the triangle */
+        list-style-position: inside; 
     }
     .journal-entry-details summary:hover { background-color: #f1f3f6; }
     .journal-entry-details[open] summary { border-bottom: 1px solid #eef2f7; }
@@ -961,17 +1069,15 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
     .journal-entry-content-text::-webkit-scrollbar { width: 5px; }
     .journal-entry-content-text::-webkit-scrollbar-thumb { background: #c5ced6; border-radius:3px; }
 
-
     .response-card h4 {
         color: #5c85d6; font-weight: 500; margin-top: 20px; margin-bottom: 15px; font-size: 1.05em;
         border-bottom: 1px solid #eef2f7; padding-bottom: 8px;
     }
-    .response-card h4:first-of-type { margin-top: 0; } /* Feedback AI title might be first */
+    .response-card h4:first-of-type { margin-top: 0; } 
 
     .no-feedback-message { text-align: center; font-style: italic; color: #64748b; padding: 15px 0; }
     .no-entries-message, .loading-message, .error-loading-message { text-align: center; margin-top:25px; font-style: italic; color: #556575; font-size: 1.05em; padding:15px;}
     .error-loading-message { color: #c0392b; font-weight: 500;}
-
 
     .ai-feedback-history-container { margin-top: 10px; }
     .feedback-entry-card { 
@@ -991,7 +1097,7 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
     }
     .card-actions button {
         padding: 8px 15px; font-size: 0.8em; font-weight:500; border-radius: 6px;
-        transition: all 0.2s; border: 1px solid transparent;
+        transition: all 0.2s; border: 1px solid transparent; cursor: pointer;
     }
     button.delete-journal-entry-button { background-color:transparent; color: #c0392b; border-color: #f5c6cb;}
     button.delete-journal-entry-button:hover { background-color: #c0392b; color: white; }
@@ -1003,30 +1109,31 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
     /* Stiluri specifice pentru conținutul AI din feedback-entry-card .content-ai */
     .content-ai { font-size: 1em; line-height: 1.7; color: #374151; }
     .content-ai .ai-main-section-title, 
-    .content-ai h1, .content-ai h2, .content-ai h3, .content-ai h4 {
-        font-weight: 600; color: #5c85d6; /* Culoarea accent */
-        margin-top: 1.2em; margin-bottom: 0.6em; font-size: 1.1em;
+    .content-ai h1, .content-ai h2, .content-ai h3, .content-ai h4 { /* Am adăugat și h1-h4 pentru flexibilitatea AI */
+        font-weight: 600; color: #3b74d7; /* Un albastru puțin mai vibrant */
+        margin-top: 1.2em; margin-bottom: 0.6em; font-size: 1.05em; /* Un pic mai mic decât H4 general al cardului */
         padding-bottom: 4px;
-        /* border-bottom: 1px dotted #d1d9e2; */
+        /* border-bottom: 1px dotted #d1d9e2; */ /* Sublinierea poate aglomera uneori */
     }
-    .content-ai .ai-main-section-title:first-child,
-    .content-ai h1:first-child, .content-ai h2:first-child, .content-ai h3:first-child, .content-ai h4:first-child {
-        margin-top: 0.2em;
+    .content-ai .ai-main-section-title:first-child, /* Reduce spațiul pentru primul titlu */
+    .content-ai h1:first-child, .content-ai h2:first-child, 
+    .content-ai h3:first-child, .content-ai h4:first-child {
+        margin-top: 0.3em;
     }
-    .content-ai p.ai-text-paragraph { margin-bottom: 0.8em; }
-    .content-ai p.ai-text-paragraph strong, .content-ai strong { font-weight: 600; color: #1f2937; }
-    .content-ai p.ai-text-paragraph em, .content-ai em { font-style: italic; color: #4b5563; }
+    .content-ai p.ai-text-paragraph { margin-bottom: 0.9em; }
+    .content-ai p.ai-text-paragraph strong, .content-ai strong { font-weight: 600; color: #1f2937; } /* Mai închis pt contrast */
+    .content-ai p.ai-text-paragraph em, .content-ai em { font-style: italic; color: #4b5563; } /* Un gri mediu pentru italic */
     
     .content-ai ul.ai-list, .content-ai ol.ai-list {
-        margin-left: 5px; padding-left: 22px; margin-bottom: 0.8em;
+        margin-left: 5px; padding-left: 22px; margin-bottom: 0.9em; list-style-position: outside;
     }
-    .content-ai .ai-list-item { margin-bottom: 0.4em; }
-    .content-ai .ai-list-item::marker { color: #5c85d6; }
+    .content-ai .ai-list-item { margin-bottom: 0.5em; }
+    .content-ai .ai-list-item::marker { color: #4a69bd; font-weight: bold; } /* Marcatori mai vizibili */
 
     .content-ai .ai-text-error {
         color: #c0392b; font-weight: 500; background-color: #fff5f5; 
-        padding: 8px; border-radius: 4px; border-left: 3px solid #c0392b;
-        white-space: pre-wrap;
+        padding: 10px 12px; border-radius: 4px; border: 1px solid #fecaca; border-left: 4px solid #ef4444;
+        white-space: pre-wrap; font-size: 0.9em;
     }
     
     @media (max-width: 768px) {
@@ -1034,8 +1141,8 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
         .journal-form-container, .card-view {padding:20px; margin: 20px auto; max-width: 100%;}
         h2 {font-size: 1.5em;} h3 {font-size: 1.25em;}
         textarea#journalContent {min-height: 200px;}
-        .card-actions {justify-content: center;}
-        .card-actions button { flex-basis: calc(33.33% - 7px); }
+        .card-actions {justify-content: space-around;} /* Distribuie mai bine pe mobil */
+        .card-actions button { flex-basis: auto; padding: 7px 12px;} /* Butoanele să-și ia lățimea necesară */
     }
     @media (max-width: 480px) {
         body {padding:10px; font-size: 14px;}
@@ -1045,8 +1152,9 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
         .prompt-button-group {gap: 8px;}
         button.prompt-button {padding: 6px 12px; font-size: 0.8em;}
         button#saveJournalEntryButton {padding: 11px 18px; font-size: 1em;}
-        .card-header {font-size: 1em; padding: 12px 15px;}
-        .card-actions button { flex-basis: 100%; }
+        .response-card .card-header {font-size: 1em; padding: 12px 15px; flex-direction: column; align-items: flex-start; gap: 5px;}
+        .response-card .card-header::after { align-self: flex-end; margin-top: -1.5em; }
+        .card-actions button { flex-basis: calc(50% - 5px); } /* Două pe rând */
     }
     </style>
 </head>
@@ -1063,7 +1171,7 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
             <input type="text" id="journalTitle" name="journalTitle" placeholder="Ex: Reflecții despre ziua de azi, Explorarea anxietății...">
             
             <div id="reflectionPromptsContainer" style="margin-top: 20px;">
-                <p>Puncte de start pentru reflecție (alege un ghid pentru a-l insera și afișa):</p>
+                <p>Puncte de start pentru reflecție (alege un ghid pentru a-l afișa ca referință):</p>
                 <div class="prompt-button-group" id="reflectionPrompts">
                     <!-- Butoanele vor fi generate de JavaScript -->
                 </div>
@@ -1072,14 +1180,15 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
             <div id="activePromptBox" class="prompt-box" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                     <strong id="activePromptTitle">Ghid activ:</strong>
-                    <button type="button" onclick="document.getElementById('activePromptBox').style.display='none'; selectedPrompt = null;" class="hide-prompt-button" title="Ascunde ghidul">×</button>
+                    <!-- Butonul de închidere va apela o funcție globală -->
+                    <button type="button" onclick="window.hideActivePromptManual()" class="hide-prompt-button" title="Ascunde ghidul">×</button>
                 </div>
                 <div id="activePromptContent" class="prompt-content-display"></div>
-                <p style="font-size:0.85em; text-align:right; margin-top:8px; color: #64748B;"><em>Acest ghid este pentru inspirație. Completează în jurnalul de mai jos.</em></p>
+                <p style="font-size:0.85em; text-align:right; margin-top:8px; color: #64748B;"><em>Acest ghid este pentru inspirație. Scrie reflecțiile tale în câmpul de jurnal de mai jos.</em></p>
             </div>
 
             <label for="journalContent" style="margin-top: 15px;">Intrarea ta în jurnal:</label>
-            <textarea id="journalContent" name="journalContent" rows="15" placeholder="Scrie liber aici... sau alege un ghid de mai sus și completează-l."></textarea>
+            <textarea id="journalContent" name="journalContent" rows="15" placeholder="Scrie liber aici sau completează răspunzând la întrebările din ghidul afișat mai sus."></textarea>
             
             <button type="button" id="saveJournalEntryButton">Salvează și Cere Feedback AI</button>
         </form>
@@ -1091,6 +1200,7 @@ Te rog să generezi un feedback AI care să respecte toate aceste cerințe. Fii 
     
     <div class="card-view" id="journalEntriesContainer">
         <!-- Cardurile cu intrări vor fi încărcate aici -->
+        <!-- Mesajele de "loading", "no entries", "error" vor fi adăugate de JS -->
     </div>
     
 </body>
