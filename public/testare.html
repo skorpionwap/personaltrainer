@@ -63,34 +63,39 @@
         const collabId = urlParams.get('collabId');
 
 function initializeFormFunctionality() {
-    const formSteps = document.querySelectorAll('.form-step');
-    if (formSteps.length > 0) {
-        totalSteps = formSteps.length;
+    const formSteps = document.querySelectorAll('form#exercitiuForm > div.form-step'); // SELECTOR MAI SPECIFIC
+    // Ne asigurăm că selectăm doar div-urile .form-step care sunt copii direcți ai formularului.
+    
+    console.log("Elemente .form-step găsite:", formSteps.length, formSteps); // Debugging
 
-        // CURĂȚĂ clasele 'form-step-active' de pe toți pașii întâi
+    if (formSteps.length > 0) {
+        totalSteps = formSteps.length; // Ar trebui să fie 4 acum
+
         formSteps.forEach(step => step.classList.remove('form-step-active'));
         
-        // ADAUGĂ clasa 'form-step-active' DOAR primului pas
-        if (formSteps[0]) { // Verifică dacă există măcar un pas
-            formSteps[0].classList.add('form-step-active');
-            console.log("Psiho Fișă: Primul pas al formularului a fost activat:", formSteps[0].id);
+        if (formSteps[0]) { 
+            formSteps[0].classList.add('form-step-active'); // Activează primul div.form-step
+            console.log("Psiho Fișă (testare.html): Primul pas al formularului a fost activat:", formSteps[0].id);
         } else {
-            console.warn("Psiho Fișă: Nu s-au găsit elemente .form-step pentru activare.");
+            console.warn("Psiho Fișă (testare.html): Nu s-au găsit elemente .form-step pentru activare.");
         }
         
-        currentStep = 1; // Asigură-te că pasul curent este setat corect
+        currentStep = 1; 
         updateProgressBar(); 
     } else {
         totalSteps = 0;
-        console.warn("Psiho Fișă: Niciun .form-step găsit în document.");
+        console.warn("Psiho Fișă (testare.html): Niciun .form-step găsit direct sub formular.");
+        // AICI ar putea fi o problemă dacă nu găsește niciunul - verifică structura HTML.
+        // Poate formularul nu este încă în DOM când rulează? Puțin probabil dacă e în onload.
     }
 
     document.getElementById("nextButton")?.addEventListener("click", nextStep);
     document.getElementById("prevButton")?.addEventListener("click", previousStep);
     document.getElementById("addButton")?.addEventListener("click", salveazaRaspunsSiGenereazaFeedback);
     document.getElementById("generateLinkButton")?.addEventListener("click", generateCollaborationLink);
-    console.log("Psiho Fișă: Funcționalitatea formularului inițializată. Pași:", totalSteps);
+    console.log("Psiho Fișă (testare.html): Funcționalitatea formularului inițializată. Total pași detectați:", totalSteps);
 }
+
 
         if (!collabId) {
             onAuthStateChanged(auth, async (user) => {
@@ -1488,6 +1493,29 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
             #toggleChatButton { width: 50px; height: 50px; font-size: 22px; bottom: 15px; right: 15px; }
         }
 
+/* Asigură-te că aceste reguli sunt prezente și corecte */
+.form-step {
+    display: none; /* Ascunde pașii inactivi */
+}
+.form-step-active {
+    display: block; /* AFIȘEAZĂ pasul activ */
+    animation: fadeInFormStep 0.5s ease-in-out;
+}
+@keyframes fadeInFormStep { 
+    0% {opacity: 0; transform: translateY(12px);} 
+    100% {opacity: 1; transform: translateY(0);} 
+}
+
+/* Verifică să nu existe o altă regulă care ar putea ascunde .question-card */
+.question-card {
+    margin-bottom: 22px; 
+    padding: 20px; 
+    background: #fdfdff; 
+    border-radius: 8px; 
+    box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+    border: 1px solid #eef2f7;
+    /* Nu ar trebui să aibă display: none aici! */
+}    
     </style>
 </head>
 <body>
