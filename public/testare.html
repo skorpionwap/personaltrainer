@@ -26,28 +26,30 @@
     const auth = getAuth(app);
 
     const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // <--- CHEIA TA API GEMINI AICI (SA NU FIE PLACEHOLDER!)
-    const GEMINI_MODEL_NAME_FEEDBACK = "gemini-1.5-flash-latest"; // Sau gemini-1.5-pro-latest etc.
-    const GEMINI_MODEL_NAME_CHAT = "gemini-1.5-flash-latest";
+    const GEMINI_MODEL_NAME_FEEDBACK = "gemini-2.5-flash-preview-04-17"; 
+    const GEMINI_MODEL_NAME_CHAT = "gemini-2.5-flash-preview-04-17";
     let genAI, geminiModelFeedback, geminiModelChat;
 
-     if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "" && !GEMINI_API_KEY.startsWith("AIzaSyA_YOUR_KEY_HERE") && !GEMINI_API_KEY.includes("ÎNLOCUIEȘTE")) {
+if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
         try {
             genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
             geminiModelFeedback = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_FEEDBACK });
             geminiModelChat = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_CHAT });
-            console.log("Psiho Fișă: SDK Gemini inițializat. Model Feedback:", GEMINI_MODEL_NAME_FEEDBACK, "Model Chat:", GEMINI_MODEL_NAME_CHAT);
+            console.log("SDK Gemini inițializat. Model Feedback:", GEMINI_MODEL_NAME_FEEDBACK, "Model Chat:", GEMINI_MODEL_NAME_CHAT);
         } catch (e) {
-            console.error("Psiho Fișă: Eroare critică la inițializarea SDK Gemini:", e);
-            alert("Psiho Fișă: Eroare la inițializarea serviciului AI. Verificați cheia API Gemini. Funcționalitatea AI va fi limitată.");
+            console.error("Eroare critică la inițializarea SDK Gemini:", e);
+            alert("Eroare la inițializarea serviciului AI. Verificați cheia API Gemini și configurația din Google Cloud. Funcționalitatea AI va fi limitată.");
             geminiModelFeedback = null; geminiModelChat = null;
         }
     } else  {
-        const warningMsg = `Psiho Fișă: Cheia API Gemini este goală, un placeholder, sau lipsește. Funcționalitatea AI va fi dezactivată. Vă rugăm configurați o cheie validă.`;
-        console.warn(warningMsg);
-        alert(warningMsg);
+        console.warn(`Cheia API Gemini pare a fi un placeholder ('${GEMINI_API_KEY}'). Te rog înlocuiește-o cu cheia ta API validă pentru a activa funcționalitatea AI.`);
+        // alert("Funcționalitatea AI este dezactivată. Te rog configurează o cheie API Gemini validă în codul sursă (variabila GEMINI_API_KEY).");
+        geminiModelFeedback = null; geminiModelChat = null;
+        // Cheie goală sau doar spații
+        console.warn("Cheia API Gemini nu este configurată. Funcționalitatea AI va fi dezactivată.");
+        // alert("Cheia API Gemini nu este configurată. Funcționalitatea AI va fi dezactivată.");
         geminiModelFeedback = null; geminiModelChat = null;
     }
-
 
     let currentStep = 1;
     let totalSteps = 0;
@@ -56,37 +58,59 @@
     const CHAT_HISTORY_DOC_ID_PREFIX = "chatHistory_";
     let isChatInitialized = false;
 
-
     window.onload = function () {
-        const formSteps = document.querySelectorAll('.form-step');
-        if (formSteps.length > 0) { // Verifică dacă elementele formularului sunt prezente
-            totalSteps = formSteps.length;
-            updateProgressBar();
+        const urlParams = new URLSearchParams(window.location.search);
+        const collabId = urlParams.get('collabId');
+
+        function initializeFormFunctionality() {
+            const formSteps = document.querySelectorAll('.form-step');
+            if (formSteps.length > 0) {
+                totalSteps = formSteps.length;
+                const firstStep = document.getElementById('step-1');
+                 // Asigură-te că toți ceilalți pași sunt inactivi și primul e activ
+                document.querySelectorAll('.form-step').forEach((step, index) => {
+                    if (index === 0) { // Primul element din NodeList (ar trebui să fie step-1)
+                        step.classList.add('form-step-active');
+                    } else {
+                        step.classList.remove('form-step-active');
+                    }
+                });
+                currentStep = 1;
+                updateProgressBar(); 
+            } else {
+                totalSteps = 0;
+            }
+
             document.getElementById("nextButton")?.addEventListener("click", nextStep);
             document.getElementById("prevButton")?.addEventListener("click", previousStep);
             document.getElementById("addButton")?.addEventListener("click", salveazaRaspunsSiGenereazaFeedback);
             document.getElementById("generateLinkButton")?.addEventListener("click", generateCollaborationLink);
+            console.log("Psiho Fișă: Funcționalitatea formularului inițializată. Pași:", totalSteps);
         }
-
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const collabId = urlParams.get('collabId');
 
         if (!collabId) {
             onAuthStateChanged(auth, async (user) => {
                 const toggleChatBtn = document.getElementById("toggleChatButton");
                 const chatContainer = document.getElementById("chatContainer");
+                const formContainer = document.querySelector('.form-container');
+                const cardViewTitle = document.getElementById('cardViewTitle');
+
 
                 if (user) {
+                    if(formContainer) formContainer.style.display = ''; // Asigură vizibilitate
+                    if(cardViewTitle) cardViewTitle.style.display = '';
+
                     console.log("Utilizator autentificat (fișă):", user.uid);
+                    initializeFormFunctionality(); 
                     if (!dataAlreadyLoaded) {
-                        // populateTableData(user.uid); // Aceasta funcție oricum nu mai e folosită activ
                         loadTableData(user.uid);
                         dataAlreadyLoaded = true;
                     }
-                    if(toggleChatBtn) toggleChatBtn.style.display = 'flex'; // Setează pe flex pentru a fi vizibil conform CSS
+                    if(toggleChatBtn) toggleChatBtn.style.display = 'flex';
                 } else {
                     console.log("Utilizator neautentificat, redirecționare... (fișă)");
+                    if(formContainer) formContainer.style.display = 'none'; 
+                    if(cardViewTitle) cardViewTitle.style.display = 'none';
                     if(toggleChatBtn) toggleChatBtn.style.display = 'none';
                     if(chatContainer) chatContainer.style.display = 'none';
                     isChatInitialized = false;
@@ -94,12 +118,13 @@
                     window.location.href = "login.html";
                 }
             });
-        } else { // Mod colaborare
+        } else { 
+            console.log("Psiho Fișă: Mod colaborare detectat. Funcționalitatea formularului NU va fi inițializată complet în onload.");
+            // logica de ascundere a formularului etc. este deja în DOMContentLoaded.
             const toggleChatBtn = document.getElementById("toggleChatButton");
             if(toggleChatBtn) toggleChatBtn.style.display = 'none';
             const chatContainer = document.getElementById("chatContainer");
             if(chatContainer) chatContainer.style.display = 'none';
-             // Logica specifică pentru modul colaborare se va executa în DOMContentLoaded
         }
         
         document.getElementById("toggleChatButton")?.addEventListener("click", handleToggleChat);
@@ -113,6 +138,7 @@
     };
 
     function nextStep() {
+        // ... (codul funcției nextStep - rămâne la fel)
         if (currentStep < totalSteps) {
             const currentStepEl = document.getElementById(`step-${currentStep}`);
             if(currentStepEl) currentStepEl.classList.remove('form-step-active');
@@ -124,7 +150,8 @@
     }
 
     function previousStep() {
-        if (currentStep > 1) {
+        // ... (codul funcției previousStep - rămâne la fel)
+         if (currentStep > 1) {
             const currentStepEl = document.getElementById(`step-${currentStep}`);
             if(currentStepEl) currentStepEl.classList.remove('form-step-active');
             currentStep--;
@@ -135,7 +162,8 @@
     }
 
     function updateProgressBar() {
-        const progress = document.getElementById('progress');
+        // ... (codul funcției updateProgressBar - rămâne la fel)
+         const progress = document.getElementById('progress');
         if(progress && totalSteps > 0) {
             const progressPercentage = (currentStep / totalSteps) * 100;
             progress.style.width = progressPercentage + '%';
@@ -143,6 +171,7 @@
     }
     
     async function callGeminiAPI(promptText, modelToUse, generationConfigOptions = {}) {
+        // ... (codul funcției callGeminiAPI - rămâne la fel)
         if (!modelToUse) {
             console.error("Modelul Gemini specificat este invalid sau neinițializat.", modelToUse === geminiModelChat ? "(Model Chat)" : "(Model Feedback Fișă)");
             return "EROARE: Model AI neinițializat. Verifică cheia API.";
@@ -151,7 +180,7 @@
             console.log("Trimitem la Gemini (fișă, primele 200 caractere):", promptText.substring(0, 200));
             const requestPayload = {
                 contents: [{ role: "user", parts: [{ text: promptText }] }],
-                generationConfig: { temperature: 0.55, maxOutputTokens: 4000, ...generationConfigOptions } // temp 0.55, max token specific fișei
+                generationConfig: { temperature: 0.55, maxOutputTokens: 4000, ...generationConfigOptions } 
             };
             const result = await modelToUse.generateContent(requestPayload); 
             const response = result.response;
@@ -189,8 +218,8 @@
     }
 
     async function genereazaSiProceseazaFeedbackAI(rowData, docId) {
-      // Păstrăm promptul anterior pentru fișă, care era deja detaliat
-      const prompt = `
+        // ... (codul funcției genereazaSiProceseazaFeedbackAI - rămâne la fel)
+          const prompt = `
 Analizează în profunzime această fișă completă de auto-reflecție. Utilizatorul a parcurs un exercițiu detaliat pentru a-și înțelege o situație specifică. Oferă feedback psihologic structurat, empatic și acționabil. Respectă cu strictețe formatul și ordinea secțiunilor de mai jos, folosind exact prefixele indicate (ex: \`EmpatieInițială:\`, \`PuncteForteObservate:\`). Folosește Markdown pentru formatarea textului în interiorul fiecărei secțiuni (ex: \`**Text bold**\`, \`*Text italic*\`, liste cu \`* Element\`).
 
 **Datele Complete din Fișa de Reflecție a Utilizatorului:**
@@ -268,16 +297,15 @@ SugestieMicPas: (O sugestie concretă, mică și realizabilă, pentru un pas pe 
 
 Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată feedback-ul...") sau concluzii suplimentare ("Sper că acest feedback..."), în afara celor specificate. Asigură-te că fiecare secțiune începe exact cu prefixul dat (ex: \`EmpatieInițială:\`).`;
 
-      let feedbackRawText = null; // Vom stoca aici textul brut de la AI
+      let feedbackRawText = null; 
       let modelFolosit = "N/A";
 
       if (geminiModelFeedback) {
         console.log("Psiho Fișă: Solicitare feedback de la Gemini...");
         modelFolosit = `Gemini (${GEMINI_MODEL_NAME_FEEDBACK})`;
-        feedbackRawText = await callGeminiAPI(prompt, geminiModelFeedback); // callGeminiAPI este funcția deja existentă
+        feedbackRawText = await callGeminiAPI(prompt, geminiModelFeedback); 
       } else {
         console.warn("Psiho Fișă: Gemini (geminiModelFeedback) nu este configurat. Nu se poate genera feedback AI.");
-        // Creăm un obiect de eroare compatibil cu structura de parsare
         return { 
             rawText: "EROARE: Serviciul de feedback AI (Gemini) nu este configurat corect pentru fișe. Verifică cheia API.",
             model: "Configurare Eronată", 
@@ -286,9 +314,8 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
         };
       }
 
-      // Parsarea feedback-ului brut în obiectul structurat
       const parsedFeedback = { 
-        rawText: feedbackRawText, // Salvăm textul brut
+        rawText: feedbackRawText, 
         model: modelFolosit, 
         timestamp: new Date().toISOString(), 
         error: false, 
@@ -298,8 +325,6 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
       if (!feedbackRawText || (typeof feedbackRawText === 'string' && feedbackRawText.toUpperCase().startsWith("EROARE:"))) {
         console.warn(`Psiho Fișă: Eroare de la ${modelFolosit} la generarea feedback-ului:`, feedbackRawText);
         parsedFeedback.error = true; 
-        // Câmpurile specifice nu vor fi populate dacă e eroare de la API,
-        // dar rawText va conține mesajul de eroare.
       } else {
           console.log("Psiho Fișă: Răspuns brut de la Gemini (feedback):\n---\n" + feedbackRawText + "\n---");
           const feedbackStructure = {
@@ -313,7 +338,7 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
                 perspectiva_adult_sanatos: /^PerspectivaAdultSănătos:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
                 intrebare_finala_reflectie: /^ÎntrebareFinalăReflecție:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
                 sugestie_mic_pas: /^SugestieMicPas:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
-                incurajare_finala: /^ÎncurajareFinală:\s*([\s\S]*?$)/im, // Până la sfârșit
+                incurajare_finala: /^ÎncurajareFinală:\s*([\s\S]*?$)/im,
             };
             
             let allParsingOk = true;
@@ -323,49 +348,36 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
                      parsedFeedback[key] = match[1].trim();
                 } else {
                     console.warn(`Psiho Fișă: Nu s-a putut extrage sau este gol conținutul pentru: '${key}'`);
-                    parsedFeedback[key] = `(Secțiune neextrasă sau goală din răspunsul AI: ${key})`; // Stocăm un placeholder
+                    parsedFeedback[key] = `(Secțiune neextrasă sau goală: ${key})`; 
                     allParsingOk = false;
                 }
             }
             if (!allParsingOk) {
-                console.warn("Psiho Fișă: Cel puțin o secțiune nu a putut fi parsată corect. Verifică formatul răspunsului AI și regex-urile.");
+                console.warn("Psiho Fișă: Cel puțin o secțiune nu a putut fi parsată corect.");
                 parsedFeedback.error_parsing = true;
             }
       }
 
-
         if (docId) {
             const docRef = doc(db, "raspunsuri", docId);
             try {
-                // Vom salva `parsedFeedback` direct în `feedback_history`.
-                // Și vom actualiza și câmpurile individuale, dacă este necesar pentru compatibilitate
-                // sau dacă `afiseazaIstoricFeedback` nu se bazează exclusiv pe `rawText` din istoric.
-                // Ideal, ar trebui să ne bazăm doar pe `rawText` din istoric pentru afișare.
                 const updatePayload = { feedback_history: arrayUnion(parsedFeedback) };
-
-                // Adaugă fiecare câmp parsat direct la rădăcina documentului, prefixat cu 'feedback_'
-                // Acest lucru e mai mult pentru compatibilitate cu structura veche,
-                // dar cel mai bine ar fi să folosim DOAR parsedFeedback din history și să adaptăm afișarea.
                  Object.keys(parsedFeedback).forEach(key => {
-                     if (key !== 'rawText') { // Nu vrem să duplicăm rawText la rădăcină
+                     if (key !== 'rawText') { 
                         updatePayload[`feedback_${key}`] = parsedFeedback[key];
                      }
                  });
-                // Adaugă și rawText ca feedback_rawText pentru referință, dacă dorești
-                // updatePayload['feedback_rawText'] = parsedFeedback.rawText;
-
-
                 await updateDoc(docRef, updatePayload);
                 console.log(`Psiho Fișă: Feedback AI (model: ${modelFolosit}) salvat/actualizat pentru fișa ${docId}`);
             } catch (updateError) {
                 console.error(`Psiho Fișă: Eroare update Firestore feedback pentru fișa ${docId}:`, updateError);
             }
         }
-        return parsedFeedback; // Returnează obiectul parsat complet
+        return parsedFeedback;
     }
 
     // --- CHAT FUNCTIONALITY ---
-    // Rămâne în mare parte la fel ca înainte, dar cu ajustări pentru stil și gestionare erori Gemini.
+    // ... (Rămâne la fel)
     function displayChatMessage(message, role) {
         const messagesDiv = document.getElementById("chatMessages");
         if (!messagesDiv) return; 
@@ -375,9 +387,7 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
         const messageClass = role === "user" ? "user-message" : (role === "AI-error" ? "ai-message ai-error" : "ai-message");
         messageClass.split(' ').forEach(cls => messageElement.classList.add(cls));
 
-        // Folosim textContent pentru siguranță și pre-wrap pentru formatare
         messageElement.style.whiteSpace = "pre-wrap"; 
-        // Parsare Markdown simplă pentru răspunsurile AI
         if (role === "AI" && message) {
             let htmlContent = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                                    .replace(/__(.*?)__/g, '<strong>$1</strong>')
@@ -385,23 +395,33 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
                                    .replace(/_(.*?)_/g, '<em>$1</em>')
                                    .replace(/```([\s\S]*?)```/g, (match, p1) => `<pre style="background:#eef; padding:5px; border-radius:4px; white-space:pre-wrap; word-break:break-all;">${p1.trim()}</pre>`)
                                    .replace(/`([^`]+)`/g, '<code style="background:#eef; padding:1px 3px; border-radius:3px;">$1</code>');
-             // Încercare de a formata liste simple
-            htmlContent = htmlContent.split('\n').map(line => {
-                if (line.match(/^\s*[\*\-\+]\s+/)) {
-                    return `<li>${line.replace(/^\s*[\*\-\+]\s+/, '')}</li>`;
+            
+            htmlContent = htmlContent.split('\n').map(line => { // Basic list handling
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ') || trimmedLine.startsWith('+ ')) {
+                    return `<li>${trimmedLine.substring(2)}</li>`;
+                }
+                // Basic numbered list
+                if (trimmedLine.match(/^\d+\.\s+/)) {
+                     return `<li>${trimmedLine.replace(/^\d+\.\s+/, '')}</li>`;
                 }
                 return line;
             }).join('\n');
+            // Wrap li elements in ul/ol - simplistic approach
             if (htmlContent.includes("<li>")) {
-                htmlContent = `<ul>${htmlContent.replace(/<li>(.*?)<\/li>(?!\s*<ul)/g, '<li>$1</li>').replace(/\n<\/ul>\n<ul>/g, '')}</ul>`; // Evită spargerea listelor
+                 const containsOrderedItems = /<li>[^<]*\d+\.\s*/.test(htmlContent); // Very basic check
+                 const listTag = containsOrderedItems ? 'ol' : 'ul';
+                 // This regex needs to be careful not to break nested structures if AI uses them (unlikely for simple lists)
+                 htmlContent = htmlContent.replace(/^(<li>[\s\S]*?<\/li>)$/gm, `<${listTag}>$1</${listTag}>`); // Wrap single line lists
+                 htmlContent = htmlContent.replace(/(<li>[\s\S]*?<\/li>\s*)+/gm, (match) => `<${listTag}>${match}</${listTag}>`); // Wrap multi-line lists
             }
 
-            messageElement.innerHTML = htmlContent.replace(/\n/g, '<br>'); // Înlocuiește \n cu <br> la final
+
+            messageElement.innerHTML = htmlContent.replace(/\n/g, '<br>');
 
         } else {
             messageElement.textContent = message; 
         }
-
 
         messagesDiv.appendChild(messageElement);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -429,7 +449,7 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
         const historyDocRef = doc(db, "chatHistories", CHAT_HISTORY_DOC_ID_PREFIX + userId);
         try {
             await updateDoc(historyDocRef, { messages: arrayUnion(messageObject) }, { merge: true });
-        } catch (error) { // Documentul nu există, îl creăm
+        } catch (error) { 
             if (error.code === 'not-found' || error.message.includes("No document to update")) {
                  await setDoc(historyDocRef, { messages: [messageObject] });
             } else {
@@ -454,16 +474,16 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
         }
         
         isChatInitialized = false; 
-
         let initialContextSummary = "REZUMAT DIN FIȘELE ANTERIOARE (ULTIMELE 3 COMPLETATE DE UTILIZATOR):\n";
         try {
             if (userId) {
-                const q = query(collection(db, "raspunsuri"), where("ownerUid", "==", userId), orderBy("date", "desc"), limit(3)); 
+                // Modificăm orderby să fie pe timestamp dacă există, altfel pe data de string (mai puțin fiabil)
+                const q = query(collection(db, "raspunsuri"), where("ownerUid", "==", userId), orderBy("timestamp", "desc"), limit(3)); 
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
                     querySnapshot.forEach(docSnap => {
                         const data = docSnap.data();
-                        const entryDate = data.date || (data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleDateString("ro-RO") : 'N/A');
+                        const entryDate = data.date || (data.timestamp ? new Date(data.timestamp.toDate()).toLocaleDateString("ro-RO") : 'N/A');
                         initialContextSummary += ` - Fișă (${entryDate}): Situatia - ${(data.situatie || "").substring(0, 60)}...; Ganduri - ${(data.ganduri || "").substring(0, 60)}...; Emotii - ${data.emotii || 'N/A'}.\n`;
                     });
                 } else { initialContextSummary += "Nicio fișă de monitorizare recentă găsită.\n"; }
@@ -473,91 +493,42 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
             initialContextSummary += "Eroare la încărcarea contextului din fișe.\n";
         }
 
-        const systemInstructionText = `# ROL PRINCIPAL ȘI PERSONA:
-Tu ești PsihoGPT (alias Dr. Elena/Daniel – alege o identitate caldă și profesională). Ești un asistent AI avansat pentru auto-reflecție și explorare psihologică ghidată, specializat în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor, Terapia prin Acceptare și Angajament (ACT), și principii ale Terapiei Dialectic-Comportamentale (DBT). Te adresezi utilizatorului cu "tu", într-un mod respectuos și empatic.
-
-# MISIUNE ȘI ABORDARE TERAPEUTICĂ:
-Misiunea ta este să ajuți utilizatorul să exploreze gânduri, emoții, comportamente și nevoi profunde, să identifice tipare și să dezvolte strategii de coping sănătoase. Vei ghida utilizatorul să:
-1.  Identifice și să înțeleagă **Schemele Maladaptative Timpurii** (explică pe scurt conceptul la nevoie, și dacă pare relevant din contextul discuției sau fișelor).
-2.  Analizeze **Distorsiunile Cognitive** și să le reformuleze.
-3.  Dezvolte abilități de **Reglare Emoțională** și **Toleranță la Disconfort**.
-4.  Clarifice **Valori Personale** și să stabilească **Obiective SMART** aliniate cu acestea.
-5.  Îmbunătățească **Stima de Sine** și **Auto-Compasiunea** (inspiră-te din Kristin Neff, Brené Brown).
-6.  Exploreze **Relația cu Sine și cu Ceilalți**, inclusiv dinamici de atașament și limite sănătoase.
-
-# PRINCIPII DE INTERACȚIUNE ȘI COMUNICARE:
-1.  **Empatie, Căldură și Non-Judecată:** Prioritatea ta absolută. Creează un spațiu sigur și validant.
-2.  **Ascultare Activă și Întrebări Deschise:** Formulează întrebări care stimulează reflecția profundă (ex: "Ce anume te face să simți/crezi asta?", "Cum se manifestă asta în corpul tău?", "Există și o altă perspectivă posibilă?", "Ce nevoie crezi că încearcă să îți comunice această emoție/situație?").
-3.  **Validare Emoțională:** Validează trăirile utilizatorului înainte de a explora sau a oferi perspective (ex: "Înțeleg că te simți copleșit/trist/furios. E firesc să simți așa în această situație.").
-4.  **Psihoeducație Dozată și Relevantă:** Dacă introduci un concept (schemă, distorsiune), explică-l concis și verifică dacă rezonează cu utilizatorul. Folosește metafore simple dacă e cazul. Evită jargonul excesiv.
-5.  **Focus pe Resurse și Puncte Forte:** Ajută utilizatorul să identifice și să mobilizeze resursele interioare și punctele forte.
-6.  **Colaborare și Ritm Adaptat:** Adaptează-te la ritmul utilizatorului. Verifică periodic înțelegerea și utilitatea discuției ("Cum ți se pare ce am discutat până acum?", "Este acest exercițiu util pentru tine?").
-7.  **Non-Directivitate Responsabilă:** NU oferi diagnostice medicale sau psihologice. NU oferi sfaturi directe care înlocuiesc terapia umană. Scopul tău este auto-reflecția ghidată.
-8.  **Utilizarea Contextului (Discret):** Folosește REZUMATUL FIȘELOR ANTERIOARE și istoricul discuției curente pentru a înțelege mai bine. Referă-te la ele cu tact ("Am observat că în una din fișele tale ai menționat X. Simți că există o legătură cu ce explorăm acum?").
-9.  **Concizie și Claritate:** Răspunsuri concise (2-5 propoziții ideal), cu paragrafe scurte. Un singur "punct" terapeutic per mesaj; așteaptă replica. Folosește Markdown pentru formatare (bold, italic, liste scurte).
-10. **Confidențialitate și Siguranță:** Reamintește discret, dacă e nevoie, că ești un AI și discuțiile nu înlocuiesc sfatul unui profesionist uman, și că datele sunt tratate conform politicilor de confidențialitate (fără a intra în detalii tehnice). Dacă utilizatorul exprimă gânduri de auto-vătămare sau vătămare a altora, ghidează-l ferm și empatic către resurse de ajutor specializat (ex: numere de urgență, linii de suport). ACEASTA ESTE O PRIORITATE.
-
-# STRUCTURĂ SUPEVIZATĂ A "ȘEDINȚEI" DE CHAT (Flexibilă):
-*   **Etapa 1 (Conectare Inițială, ~1-5 replici):** Salut, check-in emoțional general, stabilirea intenției/temei discuției.
-*   **Etapa 2 (Explorare și Lucru Central, ~5-20 replici):** Aprofundarea temei, aplicarea de tehnici (ex: restructurare cognitivă, exerciții de imagerie scurte textuale, explorarea valorilor), generare de insight-uri.
-*   **Etapa 3 (Integrare și Încheiere, ~2-5 replici):** Sumarizarea ideilor cheie, identificarea unui mic pas practic pentru săptămâna următoare, validare finală, încurajare.
-
-Context din ultimele fișe completate de utilizator (folosește-l cu discreție și inteligență):
-${initialContextSummary}---
-Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
-
+        const systemInstructionText = `# ROL PRINCIPAL ȘI PERSONA:\nTu ești PsihoGPT (alias Dr. Elena/Daniel – alege o identitate caldă și profesională). Ești un asistent AI avansat pentru auto-reflecție și explorare psihologică ghidată, specializat în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor, Terapia prin Acceptare și Angajament (ACT), și principii ale Terapiei Dialectic-Comportamentale (DBT). Te adresezi utilizatorului cu "tu", într-un mod respectuos și empatic.\n\n# MISIUNE ȘI ABORDARE TERAPEUTICĂ:\nMisiunea ta este să ajuți utilizatorul să exploreze gânduri, emoții, comportamente și nevoi profunde, să identifice tipare și să dezvolte strategii de coping sănătoase. Vei ghida utilizatorul să:\n1.  Identifice și să înțeleagă **Schemele Maladaptative Timpurii** (explică pe scurt conceptul la nevoie, și dacă pare relevant din contextul discuției sau fișelor).\n2.  Analizeze **Distorsiunile Cognitive** și să le reformuleze.\n3.  Dezvolte abilități de **Reglare Emoțională** și **Toleranță la Disconfort**.\n4.  Clarifice **Valori Personale** și să stabilească **Obiective SMART** aliniate cu acestea.\n5.  Îmbunătățească **Stima de Sine** și **Auto-Compasiunea** (inspiră-te din Kristin Neff, Brené Brown).\n6.  Exploreze **Relația cu Sine și cu Ceilalți**, inclusiv dinamici de atașament și limite sănătoase.\n\n# PRINCIPII DE INTERACȚIUNE ȘI COMUNICARE:\n1.  **Empatie, Căldură și Non-Judecată:** Prioritatea ta absolută. Creează un spațiu sigur și validant.\n2.  **Ascultare Activă și Întrebări Deschise:** Formulează întrebări care stimulează reflecția profundă (ex: "Ce anume te face să simți/crezi asta?", "Cum se manifestă asta în corpul tău?", "Există și o altă perspectivă posibilă?", "Ce nevoie crezi că încearcă să îți comunice această emoție/situație?").\n3.  **Validare Emoțională:** Validează trăirile utilizatorului înainte de a explora sau a oferi perspective (ex: "Înțeleg că te simți copleșit/trist/furios. E firesc să simți așa în această situație.").\n4.  **Psihoeducație Dozată și Relevantă:** Dacă introduci un concept (schemă, distorsiune), explică-l concis și verifică dacă rezonează cu utilizatorul. Folosește metafore simple dacă e cazul. Evită jargonul excesiv.\n5.  **Focus pe Resurse și Puncte Forte:** Ajută utilizatorul să identifice și să mobilizeze resursele interioare și punctele forte.\n6.  **Colaborare și Ritm Adaptat:** Adaptează-te la ritmul utilizatorului. Verifică periodic înțelegerea și utilitatea discuției ("Cum ți se pare ce am discutat până acum?", "Este acest exercițiu util pentru tine?").\n7.  **Non-Directivitate Responsabilă:** NU oferi diagnostice medicale sau psihologice. NU oferi sfaturi directe care înlocuiesc terapia umană. Scopul tău este auto-reflecția ghidată.\n8.  **Utilizarea Contextului (Discret):** Folosește REZUMATUL FIȘELOR ANTERIOARE și istoricul discuției curente pentru a înțelege mai bine. Referă-te la ele cu tact ("Am observat că în una din fișele tale ai menționat X. Simți că există o legătură cu ce explorăm acum?").\n9.  **Concizie și Claritate:** Răspunsuri concise (2-5 propoziții ideal), cu paragrafe scurte. Un singur "punct" terapeutic per mesaj; așteaptă replica. Folosește Markdown pentru formatare (bold, italic, liste scurte).\n10. **Confidențialitate și Siguranță:** Reamintește discret, dacă e nevoie, că ești un AI și discuțiile nu înlocuiesc sfatul unui profesionist uman, și că datele sunt tratate conform politicilor de confidențialitate (fără a intra în detalii tehnice). Dacă utilizatorul exprimă gânduri de auto-vătămare sau vătămare a altora, ghidează-l ferm și empatic către resurse de ajutor specializat (ex: numere de urgență, linii de suport). ACEASTA ESTE O PRIORITATE.\n\n# STRUCTURĂ SUPEVIZATĂ A "ȘEDINȚEI" DE CHAT (Flexibilă):\n*   **Etapa 1 (Conectare Inițială, ~1-5 replici):** Salut, check-in emoțional general, stabilirea intenției/temei discuției.\n*   **Etapa 2 (Explorare și Lucru Central, ~5-20 replici):** Aprofundarea temei, aplicarea de tehnici (ex: restructurare cognitivă, exerciții de imagerie scurte textuale, explorarea valorilor), generare de insight-uri.\n*   **Etapa 3 (Integrare și Încheiere, ~2-5 replici):** Sumarizarea ideilor cheie, identificarea unui mic pas practic pentru săptămâna următoare, validare finală, încurajare.\n\nContext din ultimele fișe completate de utilizator (folosește-l cu discreție și inteligență):\n${initialContextSummary}---\nAcum, începe conversația cu un salut cald și o întrebare de deschidere.`;
         const aiGreeting = "Salut! Sunt PsihoGPT, asistentul tău AI pentru reflecție și explorare interioară. Cum te simți astăzi și despre ce ți-ar plăcea să discutăm sau să reflectăm împreună?";
-
         let historyForGeminiInitialization = [];
-        // NU mai trimitem întregul systemInstructionText ca prim mesaj, Gemini îl ia din setările modelului sau ca `system_instruction` în request.
-        // Începem direct cu un salut și istoricul real dacă există.
-        // historyForGeminiInitialization.push({ role: "user", parts: [{ text: systemInstructionText }] }); 
-        // historyForGeminiInitialization.push({ role: "model", parts: [{ text: aiGreeting }] });      
-
-        let loadedHistoryFromDB = await loadChatHistory(userId);
         
-        // Construim istoricul pentru API
+        let loadedHistoryFromDB = await loadChatHistory(userId);
         loadedHistoryFromDB.forEach(msg => {
             historyForGeminiInitialization.push({
-                role: msg.role === "AI" || msg.role === "model" ? "model" : "user", // Normalizăm rolul
+                role: msg.role === "AI" || msg.role === "model" ? "model" : "user",
                 parts: [{ text: msg.content || "" }]
             });
         });
-        // Dacă istoricul e gol, adăugăm un prim mesaj model cu salutul.
-        // Altfel, AI-ul va continua de unde a rămas.
-        if (historyForGeminiInitialization.length === 0) {
-             historyForGeminiInitialization.push({ role: "model", parts: [{text: aiGreeting}] });
-        }
-
-
+        
         try {
-            // Acum, `systemInstructionText` ar trebui ideal pasat la `getGenerativeModel` ca `systemInstruction`
-            // Sau ca parte a obiectului `startChat` dacă API-ul suportă `system_instruction` acolo.
-            // Versiunea actuală a `GoogleGenerativeAI` SDK (v0.9.0 la momentul scrierii)
-            // suportă `systemInstruction` în `getGenerativeModel` sau ca prim mesaj în `history`.
-            // Pentru consistență și control, trimiterea ca prim mesaj USER pare mai robustă pe mai multe modele.
             const chatConfig = {
-                history: [{ role: "user", parts: [{ text: systemInstructionText }] }, ...historyForGeminiInitialization], // System prompt primul
+                //  Instrucțiunea de sistem este trimisă ca prim mesaj "user" pentru compatibilitate largă.
+                //  API-urile mai noi Gemini pot accepta systemInstruction separat.
+                history: [{ role: "user", parts: [{ text: systemInstructionText }] }, ...historyForGeminiInitialization],
                 generationConfig: { 
-                    temperature: 0.75, // Temp mai mare pt creativitate chat
-                    // maxOutputTokens: // poate fi setat
+                    temperature: 0.75, 
                 }
             };
 
             chatSession = geminiModelChat.startChat(chatConfig);
-            console.log("Psiho Fișă: Sesiune chat Gemini inițializată. Istoric trimis:", chatConfig.history.length, "mesaje.");
+            console.log("Psiho Fișă: Sesiune chat Gemini inițializată. Istoric trimis:", chatConfig.history.length);
             if (chatStatus) chatStatus.textContent = "Chat pregătit.";
             
-            // Afișăm doar istoricul real din DB, fără system prompt și fără a repeta salutul dacă deja e în istoric
-            if (messagesDiv) messagesDiv.innerHTML = ''; // Curățăm mesajele vechi din UI
+            if (messagesDiv) messagesDiv.innerHTML = ''; 
             loadedHistoryFromDB.forEach(msg => {
                  displayChatMessage(msg.content, msg.role === "model" ? "AI" : "user");
             });
-            // Dacă istoricul era gol, AI-ul va saluta primul (conform logicii de mai sus)
-            // Dacă istoricul nu era gol, nu mai afișăm salutul extra aici.
-            if (loadedHistoryFromDB.length === 0) {
-                 displayChatMessage(aiGreeting, "AI"); // Afișăm salutul dacă e prima oară
-                 await saveChatMessage(userId, {role: "model", content: aiGreeting, timestamp: new Date().toISOString() });
+            
+            if (loadedHistoryFromDB.length === 0) { // Dacă nu e istoric, AI-ul salută (deja instruit în system prompt)
+                 const firstAiResponse = await chatSession.sendMessage("Salut!"); // Trimitem un "trigger" pentru AI să înceapă
+                 const firstAiText = firstAiResponse.response?.candidates?.[0]?.content?.parts?.[0]?.text || aiGreeting;
+                 displayChatMessage(firstAiText, "AI");
+                 await saveChatMessage(userId, {role: "model", content: firstAiText, timestamp: new Date().toISOString() });
             }
 
             isChatInitialized = true;
@@ -567,8 +538,7 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             console.error("Psiho Fișă: Eroare la inițializarea sesiunii de chat Gemini:", initError, initError.stack);
             if (chatStatus) chatStatus.textContent = "Eroare AI Chat. Reîncercați.";
             displayChatMessage("A apărut o problemă tehnică la pornirea chat-ului. Vă rugăm să închideți și redeschideți fereastra de chat sau să încercați mai târziu.", "AI-error");
-            isChatInitialized = false;
-            chatSession = null;
+            isChatInitialized = false; chatSession = null;
             if (sendButton) sendButton.disabled = true;
             return null;
         }
@@ -576,6 +546,7 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
     }
 
     async function handleSendChatMessage() {
+        // ... (codul funcției handleSendChatMessage - rămâne la fel)
         const chatInput = document.getElementById("chatInput");
         const sendButton = document.getElementById("sendChatMessageButton");
         const chatStatus = document.getElementById("chatStatus");
@@ -620,7 +591,7 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
                  if (response.candidates[0].finishReason && !["STOP", "MAX_TOKENS"].includes(response.candidates[0].finishReason)) {
                     console.warn("Psiho Fișă: Răspuns Gemini (chat) oprit prematur:", response.candidates[0].finishReason, response.candidates[0].safetyRatings);
                     aiResponseText = `AI-ul a oprit generarea (Motiv: ${response.candidates[0].finishReason}). Este posibil să fie din cauza filtrelor de siguranță. Încercați să reformulați.`;
-                    isBlockedBySafety = true; // Marcăm ca blocat pentru stilizare
+                    isBlockedBySafety = true; 
                 }
             } else if (response?.promptFeedback?.blockReason) {
                  console.warn("Psiho Fișă: Prompt blocat (chat):", response.promptFeedback.blockReason, response.promptFeedback.safetyRatings);
@@ -660,6 +631,7 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
     }
 
     async function handleToggleChat() {
+        // ... (codul funcției handleToggleChat - rămâne la fel)
         const user = auth.currentUser;
         if (!user) { alert("Autentificarea este necesară pentru chat."); window.location.href = "login.html"; return; }
 
@@ -670,7 +642,7 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
 
         if (chatContainer.style.display === "none" || chatContainer.style.display === "") {
             chatContainer.style.display = "flex"; 
-            toggleButton.innerHTML = "➖"; // Sau o iconiță SVG de închidere
+            toggleButton.innerHTML = "➖"; 
             if (!isChatInitialized || !chatSession) { 
                 const sessionOK = await initializeAndStartChatSession(user.uid);
                 if (sendButton) sendButton.disabled = !sessionOK;
@@ -680,20 +652,18 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             document.getElementById("chatInput")?.focus();
         } else {
             chatContainer.style.display = "none";
-            toggleButton.innerHTML = "💬"; // Sau o iconiță SVG de chat
+            toggleButton.innerHTML = "💬"; 
         }
     }
-
     // --- END CHAT FUNCTIONALITY ---
 
-
     async function salveazaRaspunsSiGenereazaFeedback() {
+        // ... (codul funcției salveazaRaspunsSiGenereazaFeedback - cu corecția pentru validare și timestamp)
         const form = document.getElementById("exercitiuForm");
-        // Validarea formularului
-        if (form && !form.checkValidity()) { // Verifică dacă 'form' există
+        if (form && !form.checkValidity()) {
             form.reportValidity();
             const currentStepElement = document.querySelector('.form-step-active');
-            const firstInvalidField = currentStepElement?.querySelector(':invalid:not(fieldset)'); // Exclude fieldset
+            const firstInvalidField = currentStepElement?.querySelector(':invalid:not(fieldset)');
             if (firstInvalidField) {
                 firstInvalidField.focus();
                 alert("Vă rugăm completați toate câmpurile obligatorii din pasul curent înainte de a salva.");
@@ -703,19 +673,16 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             return;
         }
 
-
         const rowData = { date: new Date().toLocaleDateString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric'}) }; 
-        if (form) { // Colectează datele doar dacă formularul e prezent
+        if (form) {
              const formData = new FormData(form);
              formData.forEach((value, key) => { rowData[key] = value.trim(); });
         } else if (document.body.classList.contains("collab-view")) {
-            console.warn("Tentativă de salvare în modul colaborare, unde formularul nu este activ. Se anulează.");
-            return; // Nu se salvează nimic în modul colaborare
+            return;
         } else {
-            console.error("Formularul 'exercitiuForm' nu a fost găsit și nu suntem în modul colaborare.");
+            console.error("Formularul 'exercitiuForm' nu a fost găsit.");
             return;
         }
-
 
         const user = auth.currentUser;
         if (!user) {
@@ -723,7 +690,7 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             window.location.href = "login.html"; return;
         }
         rowData.ownerUid = user.uid;
-        rowData.timestamp = Timestamp.fromDate(new Date()); // Adaugă un timestamp Firebase
+        rowData.timestamp = Timestamp.fromDate(new Date()); 
         
         const addButton = document.getElementById("addButton");
         let originalAddButtonText = "";
@@ -740,30 +707,24 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             const docRef = await addDoc(collection(db, "raspunsuri"), rowData);
             rowData.id = docRef.id; 
             console.log(`Psiho Fișă: Răspuns salvat cu ID: ${docRef.id}. Se generează feedback AI...`);
-
-            if (addButton) addButton.textContent = "Se generează AI..."; // Actualizează textul butonului
+            if (addButton) addButton.textContent = "Se generează AI...";
 
             const feedbackGenerat = await genereazaSiProceseazaFeedbackAI(rowData, docRef.id);
-            
-            const docSnapshot = await getDoc(docRef); // Re-fetch pentru a avea și feedback-ul
+            const docSnapshot = await getDoc(docRef); 
             if (docSnapshot.exists()) {
                 adaugaCard({ id: docSnapshot.id, ...docSnapshot.data() });
-            } else { // Fallback dacă docSnapshot nu e gata imediat (puțin probabil)
-                //  rowData are deja feedback-ul atașat de la genereazaSiProceseazaFeedbackAI în Firestore
-                //  Pentru afișare imediată, ne bazăm pe feedback_history creat
+            } else { 
                  rowData.feedback_history = feedbackGenerat && !feedbackGenerat.error ? [feedbackGenerat] : [];
                 adaugaCard(rowData);
             }
             
-            if (form) { // Resetează formularul doar dacă există
-                 form.reset(); 
-                 currentStep = 1; 
+            if (form) { 
+                 form.reset(); currentStep = 1; 
                  document.querySelectorAll('.form-step').forEach(step => step.classList.remove('form-step-active'));
                  const firstStepEl = document.getElementById('step-1');
                  if(firstStepEl) firstStepEl.classList.add('form-step-active');
                  updateProgressBar();
             }
-
 
             if (confirmationMessage) {
                 if (feedbackGenerat && !feedbackGenerat.error && !feedbackGenerat.error_parsing) {
@@ -779,16 +740,15 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
                 confirmationMessage.style.display = 'block';
                  setTimeout(() => { if(confirmationMessage) confirmationMessage.style.display = 'none'; }, 9000);
             }
-
-
         } catch (error) {
-            console.error("Psiho Fișă: Eroare la salvarea în Firestore sau generarea feedback-ului AI:", error);
-            alert("A apărut o eroare la salvare. Vă rugăm încercați din nou.");
+            console.error("Psiho Fișă: Eroare la salvare sau generare feedback:", error);
             if (confirmationMessage) {
-                confirmationMessage.textContent = 'Eroare la salvarea fișei. Încercați din nou. Verificați consola pentru detalii.';
+                confirmationMessage.textContent = 'Eroare la salvarea fișei. Încercați din nou. Verificați consola.';
                 confirmationMessage.className = 'confirmation-message error';
                 confirmationMessage.style.display = 'block';
                 setTimeout(() => { if(confirmationMessage) confirmationMessage.style.display = 'none'; }, 7000);
+            } else {
+                alert("A apărut o eroare la salvare. Verificați consola.");
             }
         } finally {
             if(addButton) {
@@ -798,158 +758,21 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
         }
     }
 
-    // Funcția de afișare istoric adaptată din jurnal.html
-    function afiseazaIstoricFeedback(containerEl, feedbackHistory) {
-        containerEl.innerHTML = ''; 
-
-        if (!feedbackHistory || !Array.isArray(feedbackHistory) || feedbackHistory.length === 0) {
-            const noHistoryMsg = document.createElement("p");
-            noHistoryMsg.textContent = "Niciun feedback AI generat anterior pentru această fișă.";
-            noHistoryMsg.className = "no-feedback-message"; 
-            containerEl.appendChild(noHistoryMsg);
-            return;
-        }
-
-        feedbackHistory.slice().reverse().forEach((entry, index) => {
-            if (!entry || typeof entry !== 'object') {
-                console.warn("Intrare invalidă în istoricul de feedback (psihoterapie), va fi ignorată:", entry);
-                return; 
-            }
-            const itemContainer = document.createElement("div");
-            itemContainer.className = "feedback-entry-card"; 
-
-            const timestampAndModel = document.createElement("p");
-            timestampAndModel.className = "feedback-timestamp";
-            const modelInfo = entry.model || 'N/A';
-            timestampAndModel.innerHTML = `<strong>Feedback #${feedbackHistory.length - index}</strong> (${new Date(entry.timestamp || Date.now()).toLocaleString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} - Model: ${modelInfo})`;
-            itemContainer.appendChild(timestampAndModel);
-
-            const contentWrapper = document.createElement("div"); 
-            contentWrapper.className = "content-ai"; 
-
-            const isCompleteError = entry.error || 
-                                    (entry.rawText && typeof entry.rawText === 'string' && entry.rawText.toUpperCase().startsWith("EROARE:"));
-
-            if (isCompleteError) {
-                const errorP = document.createElement("p");
-                errorP.className = "ai-text-error"; 
-                errorP.innerHTML = (entry.rawText || "Eroare la generarea acestui feedback.").replace(/\n/g, '<br>');
-                contentWrapper.appendChild(errorP);
-            } else {
-                let textToProcess = entry.rawText;
-                if (!textToProcess) { 
-                    console.warn("Feedback (psihoterapie): 'rawText' lipsește. Se încearcă reconstruirea.");
-                    // Încercare de a reconstrui din câmpurile parsate dacă rawText lipsește (pentru compatibilitate)
-                    let reconstructedFields = [];
-                    const fieldOrder = ["empatie_initiala", "puncte_forte", "tipare_principale", "conexiuni_cheie", "distorsiuni_identificate", "scheme_activate", "moduri_implicate", "perspectiva_adult_sanatos", "intrebare_finala_reflectie", "sugestie_mic_pas", "incurajare_finala", "paragraf", "intrebare", "recomandare", "distorsiuni", "scheme", "adult_sanatos_eval"];
-                    fieldOrder.forEach(key => {
-                        // Verificăm dacă `entry[key]` este direct sau `entry['feedback_' + key]` (cum era înainte)
-                        const value = entry[key] || entry[`feedback_${key}`];
-                        if (value && typeof value === 'string' && !value.startsWith("(Secțiune neextrasă")) {
-                            const title = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                            reconstructedFields.push(`**${title}:**\n${value}`);
-                        }
-                    });
-                    textToProcess = reconstructedFields.join("\n\n") || "Conținutul detaliat nu este disponibil în formatul brut (raw).";
-                     if (entry.error_parsing) {
-                        textToProcess = "Atenție: Unele secțiuni din acest feedback AI nu au putut fi parsate corect la generarea inițială.\n\n" + textToProcess;
-                    }
-                }
-                if (!textToProcess) textToProcess = "Conținut indisponibil.";
-
-                let finalHtmlElements = []; 
-                const lines = textToProcess.split('\n');
-                let currentParagraphContent = [];
-                let inList = false;
-                let currentListElement = null;
-
-                for (const line of lines) {
-                    const matchTitle = line.match(/^\s*(?:(\*\*|###|\##|\#)\s*([^#*]+)\s*(?:\1)?\s*)$/);
-                    if (matchTitle && matchTitle[2] && matchTitle[2].trim().length > 0) {
-                        if (currentParagraphContent.length > 0) { 
-                            const p = document.createElement('p'); p.className = 'ai-text-paragraph';
-                            let pHtml = currentParagraphContent.join('<br>');
-                            pHtml = pHtml.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/__(.*?)__/g, '<strong>$1</strong>');
-                            pHtml = pHtml.replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/_(.*?)_/g, '<em>$1</em>');
-                            p.innerHTML = pHtml; finalHtmlElements.push(p); currentParagraphContent = [];
-                        }
-                        if (inList && currentListElement) { finalHtmlElements.push(currentListElement); inList = false; currentListElement = null; }
-                        const tMarker = matchTitle[1]; let tLevel = 2;
-                        if (tMarker.startsWith('#')) { tLevel = tMarker.length; if (tLevel > 4) tLevel = 4; }
-                        const tEl = document.createElement(`h${tLevel}`); tEl.className = 'ai-main-section-title';
-                        let tText = matchTitle[2].trim().replace(/\*\*(.*?)\*\*/g, '$1').replace(/__(.*?)__/g, '$1');
-                        tEl.textContent = tText; finalHtmlElements.push(tEl); continue;
-                    }
-
-                    const matchListItem = line.match(/^\s*([\*\-\+]|\d+\.)\s+(.*)/);
-                    if (matchListItem) {
-                        if (currentParagraphContent.length > 0) {
-                            const p = document.createElement('p'); p.className = 'ai-text-paragraph';
-                            let pHtml = currentParagraphContent.join('<br>');
-                            pHtml = pHtml.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/__(.*?)__/g, '<strong>$1</strong>');
-                            pHtml = pHtml.replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/_(.*?)_/g, '<em>$1</em>');
-                            p.innerHTML = pHtml; finalHtmlElements.push(p); currentParagraphContent = [];
-                        }
-                        if (!inList) {
-                            inList = true; currentListElement = document.createElement(matchListItem[1].match(/\d+\./) ? 'ol' : 'ul');
-                            currentListElement.className = 'ai-list';
-                        } else {
-                            const newListOrd = !!matchListItem[1].match(/\d+\./);
-                            const currListOrd = currentListElement.tagName === 'OL';
-                            if (newListOrd !== currListOrd) {
-                                finalHtmlElements.push(currentListElement);
-                                currentListElement = document.createElement(newListOrd ? 'ol' : 'ul');
-                                currentListElement.className = 'ai-list';
-                            }
-                        }
-                        const li = document.createElement('li'); li.className = 'ai-list-item';
-                        let iHtml = matchListItem[2];
-                        iHtml = iHtml.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/__(.*?)__/g, '<strong>$1</strong>');
-                        iHtml = iHtml.replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/_(.*?)_/g, '<em>$1</em>');
-                        li.innerHTML = iHtml; currentListElement.appendChild(li); continue;
-                    }
-                    if (inList && currentListElement) { finalHtmlElements.push(currentListElement); inList = false; currentListElement = null; }
-
-                    if (line.trim() === "") {
-                        if (currentParagraphContent.length > 0) {
-                            const p = document.createElement('p'); p.className = 'ai-text-paragraph';
-                            let pHtml = currentParagraphContent.join('<br>');
-                            pHtml = pHtml.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/__(.*?)__/g, '<strong>$1</strong>');
-                            pHtml = pHtml.replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/_(.*?)_/g, '<em>$1</em>');
-                            p.innerHTML = pHtml; finalHtmlElements.push(p); currentParagraphContent = [];
-                        }
-                    } else { currentParagraphContent.push(line); }
-                }
-                if (currentParagraphContent.length > 0) {
-                    const p = document.createElement('p'); p.className = 'ai-text-paragraph';
-                    let pHtml = currentParagraphContent.join('<br>');
-                    pHtml = pHtml.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/__(.*?)__/g, '<strong>$1</strong>');
-                    pHtml = pHtml.replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/_(.*?)_/g, '<em>$1</em>');
-                    p.innerHTML = pHtml; finalHtmlElements.push(p);
-                }
-                if (inList && currentListElement) { finalHtmlElements.push(currentListElement); }
-                finalHtmlElements.forEach(el => contentWrapper.appendChild(el));
-            }
-            itemContainer.appendChild(contentWrapper);
-            containerEl.appendChild(itemContainer);
-        });
-    }
-
-    // Modificată pentru stilul nou (rămâne `adaugaCard` specific fișierului, dar cu noua structură)
     function adaugaCard(rowData) {
+        // ... (Funcția adaugaCard - cu noua structură HTML și evenimente)
         const cardViewContainer = document.getElementById("cardViewContainer");
         let card = cardViewContainer.querySelector(`.response-card[data-id="${rowData.id}"]`);
 
-        const entryDate = rowData.date || (rowData.timestamp?.seconds ? new Date(rowData.timestamp.seconds * 1000).toLocaleDateString("ro-RO", {day: '2-digit', month: '2-digit', year: 'numeric'}) : 'Dată necunoscută');
+        const entryDate = rowData.date || (rowData.timestamp?.toDate ? new Date(rowData.timestamp.toDate()).toLocaleDateString("ro-RO", {day: '2-digit', month: '2-digit', year: 'numeric'}) : 'Dată necunoscută');
         const cardTitle = `Fișă ${entryDate} - ${(rowData.situatie || 'Situație nedefinită').substring(0, 45)}...`;
 
         if (!card) { 
             card = document.createElement("div");
-            card.className = "response-card"; // Stil general
+            card.className = "response-card"; 
             card.setAttribute("data-id", rowData.id);
 
             let detailsContentHtml = `
-                <h4>Explorarea situației și a nevoilor</h4>
+                <h4 style="margin-top:0;">Explorarea situației și a nevoilor</h4>
                 <p><strong>Care este situația?</strong> ${rowData.situatie || 'N/A'}</p>
                 <p><strong>Ce îmi trece prin minte?</strong> ${rowData.ganduri || 'N/A'}</p>
                 <p><strong>Cum mă face acel gând să mă simt?</strong> ${rowData.emotii || 'N/A'}</p>
@@ -993,7 +816,7 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
                         <summary>Vezi/Ascunde detaliile fișei completate</summary>
                         <div class="journal-entry-content-text">${detailsContentHtml}</div>
                     </details>
-                    <h4>Feedback AI <span style="font-weight:300; font-style:italic; font-size:0.85em;">(PsihoGPT)</span></h4>
+                    <h4 class="ai-feedback-title">Feedback AI <span style="font-weight:300; font-style:italic; font-size:0.85em;">(PsihoGPT)</span></h4>
                     <div class="ai-feedback-history-container"></div>
                     <div class="card-actions">
                         <button class="regenerate-feedback-button" title="Regenerează Feedback AI pentru această fișă">Regenerează</button>
@@ -1007,10 +830,126 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             card.querySelector('.card-header').addEventListener('click', (e) => {
                 if (!e.target.closest('button') && !e.target.closest('details')) card.classList.toggle('open');
             });
-            card.querySelector('.regenerate-feedback-button').addEventListener('click', (e) => { e.stopPropagation(); /* logica regenerare dinainte */ });
-            card.querySelector('.delete-last-feedback-button').addEventListener('click', (e) => { e.stopPropagation(); /* logica delete ultimul feedback dinainte */ });
-            card.querySelector('.delete-all-feedback-button').addEventListener('click', (e) => { e.stopPropagation(); /* logica delete tot istoricul dinainte */ });
-            card.querySelector('.delete-journal-entry-button').addEventListener('click', (e) => { e.stopPropagation(); stergeCard(rowData.id, card); });
+
+            // REGENERARE
+            card.querySelector('.regenerate-feedback-button').addEventListener('click', async (event) => {
+                event.stopPropagation();
+                const button = event.target;
+                const originalButtonText = button.textContent;
+                button.textContent = 'Se generează...'; button.disabled = true;
+                const confirmationMsg = document.getElementById('confirmationMessage');
+                if(confirmationMsg) confirmationMsg.style.display = 'none';
+                
+                try {
+                    const docSnapshot = await getDoc(doc(db, "raspunsuri", rowData.id));
+                    if (!docSnapshot.exists()) {
+                         if(confirmationMsg) { confirmationMsg.textContent = 'Eroare: Fișa nu mai există.'; confirmationMsg.className = 'confirmation-message error'; confirmationMsg.style.display = 'block';} else { alert("Fișa nu mai există.");}
+                         return; 
+                    }
+                    const currentCardData = { id: docSnapshot.id, ...docSnapshot.data() };
+                    const newFeedback = await genereazaSiProceseazaFeedbackAI(currentCardData, currentCardData.id); 
+                    
+                    const updatedDoc = await getDoc(doc(db, "raspunsuri", currentCardData.id));
+                    if (updatedDoc.exists()) {
+                       afiseazaIstoricFeedback(card.querySelector('.ai-feedback-history-container'), updatedDoc.data().feedback_history || []);
+                        const message = newFeedback && !newFeedback.error && !newFeedback.error_parsing ? "Noul feedback AI a fost generat și adăugat!" : `Feedback AI: ${newFeedback.rawText || 'Problemă la generare.'}`;
+                        if(confirmationMsg) { confirmationMsg.textContent = message; confirmationMsg.className = `confirmation-message ${newFeedback && !newFeedback.error && !newFeedback.error_parsing ? 'success' : 'error'}`; confirmationMsg.style.display = 'block'; setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);} else {alert(message);}
+                    }
+                } catch (error) {
+                    console.error("Eroare la regenerare (psihoterapie):", error);
+                    if(confirmationMsg) { confirmationMsg.textContent = 'Eroare la regenerarea feedback-ului.'; confirmationMsg.className = 'confirmation-message error'; confirmationMsg.style.display = 'block'; setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);} else {alert("Eroare la regenerarea feedback-ului AI.");}
+                } finally {
+                    button.textContent = originalButtonText; button.disabled = false;
+                }
+            });
+
+            // ȘTERGE ULTIMUL
+            card.querySelector('.delete-last-feedback-button').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (!confirm("Ștergi ultimul feedback AI pentru această fișă?")) return;
+                const button = e.target; const originalText = button.textContent;
+                button.textContent = "Se șterge..."; button.disabled = true;
+                const confirmationMsg = document.getElementById('confirmationMessage');
+                if(confirmationMsg) confirmationMsg.style.display = 'none';
+
+                try {
+                    const entryDocRef = doc(db, "raspunsuri", rowData.id);
+                    const entrySnap = await getDoc(entryDocRef);
+                    if (!entrySnap.exists() || !entrySnap.data().feedback_history?.length) {
+                         const msg = "Nu există feedback de șters.";
+                         if(confirmationMsg) {confirmationMsg.textContent = msg; confirmationMsg.className = 'confirmation-message warning'; confirmationMsg.style.display = 'block'; setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none';}, 7000);} else {alert(msg);}
+                         return;
+                    }
+                    const history = entrySnap.data().feedback_history;
+                    history.pop(); 
+                    const updateData = { feedback_history: history };
+                    // Logic to update/remove individual latest feedback fields if they exist
+                    const latestFeedbackEntry = history.length > 0 ? history[history.length -1] : null;
+                    const fieldsToPotentiallyUpdate = ["empatie_initiala", "puncte_forte", "tipare_principale", "conexiuni_cheie", "distorsiuni_identificate", "scheme_activate", "moduri_implicate", "perspectiva_adult_sanatos", "intrebare_finala_reflectie", "sugestie_mic_pas", "incurajare_finala", "paragraf", "intrebare", "recomandare", "distorsiuni", "scheme", "adult_sanatos_eval", "model", "timestamp", "error", "error_parsing"];
+                    
+                    fieldsToPotentiallyUpdate.forEach(fKey => {
+                        if(latestFeedbackEntry && latestFeedbackEntry.hasOwnProperty(fKey)) {
+                            updateData[`feedback_${fKey}`] = latestFeedbackEntry[fKey];
+                        } else if (latestFeedbackEntry && latestFeedbackEntry.hasOwnProperty(`feedback_${fKey}`)){ // just in case
+                            updateData[`feedback_${fKey}`] = latestFeedbackEntry[`feedback_${fKey}`];
+                        } else {
+                             updateData[`feedback_${fKey}`] = deleteField();
+                        }
+                    });
+                    //Ensure rawText is not stored at root if not needed or is part of latestFeedbackEntry structure
+                     if (latestFeedbackEntry && latestFeedbackEntry.hasOwnProperty('rawText')) {
+                         // updateData['feedback_rawText'] = latestFeedbackEntry.rawText; // Optional, if you decide to store it
+                     } else {
+                        // updateData['feedback_rawText'] = deleteField();
+                     }
+
+
+                    await updateDoc(entryDocRef, updateData);
+                    afiseazaIstoricFeedback(card.querySelector('.ai-feedback-history-container'), history);
+                    const msg = "Ultimul feedback AI șters.";
+                    if(confirmationMsg) {confirmationMsg.textContent = msg; confirmationMsg.className = 'confirmation-message success'; confirmationMsg.style.display = 'block'; setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);} else { alert(msg); }
+                } catch (err) {
+                    console.error("Eroare ștergere ultim feedback (psihoterapie):", err);
+                    const msg = "Eroare la ștergerea feedback-ului.";
+                    if(confirmationMsg) {confirmationMsg.textContent = msg; confirmationMsg.className = 'confirmation-message error'; confirmationMsg.style.display = 'block'; setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);} else { alert(msg); }
+                } finally {
+                    button.textContent = originalText; button.disabled = false;
+                }
+            });
+        
+            // ȘTERGE TOT ISTORICUL
+            card.querySelector('.delete-all-feedback-button').addEventListener('click', async (event) => {
+                event.stopPropagation(); 
+                if (confirm(`Sigur ștergi TOT istoricul de feedback AI pentru fișa "${(rowData.situatie || '').substring(0,20)}..."? Ireversibil.`)) {
+                    const button = event.target; const originalText = button.textContent;
+                    button.textContent = 'Se șterge...'; button.disabled = true;
+                    const confirmationMsg = document.getElementById('confirmationMessage');
+                    if(confirmationMsg) confirmationMsg.style.display = 'none';
+                    try {
+                        const docRef = doc(db, "raspunsuri", rowData.id); 
+                        const fieldsToDelete = { feedback_history: [] }; // Set to empty array
+                        const commonFeedbackKeys = ["empatie_initiala", "puncte_forte", "tipare_principale", "conexiuni_cheie", "distorsiuni_identificate", "scheme_activate", "moduri_implicate", "perspectiva_adult_sanatos", "intrebare_finala_reflectie", "sugestie_mic_pas", "incurajare_finala", "paragraf", "intrebare", "recomandare", "distorsiuni", "scheme", "adult_sanatos_eval", "model", "timestamp", "error", "error_parsing", "rawText"]; // include rawText here if you stored it
+                        commonFeedbackKeys.forEach(fKey => fieldsToDelete[`feedback_${fKey}`] = deleteField());
+                        
+                        await updateDoc(docRef, fieldsToDelete);
+                        afiseazaIstoricFeedback(card.querySelector('.ai-feedback-history-container'), []); 
+                        const msg = "Tot istoricul feedback-ului AI a fost șters!";
+                        if(confirmationMsg) {confirmationMsg.textContent = msg; confirmationMsg.className = 'confirmation-message success'; confirmationMsg.style.display = 'block'; setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);} else {alert(msg);}
+                    } catch (error) {
+                        console.error("Eroare la ștergerea istoricului (psihoterapie):", error);
+                        const msg = "Eroare la ștergerea istoricului.";
+                        if(confirmationMsg) {confirmationMsg.textContent = msg; confirmationMsg.className = 'confirmation-message error'; confirmationMsg.style.display = 'block'; setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);} else {alert(msg);}
+                    } finally {
+                        button.textContent = originalText; button.disabled = false;
+                    }
+                }
+            });
+
+            // ȘTERGE FIȘA
+            card.querySelector('.delete-journal-entry-button').addEventListener('click', (e) => { 
+                e.stopPropagation(); 
+                stergeCard(rowData.id, card); 
+            });
 
 
             const noEntriesMsg = cardViewContainer.querySelector('.no-entries-message');
@@ -1024,8 +963,41 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             }
         } else { 
              card.querySelector('.card-header span:first-child').textContent = cardTitle;
-             // Actualizează și conținutul <details> dacă datele fișei s-ar schimba
-             // Aceasta e mai complex dacă structura internă a detailsContentHtml se schimbă mult
+             // Actualizează <details> dacă rowData s-a schimbat (puțin probabil în acest flux)
+             card.querySelector('.journal-entry-content-text').innerHTML = `
+                <h4 style="margin-top:0;">Explorarea situației și a nevoilor</h4>
+                <p><strong>Care este situația?</strong> ${rowData.situatie || 'N/A'}</p>
+                <p><strong>Ce îmi trece prin minte?</strong> ${rowData.ganduri || 'N/A'}</p>
+                <p><strong>Cum mă face acel gând să mă simt?</strong> ${rowData.emotii || 'N/A'}</p>
+                <p><strong>Ce mod este activ?</strong> ${rowData.mod_activ || 'N/A'}</p>
+                <p><strong>Ce comportament simți că adopți?</strong> ${rowData.comportament || 'N/A'}</p>
+                <p><strong>Care sunt nevoile tale mai profunde?</strong> ${rowData.nevoi_profunde || 'N/A'}</p>
+                <p><strong>Mă ajută comportamentul meu să îndeplinesc aceste nevoi?</strong> ${rowData.ajutor_comportament || 'N/A'}</p>
+                <p><strong>Cum ar gândi și cum s-ar comporta Adultul Sănătos?</strong> ${rowData.adult_sanatos || 'N/A'}</p>
+                <hr>
+                <h4>Analiza gândurilor și a percepțiilor</h4>
+                <p><strong>Ce mă face să cred că gândul automat este adevărat?</strong> ${rowData.dovezi_adevar || 'N/A'}</p>
+                <p><strong>Ce mă face să cred că nu este adevărat?</strong> ${rowData.dovezi_fals || 'N/A'}</p>
+                <p><strong>Există o explicație alternativă?</strong> ${rowData.explicatie_alternativa || 'N/A'}</p>
+                <p><strong>Care este cel mai rău lucru care s-ar putea întâmpla?</strong> ${rowData.scenariu_negativ || 'N/A'}</p>
+                <p><strong>Care este cel mai bun lucru care s-ar putea întâmpla?</strong> ${rowData.scenariu_optimist || 'N/A'}</p>
+                <p><strong>Care este cel mai realist rezultat?</strong> ${rowData.rezultat_realist || 'N/A'}</p>
+                <p><strong>Ce s-ar întâmpla dacă mi-aș schimba modul de gândire?</strong> ${rowData.schimbare_gandire || 'N/A'}</p>
+                <p><strong>Ce i-aș spune unui prieten dacă ar fi în aceeași situație?</strong> ${rowData.sfat_prieten || 'N/A'}</p>
+                <hr>
+                <h4>Întrebări pentru claritate și reflecție suplimentară</h4>
+                <p><strong>Văd doar partea rea a lucrurilor?</strong> ${rowData.partea_rea || 'N/A'}</p>
+                <p><strong>Îmi asum responsabilitatea pentru lucruri care nu au stat în puterea mea?</strong> ${rowData.responsabilitate || 'N/A'}</p>
+                <p><strong>Mă condamn în baza unui singur eveniment?</strong> ${rowData.condamnare || 'N/A'}</p>
+                <p><strong>Privesc situația în termeni extremi?</strong> ${rowData.termeni_extremi || 'N/A'}</p>
+                <p><strong>Exagerez situația?</strong> ${rowData.exagerare || 'N/A'}</p>
+                <p><strong>Există și alți factori responsabili?</strong> ${rowData.factori_responsabili || 'N/A'}</p>
+                <p><strong>Am sărit direct la concluzii?</strong> ${rowData.concluzii || 'N/A'}</p>
+                <p><strong>Îmi pun întrebări fără răspuns?</strong> ${rowData.intrebari_fara_raspuns || 'N/A'}</p>
+                <p><strong>Mă concentrez doar asupra slăbiciunilor mele?</strong> ${rowData.slabiciuni || 'N/A'}</p>
+                <p><strong>Mă zbat prea mult gândind la cum ar trebui să fie lucrurile?</strong> ${rowData.cum_ar_trebui || 'N/A'}</p>
+                <p><strong>Mă aștept să fiu perfect?</strong> ${rowData.perfectiune || 'N/A'}</p>
+             `;
         }
         
         const feedbackContainer = card.querySelector('.ai-feedback-history-container');
@@ -1036,26 +1008,20 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
 
 
     async function loadTableData(userId, collabIdForLoad = null, ownerIdForCollabView = null) {
-        const cardViewContainer = document.getElementById("cardViewContainer");
+        // ... (Funcția loadTableData - cu corecții minore pentru mesaje și class names)
+         const cardViewContainer = document.getElementById("cardViewContainer");
         if ((!userId && !ownerIdForCollabView) || !cardViewContainer) {
-            console.warn("loadTableData (fișă) apelat fără userId/ownerId sau containerul de carduri nu există.");
-            if (cardViewContainer) cardViewContainer.innerHTML = '<p class="error-loading-message">Datele nu pot fi încărcate (lipsă informații utilizator).</p>';
+            if (cardViewContainer) cardViewContainer.innerHTML = '<p class="error-loading-message">Datele nu pot fi încărcate (informații utilizator invalide).</p>';
             return;
         }
-
-        if (collabIdForLoad && dataAlreadyLoaded && document.body.classList.contains('collab-view-loaded')) { 
-            return;
-        }
+        if (collabIdForLoad && dataAlreadyLoaded && document.body.classList.contains('collab-view-loaded')) return;
         
         let loadingMsg = cardViewContainer.querySelector(".loading-message");
         if (!cardViewContainer.querySelector('.response-card') && !cardViewContainer.querySelector('.no-entries-message') && !loadingMsg) {
-            loadingMsg = document.createElement("p");
-            loadingMsg.className = "loading-message";
+            loadingMsg = document.createElement("p"); loadingMsg.className = "loading-message";
             loadingMsg.textContent = collabIdForLoad ? "Se încarcă fișele partajate..." : "Se încarcă fișele tale...";
-            cardViewContainer.innerHTML = ''; // Curăță înainte de a adăuga mesajul de încărcare
-            cardViewContainer.appendChild(loadingMsg);
+            cardViewContainer.innerHTML = ''; cardViewContainer.appendChild(loadingMsg);
         }
-
 
         try {
             let q;
@@ -1064,7 +1030,7 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
                 q = query(collectionRef, where("ownerUid", "==", ownerIdForCollabView), orderBy("timestamp", "desc"));
             } else if (userId) { 
                 q = query(collectionRef, where("ownerUid", "==", userId), orderBy("timestamp", "desc"));
-            } else { return; }
+            } else { if (loadingMsg) loadingMsg.remove(); return; }
 
             const querySnapshot = await getDocs(q);
             if (loadingMsg) loadingMsg.remove();
@@ -1081,29 +1047,23 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             
             if (newDocsData.length === 0 && !cardViewContainer.querySelector('.response-card')) {
                 if (!cardViewContainer.querySelector('.no-entries-message')) {
-                    const noEntriesMsg = document.createElement("p");
-                    noEntriesMsg.className = "no-entries-message";
-                    noEntriesMsg.textContent = collabIdForLoad ? "Nicio fișă partajată găsită." : "Nicio fișă de monitorizare. Completează una pentru a începe!";
-                    cardViewContainer.appendChild(noEntriesMsg);
+                    const noEntriesMsgElement = document.createElement("p");
+                    noEntriesMsgElement.className = "no-entries-message";
+                    noEntriesMsgElement.textContent = collabIdForLoad ? "Nicio fișă partajată nu a fost găsită." : "Nicio fișă de monitorizare. Completează una pentru a începe!";
+                    cardViewContainer.appendChild(noEntriesMsgElement);
                 }
             } else {
                  const noEntriesMsgIfAny = cardViewContainer.querySelector('.no-entries-message');
                  if (noEntriesMsgIfAny) noEntriesMsgIfAny.remove();
-                 newDocsData.forEach(docData => adaugaCard(docData)); // adaugaCard a fost deja actualizată
+                 newDocsData.forEach(docData => adaugaCard(docData));
             }
-
-            if (collabIdForLoad) {
-                dataAlreadyLoaded = true; 
-                document.body.classList.add('collab-view-loaded');
-            }
-
+            if (collabIdForLoad) { dataAlreadyLoaded = true; document.body.classList.add('collab-view-loaded'); }
         } catch (error) {
             console.error("Psiho Fișă: Eroare la încărcarea cardurilor:", error.message, error.stack);
             if (loadingMsg) loadingMsg.remove();
             if(!cardViewContainer.querySelector('.response-card') && !cardViewContainer.querySelector('.error-loading-message')) {
-                const errorMsgElement = document.createElement("p");
-                errorMsgElement.className = "error-loading-message";
-                errorMsgElement.textContent = "Eroare la încărcarea fișelor. Vă rugăm reîncărcați pagina.";
+                const errorMsgElement = document.createElement("p"); errorMsgElement.className = "error-loading-message";
+                errorMsgElement.textContent = "Eroare la încărcarea fișelor. Reîncărcați pagina.";
                 const noEntriesMsg = cardViewContainer.querySelector('.no-entries-message');
                 if(noEntriesMsg) noEntriesMsg.remove();
                 cardViewContainer.appendChild(errorMsgElement);
@@ -1112,88 +1072,83 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
     }
 
     async function stergeCard(id, cardElement) { 
-        if (confirm("Sunteți sigur că doriți să ștergeți această fișă și tot feedback-ul AI asociat? Această acțiune este ireversibilă.")) {
+        // ... (codul funcției stergeCard - rămâne la fel, dar asigură consistența mesajului 'no-entries')
+         if (confirm("Sunteți sigur că doriți să ștergeți această fișă și tot feedback-ul AI asociat? Această acțiune este ireversibilă.")) {
+            const confirmationMsg = document.getElementById('confirmationMessage');
+            if(confirmationMsg) confirmationMsg.style.display = 'none';
             try {
                 await deleteDoc(doc(db, "raspunsuri", id));
                 cardElement.remove();
-                const container = document.getElementById("cardViewContainer"); // Folosește cardViewContainer
+                const container = document.getElementById("cardViewContainer");
                 if(container && !container.querySelector('.response-card') && !container.querySelector('.no-entries-message')) {
-                    const noEntriesMsg = document.createElement("p");
-                    noEntriesMsg.className = "no-entries-message";
-                    noEntriesMsg.textContent = "Nicio fișă de monitorizare. Completează una pentru a începe!";
-                    container.appendChild(noEntriesMsg);
+                    const noEntriesMsgElement = document.createElement("p");
+                    noEntriesMsgElement.className = "no-entries-message";
+                    noEntriesMsgElement.textContent = "Nicio fișă de monitorizare. Completează una pentru a începe!";
+                    container.appendChild(noEntriesMsgElement);
                 }
                 console.log(`Psiho Fișă: Fișa ${id} a fost ștearsă.`);
-                // Nu mai afișăm alert, mesajul de confirmare e gestionat în salveaza...
+                if(confirmationMsg){
+                     confirmationMsg.textContent = "Fișa a fost ștearsă cu succes!";
+                     confirmationMsg.className = "confirmation-message success";
+                     confirmationMsg.style.display = "block";
+                     setTimeout(()=> {if(confirmationMsg) confirmationMsg.style.display = "none"}, 5000);
+                } else {
+                    alert("Fișa a fost ștearsă cu succes!");
+                }
             } catch (error) {
                 console.error("Psiho Fișă: Eroare la ștergerea fișei:", error);
-                alert("Eroare la ștergerea fișei. Verificați consola.");
+                if(confirmationMsg){
+                     confirmationMsg.textContent = "Eroare la ștergerea fișei. Verificați consola.";
+                     confirmationMsg.className = "confirmation-message error";
+                     confirmationMsg.style.display = "block";
+                     setTimeout(()=> {if(confirmationMsg) confirmationMsg.style.display = "none"}, 5000);
+                } else {
+                    alert("Eroare la ștergerea fișei.");
+                }
             }
         }
     }
 
     async function generateCollaborationLink() {
-        // ... (Logica generateCollaborationLink rămâne aceeași)
-         const user = auth.currentUser;
-        if (!user) {
-            alert("Trebuie să fiți autentificat pentru a genera un link de colaborare.");
-            return;
-        }
-        
+        // ... (codul funcției generateCollaborationLink - rămâne la fel)
+        const user = auth.currentUser;
+        if (!user) { alert("Trebuie să fiți autentificat pentru a genera un link de colaborare."); return; }
         const existingCollabQuery = query(collection(db, "collaborations"), where("owner", "==", user.uid), limit(1)); 
         const querySnapshot = await getDocs(existingCollabQuery);
-
         let pinCode;
         if (!querySnapshot.empty) {
             const collabDoc = querySnapshot.docs[0];
             const collabLink = `${window.location.origin}${window.location.pathname}?collabId=${collabDoc.id}`;
             const existingPin = collabDoc.data().pin;
-            
             const renew = confirm(`Ai deja un link de colaborare activ (PIN: ${existingPin}).\nLink: ${collabLink}\n\nDorești să generezi un PIN nou pentru acest link? Anularea va păstra PIN-ul existent.`);
             if (renew) {
                  pinCode = prompt("Introduceți un nou cod PIN numeric (minim 4 cifre):");
                  if (pinCode && /^\d{4,}$/.test(pinCode)) {
-                    await updateDoc(doc(db, "collaborations", collabDoc.id), { pin: pinCode, updatedAt: new Date() });
+                    await updateDoc(doc(db, "collaborations", collabDoc.id), { pin: pinCode, updatedAt: Timestamp.fromDate(new Date()) });
                     prompt(`PIN actualizat! Link-ul de colaborare rămâne același. Noul PIN este: ${pinCode}.\nLink: ${collabLink}`, `Link: ${collabLink}\nPIN nou: ${pinCode}`);
-                 } else if(pinCode !== null) { 
-                    alert("Cod PIN invalid. Trebuie să fie numeric și minim 4 cifre. PIN-ul vechi a fost păstrat.");
-                 }
-            } else { 
-                 prompt(`Link de colaborare existent (PIN: ${existingPin}). Îl poți redistribui:\nLink și PIN:`, `${collabLink} (PIN: ${existingPin})`);
-            }
+                 } else if(pinCode !== null) { alert("Cod PIN invalid. Trebuie să fie numeric și minim 4 cifre. PIN-ul vechi a fost păstrat."); }
+            } else { prompt(`Link de colaborare existent (PIN: ${existingPin}). Îl poți redistribui:\nLink și PIN:`, `${collabLink} (PIN: ${existingPin})`); }
             return; 
         }
-
         pinCode = prompt("Introduceți un cod PIN numeric (minim 4 cifre) pentru noul link de colaborare:");
-        if (!pinCode || !/^\d{4,}$/.test(pinCode)) { 
-            alert("Cod PIN invalid. Trebuie să fie numeric și să conțină cel puțin 4 cifre.");
-            return;
-        }
+        if (!pinCode || !/^\d{4,}$/.test(pinCode)) { alert("Cod PIN invalid. Trebuie să fie numeric și să conțină cel puțin 4 cifre."); return; }
         try {
-            const docRef = await addDoc(collection(db, "collaborations"), { 
-                owner: user.uid, 
-                pin: pinCode, 
-                createdAt: Timestamp.fromDate(new Date()) // Folosim Timestamp Firebase
-            });
+            const docRef = await addDoc(collection(db, "collaborations"), {  owner: user.uid, pin: pinCode, createdAt: Timestamp.fromDate(new Date()) });
             const collaborationLink = `${window.location.origin}${window.location.pathname}?collabId=${docRef.id}`;
             prompt(`Link de colaborare generat! Distribuie acest link ÎMPREUNĂ cu codul PIN.\nLink: ${collaborationLink}\nPIN: ${pinCode}`, `Link: ${collaborationLink} (PIN: ${pinCode})`);
-        } catch (error) {
-            console.error("Eroare la generarea link-ului de colaborare:", error);
-            alert("A apărut o eroare la generarea linkului.");
-        }
+        } catch (error) { console.error("Eroare la generarea link-ului de colaborare:", error); alert("A apărut o eroare la generarea linkului."); }
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-        // ... (Logica DOMContentLoaded pentru modul colaborare rămâne aceeași)
-        console.log("DOMContentLoaded (fișă) - Se verifică pentru modul colaborare.");
+        // ... (codul event listener-ului DOMContentLoaded - rămâne la fel, dar verifică și mesajul de confirmare)
         const urlParams = new URLSearchParams(window.location.search);
         const collabId = urlParams.get('collabId');
+        const confirmationMessageElement = document.getElementById('confirmationMessage'); // Cache it
 
         if (collabId) {
             dataAlreadyLoaded = false; 
             document.body.classList.add("collab-view"); 
-            // Ascunde elementele care nu sunt relevante pentru modul colaborare
-            ['exercitiuForm', 'generateLinkButton', '.form-container > h2.main-form-title', '.form-container > p:not(#confirmationMessage)', '.form-container .progress-bar', '.table-container'].forEach(sel => {
+            ['exercitiuForm', 'generateLinkButton', '.form-container > h2.main-form-title', '.form-container > p:not(#confirmationMessage)', '.form-container .progress-bar'].forEach(sel => {
                 const el = document.querySelector(sel);
                 if (el) el.style.display = 'none'; 
             });
@@ -1201,104 +1156,89 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             const formContainer = document.querySelector('.form-container');
             if (formContainer && !formContainer.querySelector('h2.collab-title')) {
                 const collabTitle = document.createElement('h2');
-                collabTitle.className = 'collab-title';
-                collabTitle.style.textAlign = 'center';
-                collabTitle.textContent = 'Vizualizare Fișe Colaborare';
-                formContainer.insertBefore(collabTitle, formContainer.firstChild); // Adaugă titlul la început
+                collabTitle.className = 'collab-title'; collabTitle.style.textAlign = 'center';
+                collabTitle.textContent = 'Vizualizare Fișe Partajate';
+                formContainer.insertBefore(collabTitle, formContainer.firstChild);
             }
-
+            // Ascunde mesajul de confirmare în modul colaborare, nu e relevant aici
+            if(confirmationMessageElement) confirmationMessageElement.style.display = 'none';
             
-            setTimeout(async () => { // Mic delay pentru a permite UI-ului să se actualizeze
+            setTimeout(async () => { 
                 const pin = prompt("Introduceți codul PIN pentru a vizualiza fișele de colaborare:");
-                if (!pin) {
-                    alert("PIN-ul este necesar pentru a continua. Veți fi redirecționat."); window.location.href = "login.html"; return;
-                }
+                if (!pin) { alert("PIN-ul este necesar. Redirecționare."); window.location.href = "login.html"; return; }
                 try {
                     const collabDocRef = doc(db, "collaborations", collabId);
                     const collabSnapshot = await getDoc(collabDocRef);
                     if (collabSnapshot.exists()) {
                         const collabData = collabSnapshot.data();
                         if (collabData.pin === pin) {
-                            console.log("Psiho Fișă (Collab): PIN corect. Încărcare date pentru owner:", collabData.owner);
                             document.title = "Vizualizare Fișe Partajate - Psiho";
-                            const formContainerTitle = document.querySelector('.form-container h2.collab-title');
-                            if (formContainerTitle) formContainerTitle.textContent = "Fișe Partajate (Colaborare)";
-                            
+                            const formContTitle = document.querySelector('.form-container h2.collab-title');
+                            if (formContTitle) formContTitle.textContent = `Fișe Partajate (Vizualizare)`;
                             await loadTableData(null, collabId, collabData.owner); 
-                        } else {
-                            alert("PIN incorect. Veți fi redirecționat."); window.location.href = "login.html";
-                        }
-                    } else {
-                        alert("Link de colaborare invalid sau expirat. Veți fi redirecționat."); window.location.href = "login.html";
-                    }
+                        } else { alert("PIN incorect. Redirecționare."); window.location.href = "login.html"; }
+                    } else { alert("Link invalid/expirat. Redirecționare."); window.location.href = "login.html"; }
                 } catch (error) {
-                    console.error("Psiho Fișă (Collab): Eroare la accesarea datelor de colaborare:", error);
-                    alert("Eroare la accesarea datelor de colaborare. Verificați link-ul și PIN-ul. Veți fi redirecționat."); window.location.href = "login.html";
+                    console.error("Eroare accesare date colaborare:", error);
+                    alert("Eroare accesare date. Verificați link/PIN. Redirecționare."); window.location.href = "login.html";
                 }
             }, 100);
+        } else {
+             // Asigură-te că elementele specifice non-collab sunt vizibile dacă NU suntem în collab view
+            document.getElementById('generateLinkButton')?.style.display !== 'none' ? document.getElementById('generateLinkButton').style.display = '' : null;
         }
     });
     </script>
     <style>
-        /* Stilurile pentru FORMULARUL MULTI-STEP (rămân specifice aici) */
-        body { /* Bază Ubuntu, apoi alte fonturi pot suprascrie */
+        /* CSS combinat și ajustat */
+        body {
             font-family: 'Ubuntu', 'Roboto', 'Montserrat', 'Nunito Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Oxygen, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-            margin: 0; padding: 20px; background: #f0f2f5; /* Fundal similar cu jurnal */
+            margin: 0; padding: 20px; background: #f0f2f5; 
             color: #333a40; line-height: 1.6;
         }
         .form-container {
             max-width: 800px; margin: 25px auto; background: #fff; padding: 25px 30px;
             box-shadow: 0 6px 18px rgba(0,0,0,0.08); border-radius: 12px;
-            /* border: 3px solid #87CEFA; */ /* Eliminăm bordura specifică, lăsăm umbra */
             transition: transform 0.3s ease;
         }
-        /* .form-container:hover {transform: scale(1.005);} */ /* Hover subtil */
-        
         .progress-bar {width: 100%; background-color: #e9ecef; border-radius: 25px; overflow: hidden; margin-bottom: 25px; height: 12px;}
         .progress {height: 100%; width: 0; background-color: #5c85d6; transition: width 0.4s ease;}
-
-        .question-card { /* Stilizarea cardului individual al întrebării din formular */
+        .question-card {
             margin-bottom: 22px; padding: 20px; background: #fdfdff; 
             border-radius: 8px; box-shadow: 0 3px 8px rgba(0,0,0,0.05);
             border: 1px solid #eef2f7;
         }
-        .question-card h3 { /* Titlul întrebării */
+        .question-card h3 {
             font-weight: 500; font-size: 1.15em; margin-top: 0; margin-bottom: 10px; color: #334155;
-            text-align: left; /* Aliniere la stânga pentru întrebări */
+            text-align: left;
         }
-        .question-card p { /* Descrierea întrebării */
+        .question-card p {
             font-weight: 400; font-size: 0.95em; margin-bottom: 15px; color: #475569; line-height: 1.65;
             text-align: left;
         }
-        .form-container h2.main-form-title { /* Titlul principal al formularului */
+        .form-container h2.main-form-title {
              font-size: 1.7em; margin-bottom: 10px; text-align: center; color: #2c3840; font-weight: 500;
         }
          .form-container h2.collab-title {
              font-size: 1.6em; margin-bottom: 20px; text-align: center; color: #2c3840; font-weight: 500;
         }
-        .form-container > p:not(#confirmationMessage):not(.loading-message):not(.no-entries-message):not(.error-loading-message) { /* Paragraful descriptiv general */
+        .form-container > p:not(#confirmationMessage):not(.loading-message):not(.no-entries-message):not(.error-loading-message) {
             text-align: center; margin-top: -5px; margin-bottom: 25px; font-size: 0.95em; color: #556575;
         }
-
-
         textarea { 
-            width: 100%; /* Ia toată lățimea disponibilă minus padding/border */
-            padding: 12px 15px; font-size: 1em;
+            width: 100%; padding: 12px 15px; font-size: 1em;
             font-family: inherit; border-radius: 6px; border: 1px solid #d1d9e2;
             resize: vertical; min-height: 70px; 
             box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);
             transition: border-color 0.2s, box-shadow 0.2s; background-color: #fdfdff;
         }
         textarea:focus {border-color: #5c85d6; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06), 0 0 0 3.5px rgba(92, 133, 214, 0.2); outline: none;}
-
-        /* Butoanele din formularul multi-step */
         .form-step-active {display: block; animation: fadeInFormStep 0.5s ease-in-out;}
         @keyframes fadeInFormStep { 0% {opacity: 0; transform: translateY(12px);} 100% {opacity: 1; transform: translateY(0);} }
         .form-step {display: none;}
         .step-navigation {text-align: center; margin-top: 25px; display: flex; justify-content: space-between; gap:15px;}
-        .step-navigation button, button#addButton { /* Stil comun pentru navigare și submit */
-            padding: 11px 22px;
-            font-family: inherit; font-size: 1em; font-weight: 500; 
+        .step-navigation button, button#addButton {
+            padding: 11px 22px; font-family: inherit; font-size: 1em; font-weight: 500; 
             color: white; border: none; border-radius: 8px; cursor: pointer;
             transition: background-color 0.2s, transform 0.15s ease-out;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -1307,21 +1247,16 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
         .step-navigation button#prevButton:hover { background-color: #5a6268; transform: translateY(-1px); }
         .step-navigation button#nextButton { background-color: #5c85d6; }
         .step-navigation button#nextButton:hover { background-color: #4a6fb5; transform: translateY(-1px); }
-        
         button#addButton { background-color: #28a745; display:block; width:100%; margin-top:20px; font-size: 1.05em;}
         button#addButton:hover:not(:disabled) { background-color: #218838; transform: translateY(-1px); }
         .step-navigation button:disabled, button#addButton:disabled { 
             background: #b0c4de !important; color: #707c8b !important; 
             cursor: not-allowed !important; box-shadow: none !important; transform: translateY(0) !important;
         }
-
-
-        /* Unificarea Stilurilor pentru Mesaje de Confirmare și Stare (preluate din jurnal.html) */
         .confirmation-message, 
         .no-entries-message, .loading-message, .error-loading-message { 
             text-align: center; margin-top:20px; font-style: italic; 
-            color: #556575; font-size: 1em; padding:12px;
-            border-radius: 6px; 
+            color: #556575; font-size: 1em; padding:12px; border-radius: 6px; 
         }
         .confirmation-message { font-style: normal; font-weight:500; animation: fadeIn 0.4s; display:none;}
         .confirmation-message.success { background-color: #e3f4e8; color: #1e6a39; border:1px solid #b3d9c0; }
@@ -1330,9 +1265,8 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
         .error-loading-message        { color: #c0392b; font-weight: 500; background-color: #fdecea; border:1px solid #f8c6c1;}
         .loading-message              { background-color: #e9f0ff; border:1px solid #d1dfff;}
         @keyframes fadeIn { 0% {opacity: 0; transform: translateY(8px);} 100% {opacity: 1; transform: translateY(0);} }
-
-        /* === STILURI PENTRU CARDURI ȘI FEEDBACK AI (preluate din jurnal.html) === */
-        h3#cardViewTitle { /* Titlul de deasupra cardurilor */
+        
+        h3#cardViewTitle {
             color: #2c3840; text-align: center; margin-bottom: 20px; font-weight: 500;
             font-size: 1.4em; margin-top: 40px; 
         }
@@ -1345,60 +1279,45 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
         }
         .response-card .card-header span:first-child { flex-grow: 1; margin-right: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
         .response-card .card-header .card-date { font-size: 0.85em; color: #64748b; white-space: nowrap; font-weight: 400;}
-
         .response-card .card-header::after {content: '▼'; font-size: 0.75em; transition: transform 0.2s ease; color: #707c8b; margin-left: 10px;}
         .response-card.open .card-header::after {transform: rotate(180deg);}
         .response-card .card-content { max-height: 0; padding: 0 20px; overflow-y: hidden; transition: max-height 0.45s ease-in-out, padding-top 0.45s ease-in-out, padding-bottom 0.45s ease-in-out; } 
-        .response-card.open .card-content { max-height: 8000px; /* Generos pentru fișe lungi */ padding: 20px 20px; }
-        
+        .response-card.open .card-content { max-height: 8000px; padding: 20px 20px; }
         .journal-entry-details { margin-bottom: 18px; border: 1px solid #eef2f7; border-radius: 6px; background: #fdfdfe;}
         .journal-entry-details summary { 
             cursor: pointer; padding: 10px 12px; font-weight: 500; color: #475569; 
-            background-color: #f8f9fa; border-radius: 6px 6px 0 0; 
-            list-style-position: inside; 
+            background-color: #f8f9fa; border-radius: 6px 6px 0 0; list-style-position: inside; 
         }
         .journal-entry-details summary:hover { background-color: #f1f3f6; }
         .journal-entry-details[open] summary { border-bottom: 1px solid #eef2f7; }
-        .journal-entry-content-text { /* Acum stilizează div-ul care conține P-urile fișei */
+        .journal-entry-content-text {
             padding: 12px; font-size: 0.95em; line-height: 1.65; color: #3e4c59; 
             max-height: 450px; overflow-y: auto;
         }
         .journal-entry-content-text hr {margin: 15px 0; border: 0; border-top: 1px dashed #dde2e7;}
-        .journal-entry-content-text h4 { /* Stil pentru subtitlurile din conținutul fișei */
+        .journal-entry-content-text h4 {
              font-size: 1.05em; color: #5c85d6; margin-top: 15px; margin-bottom:8px; font-weight: 500;
         }
-        .journal-entry-content-text p { 
-            margin-bottom: 10px;
-        }
-        .journal-entry-content-text p strong {
-            font-weight: 500; color: #1e293b; margin-right: 5px;
-        }
+        .journal-entry-content-text p { margin-bottom: 10px; }
+        .journal-entry-content-text p strong { font-weight: 500; color: #1e293b; margin-right: 5px; }
         .journal-entry-content-text::-webkit-scrollbar { width: 5px; }
         .journal-entry-content-text::-webkit-scrollbar-thumb { background: #c5ced6; border-radius:3px; }
-
-        .response-card > .card-content > h4 { /* Titlul pentru "Feedback AI" */
-            color: #5c85d6; font-weight: 500; margin-top: 0px; /* Ajustat că acum e primul după details */
-            margin-bottom: 15px; font-size: 1.1em; /* Puțin mai mare */
+        .response-card > .card-content > h4.ai-feedback-title { /* Clasa adaugata in HTML */
+            color: #5c85d6; font-weight: 500; margin-top: 0px; 
+            margin-bottom: 15px; font-size: 1.1em; 
             border-bottom: 1px solid #eef2f7; padding-bottom: 8px;
         }
-
         .no-feedback-message { text-align: center; font-style: italic; color: #64748b; padding: 15px 0; }
-
         .ai-feedback-history-container { margin-top: 10px; }
         .feedback-entry-card { 
-            background:#fdfdff; padding: 15px; 
-            border: 1px solid #e7ecf2;
-            border-left: 4px solid #5c85d6; 
-            border-radius:8px; margin-bottom:15px; 
-            font-size:0.95em; line-height:1.6;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            background:#fdfdff; padding: 15px; border: 1px solid #e7ecf2;
+            border-left: 4px solid #5c85d6; border-radius:8px; margin-bottom:15px; 
+            font-size:0.95em; line-height:1.6; box-shadow: 0 2px 5px rgba(0,0,0,0.03);
         }
         .feedback-timestamp { color:#52606f; font-size:0.8em; margin-bottom:10px; font-style: italic; }
-        
         .card-actions { 
             text-align: right; margin-top: 20px; padding-top: 15px; 
-            border-top: 1px solid #eef2f7; 
-            display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; 
+            border-top: 1px solid #eef2f7; display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; 
         }
         .card-actions button {
             padding: 8px 15px; font-size: 0.8em; font-weight:500; border-radius: 6px;
@@ -1412,13 +1331,11 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
         button.delete-last-feedback-button:hover { background-color: #b45309; color: white;}
         button.delete-all-feedback-button { background-color:transparent; color: #9b2c2c; border-color: #fed7d7;} 
         button.delete-all-feedback-button:hover { background-color: #9b2c2c; color: white;}
-
         .content-ai { font-size: 1em; line-height: 1.7; color: #374151; }
         .content-ai .ai-main-section-title, 
         .content-ai h1, .content-ai h2, .content-ai h3, .content-ai h4 { 
-            font-weight: 600; color: #3b74d7; 
-            margin-top: 1.2em; margin-bottom: 0.6em; font-size: 1.05em; 
-            padding-bottom: 4px;
+            font-weight: 600; color: #3b74d7; margin-top: 1.2em; margin-bottom: 0.6em; 
+            font-size: 1.05em; padding-bottom: 4px;
         }
         .content-ai .ai-main-section-title:first-child, 
         .content-ai h1:first-child, .content-ai h2:first-child, 
@@ -1436,19 +1353,15 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             padding: 10px 12px; border-radius: 4px; border: 1px solid #fecaca; border-left: 4px solid #ef4444;
             white-space: pre-wrap; font-size: 0.9em;
         }
-        /* --- SFÂRȘIT STILURI CARDURI ȘI FEEDBACK --- */
-
-        /* --- STILURI CHAT (preluate dinainte, verificate pt Ubuntu) --- */
         .chat-container {
-            display: none; /* Inițial ascuns, afișat de JS */
-            flex-direction: column; position: fixed; bottom: 20px; right: 20px;
-            width: clamp(350px, 40vw, 450px); max-height: calc(100vh - 90px); /* Redus puțin max-height */
+            display: none; flex-direction: column; position: fixed; bottom: 20px; right: 20px;
+            width: clamp(350px, 40vw, 450px); max-height: calc(100vh - 90px); 
             background: #ffffff; border-radius: 16px;
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
             z-index: 1000; padding: 0; box-sizing: border-box; overflow: hidden;
             font-family: 'Ubuntu', 'Nunito Sans', 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Oxygen, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
         }
-        .chat-container h3 { /* Titlul chatului */
+        .chat-container h3 {
             text-align: center; color: #334155; margin: 0; padding: 16px 20px;
             font-size: 1.1em; font-weight: 500; background-color: #f8f9fc;
             border-bottom: 1px solid #e9edf2; flex-shrink: 0;
@@ -1468,27 +1381,27 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             font-size: 0.96em; font-weight: 400; position: relative;
         }
         .user-message {
-            background: linear-gradient(135deg, #5c85d6 0%, #3b6cb7 100%); /* Adaptat la culoarea principală */
+            background: linear-gradient(135deg, #5c85d6 0%, #3b6cb7 100%); 
             color: white; align-self: flex-end; margin-left: auto;
             border-bottom-right-radius: 6px; 
         }
         .ai-message {
             background: #f0f3f7; color: #2c3e50; align-self: flex-start;
             margin-right: auto; border-bottom-left-radius: 6px;
-            font-family: 'Ubuntu', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace; /* Fallback pt code */
+            font-family: 'Ubuntu', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
         }
          .ai-message em, .ai-message i { font-family: 'Ubuntu', inherit; font-style: italic; font-weight: 400; }
          .ai-message strong, .ai-message b { font-family: 'Ubuntu', inherit; font-weight: 700; }
         .ai-message.ai-error {
             background-color: #ffe3e3; color: #b71c1c; border: 1px solid #ffc5c5;
-            font-family: 'Ubuntu', sans-serif; /* Forțăm fontul normal pt erori */
+            font-family: 'Ubuntu', sans-serif;
         }
         .chat-input-area {
             padding: 15px 20px; border-top: 1px solid #e9edf2;
             background-color: #f8f9fc; flex-shrink: 0;
             display: flex; flex-direction: column; gap: 10px;
         }
-        #chatInput { /* Textarea din chat */
+        #chatInput {
             width: 100%; padding: 11px 16px; border-radius: 10px;
             border: 1px solid #d9e0ea; resize: none; min-height: 46px; max-height: 120px;
             box-sizing: border-box; font-family: 'Ubuntu', sans-serif;
@@ -1499,12 +1412,12 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             border-color: #5c85d6; box-shadow: 0 0 0 3.5px rgba(92, 133, 214, 0.18);
             outline: none;
         }
-        #sendChatMessageButton { /* Butonul din chat */
+        #sendChatMessageButton {
             padding: 11px 20px; width: 100%;
             font-family: 'Ubuntu', sans-serif; font-size: 1em; font-weight: 500; 
             background-color: #5c85d6; color: white; border: none;
             border-radius: 10px; transition: background-color 0.2s, transform 0.15s ease-out;
-            cursor: pointer; margin-top:0; /* Suprascrie margin-top de la butoanele generale */
+            cursor: pointer; margin-top:0; 
         }
         #sendChatMessageButton:hover:not(:disabled) { background-color: #4a6fb5; transform: translateY(-1px); }
         #sendChatMessageButton:disabled { background-color: #c3d9f0 !important; color: #7c8da3 !important; transform: translateY(0) !important;}
@@ -1512,26 +1425,22 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             font-size: 0.85em; color: #6c757d; text-align: center;
             min-height: 1.2em; padding-bottom: 0; flex-shrink: 0; font-weight: 400;
         }
-        #toggleChatButton { /* Butonul plutitor de chat */
+        #toggleChatButton {
             position: fixed; bottom: 25px; right: 25px; padding: 0; z-index: 1001;
-            display: flex; /* Afișat de JS */ align-items: center; justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             background-color: #5c85d6; color: white; border: none; border-radius: 50%;
             width: 58px; height: 58px; font-size: 26px; 
             box-shadow: 0 5px 15px rgba(92, 133, 214, 0.25);
             cursor: pointer; transition: all 0.3s ease;
         }
         #toggleChatButton:hover { background-color: #4a6fb5; transform: scale(1.1) rotate(10deg); box-shadow: 0 7px 20px rgba(74, 107, 181, 0.35); }
-        /* --- SFÂRȘIT STILURI CHAT --- */
-
-
-        /* Stiluri generale pentru Responsive */
-        @media (max-width: 820px) { /* Breakpoint adăugat pentru .form-container și .card-view */
+        
+        @media (max-width: 820px) {
              .form-container, .card-view {padding:20px; margin-left:15px; margin-right:15px; max-width:calc(100% - 30px);}
         }
-
         @media (max-width: 768px) {
             body {padding:15px; font-size: 15px;}
-            .form-container, .card-view {padding:20px; margin-left:10px; margin-right:10px; max-width:calc(100% - 20px);}
+            .form-container, .card-view {padding:15px; margin-left:10px; margin-right:10px; max-width:calc(100% - 20px);} /* Ajustat padding/margin */
             .form-container h2.main-form-title, .form-container h2.collab-title {font-size:1.5em;} 
             h3#cardViewTitle {font-size: 1.25em;}
             .step-navigation button, button#addButton {font-size:0.95em; padding:10px 18px;} 
@@ -1540,11 +1449,9 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             .question-card h3 {font-size:1.1em;}
             .question-card p {font-size:0.92em;}
             .journal-entry-content-text { font-size: 0.92em;}
-            
-            /* Responsive Chat */
             .chat-container { 
                 width: calc(100% - 30px); max-height: calc(100vh - 100px); 
-                bottom: 15px; left: 15px; right: auto; /* Aliniere la stânga pe mobil */
+                bottom: 15px; left: 15px; right: auto; 
                 border-radius: 12px; 
             }
             .chat-container h3 { padding: 14px 15px; font-size: 1.05em; }
@@ -1566,9 +1473,7 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             .step-navigation button, button#addButton {font-size:0.9em; padding:9px 15px;}
             .card-actions button {font-size:0.75em; padding:6px 8px; flex-basis: calc(50% - 5px);}
             .response-card .card-header {padding:12px 15px; flex-direction: column; align-items: flex-start; gap: 4px;}
-            .response-card .card-header::after { align-self: flex-end; margin-top: -1.3em; } /* Ajustare pentru iconița expand */
-
-            /* Responsive Chat */
+            .response-card .card-header::after { align-self: flex-end; margin-top: -1.3em; } 
             .chat-container { max-height: calc(100vh - 80px); bottom: 10px; left: 10px; width: calc(100% - 20px); border-radius: 10px; }
             .chat-container h3 { font-size: 1em; padding: 12px 15px; }
             #chatMessages { padding: 12px; gap: 8px; }
@@ -1593,14 +1498,13 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
     
         <form id="exercitiuForm" novalidate>
             <!-- PASUL 1: Explorarea Situației și a Nevoilor -->
-            <fieldset class="form-step form-step-active" id="step-1">
-                 <legend class="sr-only">Pasul 1: Explorarea Situației și a Nevoilor</legend> <!-- Pentru accesibilitate -->
+            <div class="form-step form-step-active" id="step-1">
                 <div class="question-card">
                     <h3>Care este situația?</h3>
                     <p>Descrie contextul specific care a declanșat emoțiile sau comportamentul. Fii cât mai detaliat. (ex: o discuție, un eveniment, un gând recurent)</p>
                     <textarea name="situatie" rows="3" required></textarea>
                 </div>
-                 <div class="question-card">
+                <div class="question-card">
                     <h3>Ce îmi trece prin minte (gânduri automate)?</h3>
                     <p>Identifică gândurile rapide, involuntare, care au apărut. Ce ți-ai spus în acel moment? Au fost critice, îngrijorătoare, anticipative?</p>
                     <textarea name="ganduri" rows="3" required></textarea>
@@ -1635,11 +1539,10 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
                     <p>Imaginează-ți perspectiva ta cea mai înțeleaptă, echilibrată și plină de compasiune. Ce ar face diferit pentru a-ți îndeplini nevoile într-un mod constructiv?</p>
                     <textarea name="adult_sanatos" rows="3" required></textarea>
                 </div>
-            </fieldset>
+            </div>
 
             <!-- PASUL 2: Analiza Gândurilor și a Percepțiilor -->
-            <fieldset class="form-step" id="step-2">
-                <legend class="sr-only">Pasul 2: Analiza Gândurilor și a Percepțiilor</legend>
+            <div class="form-step" id="step-2">
                 <div class="question-card">
                     <h3>Ce dovezi susțin gândul tău automat principal (că este adevărat)?</h3>
                     <p>Listează fapte concrete sau experiențe care par să confirme validitatea gândului tău inițial.</p>
@@ -1680,11 +1583,10 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
                     <p>Adesea suntem mai blânzi și mai înțelepți cu ceilalți. Ce perspectivă plină de compasiune i-ai oferi?</p>
                     <textarea name="sfat_prieten" rows="3" required></textarea>
                 </div>
-            </fieldset>
+            </div>
 
-            <!-- PASUL 3: Întrebări pentru Claritate și Reflecție Suplimentară (Detectarea Distorsiunilor) -->
-            <fieldset class="form-step" id="step-3">
-                <legend class="sr-only">Pasul 3: Întrebări pentru Claritate și Detectarea Distorsiunilor</legend>
+            <!-- PASUL 3: Întrebări pentru Claritate și Detectarea Distorsiunilor -->
+            <div class="form-step" id="step-3">
                 <div class="question-card">
                     <h3>Văd doar partea rea a lucrurilor, ignorând aspectele pozitive sau neutre (Filtrare mentală)?</h3>
                     <textarea name="partea_rea" rows="2" required></textarea>
@@ -1695,7 +1597,7 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
                 </div>
                 <div class="question-card">
                     <h3>Mă etichetez negativ pe mine sau pe alții pe baza unui singur eveniment sau aspect (Etichetare)?</h3>
-                    <textarea name="condamnare" rows="2" required></textarea> <!-- Am păstrat "condamnare" din structura ta, dar "etichetare" e termenul tehnic -->
+                    <textarea name="condamnare" rows="2" required></textarea> 
                 </div>
                 <div class="question-card">
                     <h3>Privesc situația în termeni extremi, de tip "totul sau nimic", "alb sau negru" (Gândire dihotomică)?</h3>
@@ -1717,7 +1619,7 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
                 <div class="question-card">
                     <h3>Folosesc des expresii de tip "ar trebui", "trebuie neapărat", impunându-mi standarde rigide (Imperative categorice)?</h3>
                     <p>Aceste "legi" interne pot genera multă presiune și vinovăție.</p>
-                    <textarea name="cum_ar_trebui" rows="2" required></textarea> <!-- Combinat cu "întrebări fără răspuns" -->
+                    <textarea name="cum_ar_trebui" rows="2" required></textarea> 
                 </div>
                  <div class="question-card">
                     <h3>Mă concentrez predominant asupra slăbiciunilor mele, ignorând sau subestimând punctele forte?</h3>
@@ -1727,23 +1629,21 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
                     <h3>Mă aștept să fiu perfect(ă) sau să performez impecabil în majoritatea timpului (Perfecționism)?</h3>
                     <textarea name="perfectiune" rows="2" required></textarea>
                 </div>
-                 <div class="question-card" style="display:none;"> <!-- Întrebare ascunsă, poate fi eliminată -->
+                 <div class="question-card" style="display:none;"> 
                     <h3>Îmi pun întrebări fără răspuns?</h3>
                     <textarea name="intrebari_fara_raspuns" rows="1">N/A</textarea>
                 </div>
-            </fieldset>
+            </div>
             
             <!-- PASUL 4: Finalizare -->
-            <fieldset class="form-step" id="step-4">
-                <legend class="sr-only">Pasul 4: Finalizare</legend>
+            <div class="form-step" id="step-4">
                  <div class="question-card">
                     <h3>Completare finalizată!</h3>
                     <p>Felicitări pentru parcurgerea acestui exercițiu de auto-reflecție! Ai făcut un pas important către o mai bună înțelegere de sine.</p>
                     <p>Apasă butonul de mai jos pentru a salva datele și a solicita un feedback personalizat de la asistentul AI, PsihoGPT. Acest feedback te poate ajuta să obții noi perspective și să identifici direcții de creștere.</p>
                     <p style="font-size:0.85em; color:#6c757d;"><em>Notă: Dacă întâmpini probleme la generarea feedback-ului AI (ex: erori de limită de utilizare, cheie API invalidă), poți încerca din nou mai târziu sau să verifici setările. Funcționalitatea AI depinde de configurarea corectă a serviciului Gemini.</em></p>
                 </div>
-            </fieldset>
-
+            </div>
 
             <div class="step-navigation">
                 <button type="button" id="prevButton">Înapoi</button>
@@ -1752,22 +1652,19 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
             <button type="button" id="addButton">Salvează Fișa și Generează Feedback AI</button>
         </form>
 
-        <div id="confirmationMessage" class="confirmation-message">
-            <!-- Mesajul va fi setat de JavaScript -->
-        </div>
+        <div id="confirmationMessage" class="confirmation-message"></div>
 
         <div class="collaboration-section" style="text-align:center; margin-top:30px; padding-bottom:10px; border-top: 1px solid #eef2f7; padding-top:20px;">
-            <button type="button" id="generateLinkButton" style="background-color:#007bff; font-size:0.9em; padding:10px 20px;">Partajează Fișele (Generează Link)</button>
+            <button type="button" id="generateLinkButton" style="background-color:#007bff; font-size:0.9em; padding:10px 20px; color:white; border:none; border-radius:8px; cursor:pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">Partajează Fișele (Generează Link)</button>
         </div>
     </div>
     
     <h3 id="cardViewTitle" style="text-align: center; margin-top: 40px; margin-bottom: 20px; color: #333a40; font-weight: 500;">Răspunsurile Tale și Istoricul Feedback-ului AI:</h3>
     
     <div class="card-view" id="cardViewContainer">
-        <!-- Cardurile cu răspunsuri și feedback AI vor fi adăugate aici de JavaScript -->
+        <!-- Cardurile vor fi adăugate aici de JS -->
     </div>
     
-    <!-- Chat Container (structura rămâne la fel) -->
     <div class="chat-container" id="chatContainer">
         <h3>Discută cu PsihoGPT</h3>
         <div id="chatMessages"></div>
@@ -1777,16 +1674,9 @@ Acum, începe conversația cu un salut cald și o întrebare de deschidere.`;
     </div>
     <button id="toggleChatButton" style="display: none;">💬</button>
 
-
     <div class="table-container" style="display: none;"> 
-        <!-- Acest tabel nu mai este folosit activ pentru afișarea datelor, cardurile sunt primare -->
         <table>
-            <thead>
-                <tr>
-                    <th>Data</th><th>Situația</th><th>Gânduri</th><th>Emoții</th><th>Mod activ</th>
-                    <th>Comportament</th><th>Nevoile</th><th>Ajutor comport.</th><th>Adult Sănătos</th><th>Detalii</th>
-                </tr>
-            </thead>
+            <thead> <tr> <th>Data</th><th>Situația</th><th>Gânduri</th><th>Emoții</th><th>Mod activ</th> <th>Comportament</th><th>Nevoile</th><th>Ajutor comport.</th><th>Adult Sănătos</th><th>Detalii</th> </tr> </thead>
             <tbody id="tableBody"></tbody>
         </table>
     </div>
