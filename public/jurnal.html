@@ -30,7 +30,7 @@
     const GEMINI_MODEL_NAME_JOURNAL_FEEDBACK = "gemini-2.5-flash-preview-04-17"; // Sau modelul preferat pentru text generativ, ex "gemini-1.5-flash-latest"
     let genAI, geminiModelJournalFeedback;
 
-    if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "" && !GEMINI_API_KEY.startsWith("AIzaSyA")) { // Mică verificare să nu fie placeholder
+    if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "" && !GEMINI_API_KEY.startsWith("AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng")) { // Mică verificare să nu fie placeholder
         try {
             genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
             geminiModelJournalFeedback = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_JOURNAL_FEEDBACK });
