@@ -30,21 +30,24 @@
     const GEMINI_MODEL_NAME_CHAT = "gemini-2.5-flash-preview-04-17";
     let genAI, geminiModelFeedback, geminiModelChat;
 
-     if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "" && !GEMINI_API_KEY.startsWith("AIzaSyA_YOUR_KEY_HERE") && !GEMINI_API_KEY.includes("ÎNLOCUIEȘTE")) {
+    if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
         try {
             genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
             geminiModelFeedback = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_FEEDBACK });
             geminiModelChat = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_CHAT });
-            console.log("Psiho Fișă: SDK Gemini inițializat. Model Feedback:", GEMINI_MODEL_NAME_FEEDBACK, "Model Chat:", GEMINI_MODEL_NAME_CHAT);
+            console.log("SDK Gemini inițializat. Model Feedback:", GEMINI_MODEL_NAME_FEEDBACK, "Model Chat:", GEMINI_MODEL_NAME_CHAT);
         } catch (e) {
-            console.error("Psiho Fișă: Eroare critică la inițializarea SDK Gemini:", e);
-            alert("Psiho Fișă: Eroare la inițializarea serviciului AI. Verificați cheia API Gemini. Funcționalitatea AI va fi limitată.");
+            console.error("Eroare critică la inițializarea SDK Gemini:", e);
+            alert("Eroare la inițializarea serviciului AI. Verificați cheia API Gemini și configurația din Google Cloud. Funcționalitatea AI va fi limitată.");
             geminiModelFeedback = null; geminiModelChat = null;
         }
     } else  {
-        const warningMsg = `Psiho Fișă: Cheia API Gemini este goală, un placeholder, sau lipsește. Funcționalitatea AI va fi dezactivată. Vă rugăm configurați o cheie validă.`;
-        console.warn(warningMsg);
-        alert(warningMsg);
+        console.warn(`Cheia API Gemini pare a fi un placeholder ('${GEMINI_API_KEY}'). Te rog înlocuiește-o cu cheia ta API validă pentru a activa funcționalitatea AI.`);
+        // alert("Funcționalitatea AI este dezactivată. Te rog configurează o cheie API Gemini validă în codul sursă (variabila GEMINI_API_KEY).");
+        geminiModelFeedback = null; geminiModelChat = null;
+        // Cheie goală sau doar spații
+        console.warn("Cheia API Gemini nu este configurată. Funcționalitatea AI va fi dezactivată.");
+        // alert("Cheia API Gemini nu este configurată. Funcționalitatea AI va fi dezactivată.");
         geminiModelFeedback = null; geminiModelChat = null;
     }
 
