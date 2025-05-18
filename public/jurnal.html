@@ -30,19 +30,25 @@
     const GEMINI_MODEL_NAME_JOURNAL_FEEDBACK = "gemini-2.5-flash-preview-04-17"; // Sau modelul preferat pentru text generativ, ex "gemini-1.5-flash-latest"
     let genAI, geminiModelJournalFeedback;
 
-    if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "" && !GEMINI_API_KEY.startsWith("AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng")) { // Mică verificare să nu fie placeholder
+    if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") { // Am eliminat verificarea .startsWith()
         try {
             genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
             geminiModelJournalFeedback = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_JOURNAL_FEEDBACK });
-            console.log("SDK Gemini inițializat. Model Feedback Jurnal:", GEMINI_MODEL_NAME_JOURNAL_FEEDBACK);
+            console.log("Jurnal Terapeutic: SDK Gemini inițializat. Model Feedback Jurnal:", GEMINI_MODEL_NAME_JOURNAL_FEEDBACK);
         } catch (e) {
-            console.error("Eroare critică la inițializarea SDK Gemini:", e);
-            alert("Eroare la inițializarea serviciului AI. Verificați cheia API Gemini. Funcționalitatea AI va fi limitată.");
+            console.error("Jurnal Terapeutic: Eroare critică la inițializarea SDK Gemini:", e);
+            let alertMessage = "Eroare la inițializarea serviciului AI pentru jurnal. Verificați cheia API Gemini și configurația.";
+            if (e.message && e.message.toLowerCase().includes("api key not valid")) {
+                alertMessage = "Cheia API Gemini nu este validă sau nu are permisiuni pentru modelul de jurnal. Verificați Google Cloud Console.";
+            } else if (e.message && e.message.toLowerCase().includes("quota")) {
+                alertMessage = "Limita de utilizare pentru API-ul Gemini a fost atinsă (posibil pentru modelul de jurnal).";
+            }
+            alert(alertMessage + " Funcționalitatea AI va fi limitată.");
             geminiModelJournalFeedback = null;
         }
     } else  {
-        console.warn(`Cheia API Gemini pare a fi un placeholder sau lipsește. Funcționalitatea AI va fi dezactivată.`);
-        alert("Cheia API Gemini nu este configurată corect. Funcționalitatea AI va fi dezactivată.");
+        console.warn(`Jurnal Terapeutic: Cheia API Gemini este goală sau lipsește. Funcționalitatea AI va fi dezactivată.`);
+        alert("Jurnal Terapeutic: Cheia API Gemini nu este configurată. Funcționalitatea AI pentru jurnal va fi dezactivată.");
         geminiModelJournalFeedback = null;
     }
     // --- Sfârșit Configurare Gemini ---
