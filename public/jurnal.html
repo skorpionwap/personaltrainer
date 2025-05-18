@@ -318,8 +318,8 @@ Oferă-mi un feedback detaliat și structurat. Mulțumesc!`;
         } finally { if (btn) { btn.textContent = originalText; btn.disabled = false; } }
     }
     
-    function afiseazaIstoricFeedbackJurnal(containerEl, feedbackHistory) {
-    containerEl.innerHTML = ''; // Golește containerul existent
+ function afiseazaIstoricFeedbackJurnal(containerEl, feedbackHistory) {
+    containerEl.innerHTML = ''; 
 
     if (!feedbackHistory || !Array.isArray(feedbackHistory) || feedbackHistory.length === 0) {
         const noHistoryMsg = document.createElement("p");
@@ -333,15 +333,15 @@ Oferă-mi un feedback detaliat și structurat. Mulțumesc!`;
 
     feedbackHistory.slice().reverse().forEach((entry, index) => {
         const itemContainer = document.createElement("div");
-        itemContainer.className = "feedback-entry-card"; // Clasa generală pentru un card de feedback
+        itemContainer.className = "feedback-entry-card"; 
 
         const timestampAndModel = document.createElement("p");
         timestampAndModel.className = "feedback-timestamp";
         timestampAndModel.innerHTML = `<strong>Feedback #${feedbackHistory.length - index}</strong> (${new Date(entry.timestamp).toLocaleString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} - ${entry.model || 'N/A'})`;
         itemContainer.appendChild(timestampAndModel);
 
-        const contentWrapper = document.createElement("div"); // Un wrapper pentru conținutul AI
-        contentWrapper.className = "content-ai"; // Pentru stilizarea generală a textului AI
+        const contentWrapper = document.createElement("div"); 
+        contentWrapper.className = "content-ai"; 
 
         if (entry.error) {
             const errorP = document.createElement("p");
@@ -351,74 +351,86 @@ Oferă-mi un feedback detaliat și structurat. Mulțumesc!`;
             errorP.innerHTML = (entry.rawText || "Eroare la generarea acestui feedback.").replace(/\n/g, '<br>');
             contentWrapper.appendChild(errorP);
         } else {
-            let processedHTML = entry.rawText || 'Conținut indisponibil.';
+            let textToProcess = entry.rawText || 'Conținut indisponibil.';
+            let finalHtmlElements = []; // Vom stoca aici elementele HTML create
 
-            // Securizează HTML-ul brut înainte de a injecta regex-uri (minimal)
-            // Acest pas este important dacă textul ar putea conține caractere care interferează cu HTML-ul.
-            // Dar, pentru moment, ne bazăm că textul e predominant text simplu cu markdown-ul Gemini.
-            // processedHTML = processedHTML.replace(/</g, "<").replace(/>/g, ">"); // Prea agresiv, strică dacă AI-ul AR da HTML
+            // Împarte textul în linii pentru procesare mai granulară
+            const lines = textToProcess.split('\n');
+            let currentParagraphContent = [];
 
-            // 1. Procesează Titlurile de Secțiune Principale (Ex: "1. **Sumar...**" sau "**Observații...**")
-            // Caută linii care încep (opțional cu spații) cu un număr, punct, opțional spații, "**", text, "**"
-            processedHTML = processedHTML.replace(/^(\s*\d+\.\s*\*\*)(.*?)(\*\*)/gm, '<div class="ai-main-section-title">$1$2$3</div>');
-            // Caută linii care încep (opțional cu spații) cu "**", text, "**", DAR NU cele numerotate deja (evită dubla potrivire)
-            processedHTML = processedHTML.replace(/^(\s*\*\*)(?!\s*\d+\.\s)(.*?)(\*\*)/gm, '<div class="ai-main-section-title">$1$2$3</div>');
-            
-            // 2. Procesează Elementele de Listă (Ex: "* Textul listei")
-            // Caută linii care încep (opțional cu spații) cu un asterisc, un spațiu, apoi textul.
-            // Regex-ul este conceput să încerce să prindă și continuarea item-ului pe linii noi,
-            // până la o linie goală sau un nou item/titlu.
-            processedHTML = processedHTML.replace(/^\s*(\*\s+((?:.|\n(?!\n\n|^\s*(\d+\.|\*\*|\*\s))))+))/gm, (match, listItemContent) => {
-                // Eliminăm asteriscul și spațiul inițial din conținutul efectiv, pentru a nu-l afișa de două ori cu pseudo-elementul
-                const cleanedItemContent = listItemContent.replace(/^\*\s+/, '');
-                return `<div class="ai-list-item">${cleanedItemContent}</div>`;
-            });
-
-
-            // 3. După procesarea structurilor (titluri, liste), înlocuiește newline-urile rămase cu <br>
-            // și înfășoară blocurile de text non-procesate în paragrafe pentru spațiere.
-            // Acest pas este mai complex de făcut corect doar cu regex-uri pentru a nu strica HTML-ul deja format.
-            // O abordare mai robustă ar fi să faci split pe \n și să construiești HTML-ul linie cu linie,
-            // verificând dacă linia a fost deja procesată.
-            // Pentru acum, o variantă simplificată:
-            
-            const lines = processedHTML.split('\n');
-            let finalHtmlContent = "";
-            let inParagraph = false;
-
-            lines.forEach(line => {
-                if (line.trim().startsWith('<div class="ai-main-section-title">') || line.trim().startsWith('<div class="ai-list-item">')) {
-                    if (inParagraph) {
-                        finalHtmlContent += '</p>'; // Închide paragraful anterior dacă există
-                        inParagraph = false;
-                    }
-                    finalHtmlContent += line; // Adaugă direct div-ul procesat
-                } else if (line.trim() === "") { // Linie goală
-                    if (inParagraph) {
-                        finalHtmlContent += '</p>';
-                        inParagraph = false;
-                    }
-                     finalHtmlContent += '<br>'; // Poate fi un separator <p> </p> sau un div.spacer
-                } else { // Linie de text normal
-                    if (!inParagraph) {
-                        finalHtmlContent += '<p class="ai-text-paragraph">';
-                        inParagraph = true;
-                    } else {
-                         finalHtmlContent += '<br>'; // Pentru linii noi în interiorul aceluiași paragraf logic
-                    }
-                    finalHtmlContent += line;
+            for (const line of lines) {
+                // 1. Verifică Titlurile Principale
+                let matchTitle = line.match(/^(\s*\d+\.\s*\*\*)(.*?)(\*\*)$/); // Titluri numerotate
+                if (!matchTitle) {
+                    matchTitle = line.match(/^(\s*\*\*)(?!\s*\d+\.\s)(.*?)(\*\*)$/); // Titluri nenumerotate
                 }
-            });
-            if (inParagraph) { // Închide ultimul paragraf dacă a rămas deschis
-                finalHtmlContent += '</p>';
+
+                if (matchTitle) {
+                    if (currentParagraphContent.length > 0) { // Avem text de paragraf adunat
+                        const p = document.createElement('p');
+                        p.className = 'ai-text-paragraph';
+                        p.innerHTML = currentParagraphContent.join('<br>');
+                        finalHtmlElements.push(p);
+                        currentParagraphContent = [];
+                    }
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'ai-main-section-title';
+                    titleDiv.innerHTML = matchTitle[0]; // Include tot textul original al titlului
+                    finalHtmlElements.push(titleDiv);
+                    continue; 
+                }
+
+                // 2. Verifică Elementele de Listă
+                const matchListItem = line.match(/^\s*(\*\s+)(.*)/);
+                if (matchListItem) {
+                     if (currentParagraphContent.length > 0) {
+                        const p = document.createElement('p');
+                        p.className = 'ai-text-paragraph';
+                        p.innerHTML = currentParagraphContent.join('<br>');
+                        finalHtmlElements.push(p);
+                        currentParagraphContent = [];
+                    }
+                    const listItemDiv = document.createElement('div');
+                    listItemDiv.className = 'ai-list-item';
+                    listItemDiv.textContent = matchListItem[2]; // Doar textul item-ului, fără '* '
+                    finalHtmlElements.push(listItemDiv);
+                    continue; 
+                }
+                
+                // 3. Dacă nu e titlu sau listă, este text normal sau linie goală
+                if (line.trim() === "") { // Linie goală
+                    if (currentParagraphContent.length > 0) {
+                        const p = document.createElement('p');
+                        p.className = 'ai-text-paragraph';
+                        p.innerHTML = currentParagraphContent.join('<br>');
+                        finalHtmlElements.push(p);
+                        currentParagraphContent = [];
+                    }
+                     // Adaugă un <br> sau un <p> </p> pentru spațiere, sau lasă gol dacă nu vrei spațiu extra
+                    const br = document.createElement('br');
+                    finalHtmlElements.push(br);
+
+                } else { // Linie de text normal
+                    currentParagraphContent.push(line);
+                }
             }
-            
-            contentWrapper.innerHTML = finalHtmlContent;
+
+            // Adaugă ultimul paragraf adunat, dacă există
+            if (currentParagraphContent.length > 0) {
+                const p = document.createElement('p');
+                p.className = 'ai-text-paragraph';
+                p.innerHTML = currentParagraphContent.join('<br>');
+                finalHtmlElements.push(p);
+            }
+
+            // Adaugă toate elementele create în contentWrapper
+            finalHtmlElements.forEach(el => contentWrapper.appendChild(el));
         }
         itemContainer.appendChild(contentWrapper);
         containerEl.appendChild(itemContainer);
     });
 }
+
     function afiseazaCardJurnal(entryData) {
         const container = document.getElementById("journalEntriesContainer");
         let card = container.querySelector(`.journal-card[data-id="${entryData.id}"]`);
