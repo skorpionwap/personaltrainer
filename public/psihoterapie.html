@@ -1971,8 +1971,8 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
 
 #sendChatMessageButton {
     flex-shrink: 0; /* NOU: Butonul nu se micșorează */
-    width: 40px;    /* NOU: Lățime fixă */
-    height: 40px;   /* NOU: Înălțime fixă (potrivită cu min-height al inputului) */
+    width: 50px;    /* NOU: Lățime fixă */
+    height: 50px;   /* NOU: Înălțime fixă (potrivită cu min-height al inputului) */
     padding: 0;     /* NOU: Eliminăm padding-ul intern dacă setăm dimensiuni fixe */
     font-family: var(--font-primary);
     font-size: 1.2em; /* Mărime potrivită pentru un icon/simbol */
@@ -1991,7 +1991,7 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     line-height: 1; /* Asigură centrarea corectă a textului/iconului */
 }
 #sendChatMessageButton::before { /* Folosim un pseudo-element pentru icon */
-    content: "➢"; /* Sau alt icon. Ex: "➤", "▶", "✓" */
+    content: "▶"; /* Sau alt icon. Ex: "➤", "▶", "✓" */
     /* Pentru un SVG:
     content: ""; display: block; width: 20px; height: 20px;
     background-image: url('path/to/send-icon.svg');
