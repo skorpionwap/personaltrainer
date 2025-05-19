@@ -2282,14 +2282,16 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
 
     <!-- Am eliminat collaboration-section și butonul generateLinkButton -->
 
-    <div class="chat-container" id="chatContainer">
-        <h3>Discută cu PsihoGPT</h3>
-        <div id="chatMessages"></div>
+   <div class="chat-container" id="chatContainer">
+    <h3>Discută cu PsihoGPT</h3>
+    <div id="chatMessages"></div>
+    <!-- NOU: Am adăugat div.chat-input-area -->
+    <div class="chat-input-area">
         <textarea id="chatInput" rows="2" placeholder="Scrie mesajul tău... Enter pentru a trimite."></textarea>
-        <button id="sendChatMessageButton" disabled></button>
-        <p id="chatStatus">Chatul AI nu este activ.</p>
+        <button id="sendChatMessageButton" disabled title="Trimite Mesaj"></button> <!-- Am adăugat title înapoi -->
     </div>
-    <button id="toggleChatButton" style="display: none;">💬</button>
-
+    <p id="chatStatus">Chatul AI nu este activ.</p>
+</div>
+<button id="toggleChatButton" style="display: none;">💬</button>
 </body>
 </html>
