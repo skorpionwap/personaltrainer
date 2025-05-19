@@ -1359,48 +1359,26 @@ ${initialContextSummary}---`;
             color: #333a40; line-height: 1.6; font-size: 16px;
         }
 
-/* APP HEADER */
-.app-header { text-align: center; margin-bottom: calc(var(--spacing-unit) * 5); /* 40px */ }
-.app-header h1 {
-    font-size: 2.25em; /* Slightly larger */
-    color: var(--color-text-dark);
-    margin-bottom: var(--spacing-unit);
-    font-weight: 700; /* Bolder */
-    letter-spacing: -0.5px;
-}
-.app-header p { font-size: 1.1em; color: var(--color-text-light); margin-top: 0; font-weight: 300; }
+        .app-header { text-align: center; margin-bottom: 25px; }
+        .app-header h1 { font-size: 2em; color: #2c3840; margin-bottom: 5px; font-weight: 500;}
+        .app-header p { font-size: 1em; color: #556575; margin-top: 0;}
 
-/* TAB NAVIGATION */
-.tab-navigation {
-    display: flex;
-    justify-content: center;
-    margin-bottom: calc(var(--spacing-unit) * 4); /* 32px */
-    gap: 0; /* Remove gap, use borders for separation */
-    border-bottom: 1px solid #dee2e6;
-}
-.tab-button {
-    padding: calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 3); /* 12px 24px */
-    font-size: 1.05em; font-weight: 500;
-    border: none;
-    border-bottom: 3px solid transparent;
-    background: none;
-    color: var(--color-text-light);
-    cursor: pointer;
-    transition: color 0.25s ease, border-color 0.25s ease;
-    border-radius: 0; /* Remove individual radius */
-    margin-bottom: -1px; /* Overlap border-bottom of nav */
-}
-.tab-button:hover {
-    color: var(--color-primary);
-}
-.tab-button.active {
-    color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
-    font-weight: 600;
-}
+        .tab-navigation { display: flex; justify-content: center; margin-bottom: 25px; gap: 15px; }
+        .tab-button {
+            padding: 10px 25px; font-size: 1.1em; font-weight: 500;
+            border: 2px solid transparent; border-bottom-color: #d1d9e2;
+            background: none; color: #6c757d; cursor: pointer;
+            transition: all 0.2s ease; border-radius: 8px 8px 0 0;
+        }
+        .tab-button:hover { color: #3b74d7; border-bottom-color: #a3b8d9; }
+        .tab-button.active {
+            color: #3b74d7; border-color: #3b74d7; border-bottom-color: #fff; /* Simulează conectarea cu containerul */
+            background-color: #fff; box-shadow: 0 -2px 5px -2px rgba(0,0,0,0.1);
+            position: relative; top: 1px; /* Aliniere fină */
+        }
 
-/* TAB CONTENT - active handled by JS */
-
+        .tab-content { display: none; } /* Se afișează prin JS */
+        .tab-content.active { display: block; }
 
         .form-section-container {
             max-width: 800px; margin: 0 auto 30px auto; background: #fff; padding: 25px 30px;
