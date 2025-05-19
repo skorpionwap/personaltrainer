@@ -1349,333 +1349,517 @@ ${initialContextSummary}---`;
         });
     };
 </script>
-    <style>
-        /* Stilurile CSS Unificate și Adaptate - Am păstrat CSS-ul din răspunsul anterior, deoarece era deja conceput pentru unificare */
-        /* Stiluri CSS Unificate și Adaptate */
-        *, *::before, *::after { box-sizing: border-box; }
-        body {
-            font-family: 'Ubuntu', 'Roboto', 'Montserrat', sans-serif;
-            margin: 0; padding: 20px; background: #f0f2f5;
-            color: #333a40; line-height: 1.6; font-size: 16px;
-        }
+<style>
+    /* Resetare și Stiluri de Bază */
+    *, *::before, *::after { 
+        box-sizing: border-box; 
+        margin: 0;
+        padding: 0;
+    }
 
-        .app-header { text-align: center; margin-bottom: 25px; }
-        .app-header h1 { font-size: 2em; color: #2c3840; margin-bottom: 5px; font-weight: 500;}
-        .app-header p { font-size: 1em; color: #556575; margin-top: 0;}
-
-        .tab-navigation { display: flex; justify-content: center; margin-bottom: 25px; gap: 15px; }
-        .tab-button {
-            padding: 10px 25px; font-size: 1.1em; font-weight: 500;
-            border: 2px solid transparent; border-bottom-color: #d1d9e2;
-            background: none; color: #6c757d; cursor: pointer;
-            transition: all 0.2s ease; border-radius: 8px 8px 0 0;
-        }
-        .tab-button:hover { color: #3b74d7; border-bottom-color: #a3b8d9; }
-        .tab-button.active {
-            color: #3b74d7; border-color: #3b74d7; border-bottom-color: #fff; /* Simulează conectarea cu containerul */
-            background-color: #fff; box-shadow: 0 -2px 5px -2px rgba(0,0,0,0.1);
-            position: relative; top: 1px; /* Aliniere fină */
-        }
-
-        .tab-content { display: none; } /* Se afișează prin JS */
-        .tab-content.active { display: block; }
-
-        .form-section-container {
-            max-width: 800px; margin: 0 auto 30px auto; background: #fff; padding: 25px 30px;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.08); border-radius: 12px;
-        }
-        .form-section-container h2 { /* Titlurile formularelor (Jurnal/Fișă) */
-             font-size: 1.6em; margin-bottom: 15px; text-align: center; color: #334155; font-weight: 500;
-        }
-         .form-section-container > p:not(.confirmation-message) { /* Descrierile formularelor */
-            text-align: center; margin-top: -5px; margin-bottom: 20px; font-size: 0.95em; color: #556575;
-        }
-
-        /* Stiluri pentru Formularul de Fișă (preluate și adaptate) */
-        .progress-bar {width: 100%; background-color: #e9ecef; border-radius: 25px; overflow: hidden; margin-bottom: 25px; height: 12px;}
-        .progress {height: 100%; width: 0; background-color: #5c85d6; transition: width 0.4s ease;}
-        .question-card {
-            margin-bottom: 22px; padding: 20px; background: #fdfdff;
-            border-radius: 8px; box-shadow: 0 3px 8px rgba(0,0,0,0.05);
-            border: 1px solid #eef2f7;
-        }
-        .question-card h3 { font-weight: 500; font-size: 1.15em; margin-top: 0; margin-bottom: 10px; color: #334155; text-align: left;}
-        .question-card p { font-weight: 400; font-size: 0.95em; margin-bottom: 15px; color: #475569; line-height: 1.65; text-align: left;}
-        textarea { /* Stil general pentru textarea, folosit și de jurnal */
-            width: 100%; padding: 12px 15px; font-size: 1em;
-            font-family: inherit; border-radius: 6px; border: 1px solid #d1d9e2;
-            resize: vertical; min-height: 70px;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);
-            transition: border-color 0.2s, box-shadow 0.2s; background-color: #fdfdff;
-        }
-        textarea:focus {border-color: #5c85d6; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06), 0 0 0 3.5px rgba(92, 133, 214, 0.2); outline: none;}
-        .form-step {display: none;}
-        .form-step-active {display: block; animation: fadeInFormStep 0.5s ease-in-out;}
-        @keyframes fadeInFormStep { 0% {opacity: 0; transform: translateY(12px);} 100% {opacity: 1; transform: translateY(0);} }
-        .step-navigation {text-align: center; margin-top: 25px; display: flex; justify-content: space-between; gap:15px;}
-        .step-navigation button, button#fisaAddButton {
-            padding: 11px 22px; font-family: inherit; font-size: 1em; font-weight: 500;
-            color: white; border: none; border-radius: 8px; cursor: pointer;
-            transition: background-color 0.2s, transform 0.15s ease-out;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .step-navigation button#fisaPrevButton { background-color: #6c757d; }
-        .step-navigation button#fisaPrevButton:hover { background-color: #5a6268; transform: translateY(-1px); }
-        .step-navigation button#fisaNextButton { background-color: #5c85d6; }
-        .step-navigation button#fisaNextButton:hover { background-color: #4a6fb5; transform: translateY(-1px); }
-        button#fisaAddButton { background-color: #28a745; display:block; width:100%; margin-top:20px; font-size: 1.05em;}
-        button#fisaAddButton:hover:not(:disabled) { background-color: #218838; transform: translateY(-1px); }
-        .step-navigation button:disabled, button#fisaAddButton:disabled, button#saveJournalEntryButton:disabled {
-            background: #b0c4de !important; color: #707c8b !important;
-            cursor: not-allowed !important; box-shadow: none !important; transform: translateY(0) !important;
-        }
-
-        /* Stiluri pentru Formularul de Jurnal (preluate și adaptate) */
-        label { display:block; margin-bottom: 6px; font-weight: 500; color: #455058; font-size: 0.95em;}
-        input#journalTitle { /* Specific pentru titlul jurnalului */
-            width: 100%; padding: 12px 15px; margin-bottom: 15px; font-size: 1em;
-            font-family: inherit; border-radius: 6px; border: 1px solid #d1d9e2;
-            transition: border-color 0.2s, box-shadow 0.2s; background-color: #fdfdff;
-        }
-        input#journalTitle:focus { border-color: #5c85d6; box-shadow: 0 0 0 3.5px rgba(92, 133, 214, 0.2); outline: none;}
-        textarea#journalContent { min-height: 200px; line-height: 1.65; } /* Ajustare min-height pentru jurnal */
+    :root {
+        --font-primary: 'Ubuntu', 'Roboto', sans-serif;
+        --font-secondary: 'Montserrat', sans-serif;
         
-        .prompt-box { /* Folosit pentru afișarea ghidului activ de jurnal */
-            background: #f8f9fc; border: 1px solid #e6eaf0; border-left: 4px solid #5c85d6;
-            padding: 12px 15px; margin-bottom: 15px; font-size: 0.9em; border-radius: 6px;
-        }
-        .prompt-box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .prompt-box-header strong { color: #2c3e50; font-size: 1.05em; }
-        .hide-prompt-button { background: none; border: none; color: #88929e; font-size: 1.6em; font-weight: bold; cursor: pointer; padding: 0 5px; line-height: 0.8; }
-        .hide-prompt-button:hover { color: #333; }
-        .prompt-content-display { /* Pentru textul ghidului */
-            white-space: pre-wrap; max-height: 180px; overflow-y: auto; background-color: #ffffff;
-            padding: 10px; border-radius: 4px; border: 1px solid #e9edf2;
-            font-family: 'Menlo', 'Monaco', monospace; font-size:0.95em; line-height: 1.55; color: #333;
-        }
-        .prompt-content-display::-webkit-scrollbar { width: 5px; }
-        .prompt-content-display::-webkit-scrollbar-thumb { background: #cbd2d9; border-radius:3px; }
-        #reflectionPromptsContainer { margin: 15px 0 20px 0; padding: 15px; background-color: #f8f9fc; border-radius: 8px; border: 1px solid #e8ecf0; }
-        #reflectionPromptsContainer p { margin-top: 0; margin-bottom: 12px; font-weight: 500; color: #4a5560; font-size: 0.9em; }
-        .prompt-button-group { display: flex; flex-wrap: wrap; gap: 10px; }
-        button.prompt-button {
-            background-color: #e9f0ff; color: #4a69bd; border: 1px solid #d1dfff;
-            padding: 7px 14px; font-size: 0.85em; font-weight: 500; border-radius: 18px;
-            cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        button.prompt-button:hover { background-color: #d8e4ff; color: #3a539b; transform: translateY(-1px); }
-        button#saveJournalEntryButton {
-            display: block; width: 100%; margin-top: 20px; padding: 13px 20px;
-            font-size: 1.05em; font-weight: 500; background: #5c85d6; color: white;
-            border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s;
-            box-shadow: 0 3px 7px rgba(92, 133, 214, 0.22);
-        }
-        button#saveJournalEntryButton:hover:not(:disabled) { background-color: #4a6fb5; transform: translateY(-1.5px); }
-
-        /* Mesaje de confirmare/eroare (comune) */
-        .confirmation-message { display: none; text-align: center; padding: 13px; border: 1px solid transparent; border-radius: 6px; margin-top: 18px; animation: fadeInConfirm 0.4s; font-weight: 500; font-size: 0.95em;}
-        .confirmation-message.success { background-color: #e3f4e8; color: #1e6a39; border-color: #b3d9c0; }
-        .confirmation-message.error { background-color: #fdecea; color: #b32d21; border-color: #f8c6c1; }
-        .confirmation-message.warning { background-color: #fff8e1; color: #795508; border-color: #ffecb3; }
-        @keyframes fadeInConfirm { 0% {opacity: 0; transform: translateY(8px);} 100% {opacity: 1; transform: translateY(0);} }
-
-        /* Container pentru carduri și titlul său */
-        #cardsContainerArea h3 { /* Pentru "Istoricul Introspecțiilor" */
-            color: #2c3840; text-align: center; margin-bottom: 20px; font-weight: 500;
-            font-size: 1.5em; margin-top: 40px;
-        }
-        /* Am eliminat #collabViewTitle deoarece funcționalitatea a fost scoasă */
-        .card-view-unified {display: flex; flex-direction: column; gap: 22px; max-width: 800px; margin: 25px auto;}
-        .response-card { /* Stil general card, va fi folosit de ambele tipuri */
-            background: #ffffff; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.07);
-            overflow: hidden; border: 1px solid #e4e9f0;
-        }
-        .response-card .card-header {
-            font-weight: 500; font-size: 1.1em; cursor: pointer; background: #f9fafc;
-            padding: 14px 20px; color: #334155; border-bottom: 1px solid #e4e9f0;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .response-card .card-header span:first-child { flex-grow: 1; margin-right: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
-        .response-card .card-header .card-date { font-size: 0.85em; color: #64748b; white-space: nowrap; font-weight: 400;}
-        .response-card .card-header::after {content: '▼'; font-size: 0.75em; transition: transform 0.2s ease; color: #707c8b; margin-left: 10px;}
-        .response-card.open .card-header::after {transform: rotate(180deg);}
-        .response-card .card-content { max-height: 0; padding: 0 20px; overflow-y: hidden; transition: max-height 0.45s ease-in-out, padding-top 0.45s ease-in-out, padding-bottom 0.45s ease-in-out; }
-        .response-card.open .card-content { max-height: 8000px; padding: 20px 20px; } /* Max-height mare */
-
-        .introspectie-entry-details { margin-bottom: 18px; border: 1px solid #eef2f7; border-radius: 6px; background: #fdfdfe;}
-        .introspectie-entry-details summary {
-            cursor: pointer; padding: 10px 12px; font-weight: 500; color: #475569;
-            background-color: #f8f9fa; border-radius: 6px 6px 0 0; list-style-position: inside;
-        }
-        .introspectie-entry-details summary:hover { background-color: #f1f3f6; }
-        .introspectie-entry-details[open] summary { border-bottom: 1px solid #eef2f7; }
-        .introspectie-entry-content-text { /* Conținutul fișei sau jurnalului */
-            padding: 12px; font-size: 0.95em; line-height: 1.65; color: #3e4c59;
-            max-height: 450px; overflow-y: auto; white-space: pre-wrap; /* Pentru jurnal */
-        }
-        .introspectie-entry-content-text hr {margin: 15px 0; border: 0; border-top: 1px dashed #dde2e7;}
-        .introspectie-entry-content-text h4 { font-size: 1.05em; color: #5c85d6; margin-top: 15px; margin-bottom:8px; font-weight: 500;}
-        .introspectie-entry-content-text p { margin-bottom: 10px; }
-        .introspectie-entry-content-text p strong { font-weight: 500; color: #1e293b; margin-right: 5px; }
-        .introspectie-entry-content-text::-webkit-scrollbar { width: 5px; }
-        .introspectie-entry-content-text::-webkit-scrollbar-thumb { background: #c5ced6; border-radius:3px; }
+        --color-text-primary: #2c3e50; /* Un gri-albăstrui închis pentru text principal */
+        --color-text-secondary: #7f8c8d; /* Gri mediu pentru text secundar */
+        --color-text-light: #95a5a6; /* Gri deschis */
         
-        .journal-entry-content-text-unified { /* Specific pentru textul jurnalului în card */
-            white-space: pre-wrap; font-size: 1em; line-height: 1.7;
-        }
-
-        .response-card > .card-content > h4.ai-feedback-title {
-            color: #5c85d6; font-weight: 500; margin-top: 0px;
-            margin-bottom: 15px; font-size: 1.1em;
-            border-bottom: 1px solid #eef2f7; padding-bottom: 8px;
-        }
-        .no-feedback-message { text-align: center; font-style: italic; color: #64748b; padding: 15px 0; }
-        .ai-feedback-history-container { margin-top: 10px; }
-        .feedback-entry-card {
-            background:#fdfdff; padding: 15px; border: 1px solid #e7ecf2;
-            border-left: 4px solid #5c85d6; border-radius:8px; margin-bottom:15px;
-            font-size:0.95em; line-height:1.6; box-shadow: 0 2px 5px rgba(0,0,0,0.03);
-        }
-        .feedback-timestamp { color:#52606f; font-size:0.8em; margin-bottom:10px; font-style: italic; }
-        .feedback-section-item { margin-bottom: 12px; }
-        .feedback-section-item h5 { font-size: 1em; color: #4a69bd; margin-top:0; margin-bottom: 5px; font-weight:500;}
-        .feedback-section-item p, .feedback-section-item ul { margin-left: 5px; font-size: 0.95em; }
-        .feedback-section-item ul { padding-left: 18px; }
-
-
-        .card-actions {
-            text-align: right; margin-top: 20px; padding-top: 15px;
-            border-top: 1px solid #eef2f7; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end;
-        }
-        .card-actions button {
-            padding: 7px 13px; font-size: 0.78em; font-weight:500; border-radius: 6px;
-            transition: all 0.2s; border: 1px solid transparent; cursor: pointer;
-        }
-        button.delete-introspectie-button { background-color:transparent; color: #c0392b; border-color: #f5c6cb;}
-        button.delete-introspectie-button:hover { background-color: #c0392b; color: white; }
-        button.regenerate-feedback-button { background-color:transparent; color: #276749; border-color: #a7f3d0;}
-        button.regenerate-feedback-button:hover { background-color: #276749; color: white;}
-        button.discuss-entry-with-chat-button { background-color:transparent; color: #4a69bd; border-color: #a3b3d9;}
-        button.discuss-entry-with-chat-button:hover { background-color: #4a69bd; color: white;}
-        button.delete-last-feedback-button { background-color:transparent; color: #b45309; border-color: #fcd34d;}
-        button.delete-last-feedback-button:hover { background-color: #b45309; color: white;}
-        button.delete-all-feedback-button { background-color:transparent; color: #9b2c2c; border-color: #fed7d7;}
-        button.delete-all-feedback-button:hover { background-color: #9b2c2c; color: white;}
-
-        .content-ai { font-size: 1em; line-height: 1.7; color: #374151; }
-        .content-ai .ai-main-section-title, .content-ai h1, .content-ai h2, .content-ai h3, .content-ai h4 {
-            font-weight: 600; color: #3b74d7; margin-top: 1.2em; margin-bottom: 0.6em;
-            font-size: 1.05em; padding-bottom: 4px;
-        }
-        .content-ai .ai-main-section-title:first-child, .content-ai h1:first-child, .content-ai h2:first-child, .content-ai h3:first-child, .content-ai h4:first-child { margin-top: 0.3em; }
-        .content-ai p.ai-text-paragraph { margin-bottom: 0.9em; }
-        .content-ai p.ai-text-paragraph strong, .content-ai strong { font-weight: 600; color: #1f2937; }
-        .content-ai p.ai-text-paragraph em, .content-ai em { font-style: italic; color: #4b5563; }
-        .content-ai ul.ai-list, .content-ai ol.ai-list { margin-left: 5px; padding-left: 22px; margin-bottom: 0.9em; list-style-position: outside; }
-        .content-ai .ai-list-item { margin-bottom: 0.5em; }
-        .content-ai .ai-list-item::marker { color: #4a69bd; font-weight: bold; }
-        .content-ai .ai-text-error {
-            color: #c0392b; font-weight: 500; background-color: #fff5f5;
-            padding: 10px 12px; border-radius: 4px; border: 1px solid #fecaca; border-left: 4px solid #ef4444;
-            white-space: pre-wrap; font-size: 0.9em;
-        }
+        --color-primary: #3498db; /* Albastru vibrant principal */
+        --color-primary-dark: #2980b9;
+        --color-primary-light: #5dade2;
         
-        .no-entries-message, .loading-message, .error-loading-message { text-align: center; margin-top:25px; font-style: italic; color: #556575; font-size: 1.05em; padding:15px;}
-        .error-loading-message { color: #c0392b; font-weight: 500;}
-        .loading-message { background-color: #e9f0ff; border:1px solid #d1dfff;}
+        --color-secondary: #2ecc71; /* Verde pentru accente pozitive/salvare */
+        --color-secondary-dark: #27ae60;
+        
+        --color-accent: #e74c3c; /* Roșu/Coral pentru ștergere/atenționări */
+        --color-accent-dark: #c0392b;
+
+        --color-background: #ecf0f1; /* Un gri foarte deschis pentru fundal */
+        --color-surface: #ffffff; /* Alb pentru suprafețe (carduri, formulare) */
+        --color-border: #dde4e6; /* Borduri subtile */
+        --color-border-light: #e8ecf0;
+
+        --shadow-sm: 0 2px 4px rgba(0,0,0,0.04);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+        --shadow-lg: 0 10px 30px rgba(0,0,0,0.1);
+
+        --border-radius-sm: 6px;
+        --border-radius-md: 10px;
+        --border-radius-lg: 16px;
+
+        --transition-fast: 0.2s ease-out;
+        --transition-medium: 0.3s ease-out;
+    }
+
+    body {
+        font-family: var(--font-primary);
+        background-color: var(--color-background);
+        color: var(--color-text-primary);
+        line-height: 1.65;
+        font-size: 16px;
+        padding: 25px;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Header Aplicație */
+    .app-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+    .app-header h1 {
+        font-family: var(--font-secondary);
+        font-size: 2.4em;
+        font-weight: 700;
+        color: var(--color-primary);
+        margin-bottom: 8px;
+        letter-spacing: -0.5px;
+    }
+    .app-header p {
+        font-size: 1.1em;
+        color: var(--color-text-secondary);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    /* Navigare Tab-uri */
+    .tab-navigation {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 35px;
+        gap: 0; /* Eliminăm gap-ul pentru a uni butoanele */
+        border-bottom: 2px solid var(--color-border);
+    }
+    .tab-button {
+        padding: 12px 30px;
+        font-family: var(--font-secondary);
+        font-size: 1.05em;
+        font-weight: 600;
+        border: none; 
+        border-bottom: 3px solid transparent;
+        background: none;
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition: color var(--transition-fast), border-color var(--transition-fast);
+        margin-bottom: -2px; /* Trage butonul peste bordura de jos a containerului */
+    }
+    .tab-button:hover {
+        color: var(--color-primary-dark);
+    }
+    .tab-button.active {
+        color: var(--color-primary);
+        border-bottom-color: var(--color-primary);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Container Formulare */
+    .form-section-container {
+        max-width: 760px;
+        margin: 0 auto 40px auto;
+        background: var(--color-surface);
+        padding: 30px 35px;
+        box-shadow: var(--shadow-md);
+        border-radius: var(--border-radius-lg);
+        border: 1px solid var(--color-border-light);
+    }
+    .form-section-container h2 {
+        font-family: var(--font-secondary);
+        font-size: 1.8em;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: var(--color-text-primary);
+    }
+    .form-section-container > p:not(.confirmation-message) {
+        font-size: 1em;
+        margin-bottom: 25px;
+        color: var(--color-text-secondary);
+    }
+
+    /* Formular Fișă: Bara de Progres */
+    .progress-bar {
+        width: 100%;
+        background-color: #e9ecef;
+        border-radius: var(--border-radius-lg); /* Rotunjire mai mare */
+        overflow: hidden;
+        margin-bottom: 30px;
+        height: 10px; /* Mai subțire */
+    }
+    .progress {
+        height: 100%;
+        width: 0;
+        background: linear-gradient(90deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
+        transition: width 0.5s cubic-bezier(0.25, 0.1, 0.25, 1); /* Tranziție mai smooth */
+        border-radius: var(--border-radius-lg);
+    }
+
+    /* Cardurile cu Întrebări (pentru Fișă) */
+    .question-card {
+        margin-bottom: 25px;
+        padding: 25px;
+        background: #fcfdff; /* Un alb puțin mai cald */
+        border-radius: var(--border-radius-md);
+        border: 1px solid var(--color-border-light);
+        box-shadow: var(--shadow-sm);
+    }
+    .question-card h3 {
+        font-family: var(--font-secondary);
+        font-weight: 600;
+        font-size: 1.25em;
+        margin-bottom: 12px;
+        color: var(--color-primary);
+    }
+    .question-card p {
+        font-size: 1em;
+        margin-bottom: 18px;
+        color: var(--color-text-secondary);
+        line-height: 1.7;
+    }
+
+    /* Textarea (General) */
+    textarea, input#journalTitle {
+        width: 100%;
+        padding: 14px 18px;
+        font-size: 1em;
+        font-family: var(--font-primary);
+        border-radius: var(--border-radius-sm);
+        border: 1px solid var(--color-border);
+        background-color: #fdfdfe;
+        color: var(--color-text-primary);
+        transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    textarea {
+        min-height: 100px; /* Mai mult spațiu default */
+        line-height: 1.6;
+    }
+    textarea#journalContent { min-height: 220px; }
+    textarea:focus, input#journalTitle:focus {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15); /* Umbra de focus mai subtilă */
+        outline: none;
+    }
+
+    /* Navigare Pași Fișă & Butoane Salvare */
+    .step-navigation { margin-top: 30px; gap: 20px; }
+    .step-navigation button, 
+    button#fisaAddButton, 
+    button#saveJournalEntryButton {
+        padding: 12px 28px;
+        font-family: var(--font-secondary);
+        font-size: 1.05em;
+        font-weight: 600;
+        border: none;
+        border-radius: var(--border-radius-md);
+        cursor: pointer;
+        transition: all var(--transition-medium);
+        box-shadow: var(--shadow-sm);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .step-navigation button#fisaPrevButton {
+        background-color: var(--color-text-light);
+        color: var(--color-surface);
+    }
+    .step-navigation button#fisaPrevButton:hover {
+        background-color: #a7b6b7; 
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    .step-navigation button#fisaNextButton {
+        background-color: var(--color-primary);
+        color: var(--color-surface);
+    }
+    .step-navigation button#fisaNextButton:hover {
+        background-color: var(--color-primary-dark);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    button#fisaAddButton, button#saveJournalEntryButton {
+        background-color: var(--color-secondary);
+        color: var(--color-surface);
+        width: 100%;
+        margin-top: 25px;
+    }
+    button#fisaAddButton:hover:not(:disabled), 
+    button#saveJournalEntryButton:hover:not(:disabled) {
+        background-color: var(--color-secondary-dark);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    /* Stil pentru butoane disabled, comun */
+    .step-navigation button:disabled, button#fisaAddButton:disabled, button#saveJournalEntryButton:disabled,
+    #sendChatMessageButton:disabled {
+        background: #d2dce0 !important;
+        color: #90a0a3 !important;
+        cursor: not-allowed !important;
+        box-shadow: none !important;
+        transform: translateY(0) !important;
+    }
+
+    /* Formular Jurnal: Ghidaje */
+    #reflectionPromptsContainer {
+        margin: 25px 0;
+        padding: 20px;
+        background-color: #f8f9fa; /* Un fundal mai deschis */
+        border-radius: var(--border-radius-md);
+        border: 1px solid var(--color-border-light);
+    }
+    #reflectionPromptsContainer p {
+        margin-bottom: 15px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        font-size: 0.95em;
+    }
+    .prompt-button-group { gap: 12px; }
+    button.prompt-button {
+        background-color: var(--color-surface);
+        color: var(--color-primary);
+        border: 1px solid var(--color-primary-light);
+        padding: 8px 18px;
+        font-size: 0.9em;
+        font-weight: 500;
+        border-radius: 20px; /* Rotunjire completă pentru aspect de "pill" */
+    }
+    button.prompt-button:hover {
+        background-color: var(--color-primary-light);
+        color: var(--color-surface);
+        border-color: var(--color-primary-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+    .prompt-box { /* Cutia pentru ghidul activ */
+        background: #e9f5ff; /* Un albastru foarte deschis */
+        border-left-color: var(--color-primary);
+        padding: 18px;
+        margin-bottom: 20px;
+        border-radius: var(--border-radius-sm);
+    }
+    .prompt-box-header strong { color: var(--color-primary-dark); font-size: 1.1em; }
+    .hide-prompt-button { font-size: 1.8em; }
+    .prompt-content-display {
+        background-color: rgba(255,255,255,0.7); /* Ușor transparent */
+        padding: 12px;
+        font-size: 0.9em;
+        line-height: 1.6;
+        border-radius: var(--border-radius-sm);
+    }
+    
+    /* Mesaje de Confirmare/Eroare */
+    .confirmation-message {
+        padding: 15px 20px;
+        margin-top: 25px;
+        border-radius: var(--border-radius-sm);
+        font-size: 1em;
+        animation: fadeInConfirm 0.5s ease-out;
+    }
+
+    /* Carduri Istoric Introspecții */
+    #cardsContainerArea h3 {
+        font-family: var(--font-secondary);
+        font-size: 1.8em;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        margin-top: 50px;
+        margin-bottom: 30px;
+    }
+    .card-view-unified { gap: 28px; }
+    .response-card {
+        border-radius: var(--border-radius-lg);
+        border: 1px solid var(--color-border);
+        box-shadow: var(--shadow-md);
+        transition: transform var(--transition-medium), box-shadow var(--transition-medium);
+    }
+    .response-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-lg);
+    }
+    .response-card .card-header {
+        padding: 18px 25px;
+        background: linear-gradient(135deg, #fdfefe, #f7f9fa); /* Gradient subtil */
+        border-bottom: 1px solid var(--color-border-light);
+    }
+    .response-card .card-header span:first-child {
+        font-family: var(--font-secondary);
+        font-size: 1.15em;
+        font-weight: 600;
+    }
+    .response-card .card-header .card-date {
+        font-size: 0.9em;
+        font-weight: 500;
+        color: var(--color-text-light);
+    }
+    .response-card .card-content { padding: 0 25px; } /* Mai mult padding lateral */
+    .response-card.open .card-content { padding: 25px 25px; }
+
+    .introspectie-entry-details summary {
+        padding: 12px 15px;
+        font-weight: 500;
+        color: var(--color-primary);
+        background-color: #f9fafb;
+        border-radius: var(--border-radius-sm);
+        transition: background-color var(--transition-fast);
+    }
+    .introspectie-entry-details summary:hover { background-color: #f1f5f9; }
+    .introspectie-entry-content-text {
+        padding: 15px;
+        font-size: 1em; /* Mărim puțin fontul conținutului */
+        line-height: 1.75;
+        color: #34495e; /* Un gri-albăstrui mai profund */
+        background: #fdfdfd;
+        border-top: 1px solid var(--color-border-light);
+        margin-top: -1px; /* Suprapunere peste bordura summary */
+    }
+    .introspectie-entry-content-text hr { margin: 20px 0; border-top: 1px dashed #ced4da; }
+    .introspectie-entry-content-text h4 { font-size: 1.1em; color: var(--color-primary-dark); margin-bottom: 10px; }
+
+    .response-card > .card-content > h4.ai-feedback-title {
+        font-family: var(--font-secondary);
+        color: var(--color-primary);
+        font-size: 1.2em;
+        margin-bottom: 18px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--color-border);
+    }
+    .feedback-entry-card {
+        background: #fbfdff;
+        padding: 18px;
+        border-left-width: 5px; /* Accent mai puternic */
+        border-left-color: var(--color-primary-light);
+        border-radius: var(--border-radius-sm);
+        margin-bottom: 18px;
+        box-shadow: var(--shadow-sm);
+    }
+    .feedback-timestamp { font-size: 0.85em; margin-bottom: 12px; color: var(--color-text-light); }
+    .feedback-section-item h5 { color: var(--color-primary-dark); font-size: 1.05em; margin-bottom: 6px; }
+    .feedback-section-item p, .feedback-section-item ul { font-size: 0.98em; color: var(--color-text-primary); }
+
+    .card-actions { gap: 12px; padding-top: 20px; }
+    .card-actions button {
+        padding: 9px 16px;
+        font-size: 0.85em;
+        font-weight: 500;
+        border-radius: var(--border-radius-sm);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    /* Stiluri specifice butoane acțiuni card - păstrăm culorile, ajustăm tranzițiile */
+    button.delete-introspectie-button { color: var(--color-accent); border-color: var(--color-accent);}
+    button.delete-introspectie-button:hover { background-color: var(--color-accent); color: white; }
+    button.regenerate-feedback-button { color: var(--color-secondary); border-color: var(--color-secondary);}
+    button.regenerate-feedback-button:hover { background-color: var(--color-secondary); color: white;}
+    button.discuss-entry-with-chat-button { color: var(--color-primary); border-color: var(--color-primary);}
+    button.discuss-entry-with-chat-button:hover { background-color: var(--color-primary); color: white;}
+    /* ... restul butoanelor de acțiune pot urma un model similar ... */
+
+    /* Stiluri Chat */
+    .chat-container {
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-lg);
+        width: clamp(360px, 35vw, 480px); /* Ușor mai lat */
+        max-height: calc(100vh - 100px);
+    }
+    .chat-container h3 {
+        font-family: var(--font-secondary);
+        font-size: 1.2em;
+        padding: 18px 22px;
+        background-color: var(--color-primary);
+        color: var(--color-surface);
+        border-bottom: none;
+        border-top-left-radius: var(--border-radius-lg); /* Rotunjire colțuri */
+        border-top-right-radius: var(--border-radius-lg);
+    }
+    #chatMessages { padding: 20px; gap: 15px; background-color: #f9fbfc; }
+    .chat-message {
+        padding: 12px 18px; /* Mai mult padding */
+        border-radius: 18px; /* Rotunjire standard */
+        max-width: 85%;
+        font-size: 0.98em;
+        box-shadow: var(--shadow-sm);
+    }
+    .user-message {
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        border-bottom-right-radius: var(--border-radius-sm); /* Rotunjire specifică */
+    }
+    .ai-message {
+        background: var(--color-surface);
+        color: var(--color-text-primary);
+        border: 1px solid var(--color-border-light);
+        border-bottom-left-radius: var(--border-radius-sm);
+    }
+    .ai-message.ai-error { background-color: #ffebee; color: var(--color-accent-dark); border-color: #ffcdd2; }
+    .chat-input-area { padding: 18px 22px; background-color: #f0f4f7; }
+    #chatInput {
+        padding: 13px 18px;
+        border-radius: var(--border-radius-md);
+        border: 1px solid #cbd5e0; /* Bordură mai vizibilă */
+        min-height: 50px;
+    }
+    #chatInput:focus {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3.5px rgba(52, 152, 219, 0.2);
+    }
+    #sendChatMessageButton {
+        padding: 13px 22px;
+        font-family: var(--font-secondary);
+        font-weight: 600;
+        background-color: var(--color-primary);
+        border-radius: var(--border-radius-md);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    #sendChatMessageButton:hover:not(:disabled) { background-color: var(--color-primary-dark); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+    #chatStatus { font-size: 0.9em; color: var(--color-text-light); padding-bottom: 5px;}
+    #toggleChatButton {
+        background-color: var(--color-primary);
+        width: 60px; height: 60px; font-size: 28px;
+        box-shadow: 0 6px 18px rgba(52, 152, 219, 0.3);
+    }
+    #toggleChatButton:hover { background-color: var(--color-primary-dark); transform: scale(1.08) rotate(12deg); }
+
+    /* Mesaje generale (loading, no entries) */
+    .no-entries-message, .loading-message, .error-loading-message {
+        text-align: center; margin: 40px auto; padding: 25px; font-size: 1.1em;
+        color: var(--color-text-secondary); background-color: var(--color-surface);
+        border-radius: var(--border-radius-md); box-shadow: var(--shadow-sm); max-width: 600px;
+    }
+    .error-loading-message { color: var(--color-accent-dark); background-color: #fff0f0; }
+    .loading-message { color: var(--color-primary); background-color: #e9f5ff; }
 
 
-        /* Stiluri Chat (preluate și adaptate) */
-        .chat-container {
-            display: none; flex-direction: column; position: fixed; bottom: 20px; right: 20px;
-            width: clamp(350px, 40vw, 450px); max-height: calc(100vh - 90px);
-            background: #ffffff; border-radius: 16px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
-            z-index: 1000; padding: 0; box-sizing: border-box; overflow: hidden;
-        }
-        .chat-container h3 { /* Titlu Chat */
-            text-align: center; color: #334155; margin: 0; padding: 16px 20px;
-            font-size: 1.1em; font-weight: 500; background-color: #f8f9fc;
-            border-bottom: 1px solid #e9edf2; flex-shrink: 0;
-        }
-        #chatMessages {
-            flex-grow: 1; overflow-y: auto; padding: 18px; background: #ffffff;
-            display: flex; flex-direction: column; gap: 12px;
-        }
-        #chatMessages::-webkit-scrollbar { width: 6px; }
-        #chatMessages::-webkit-scrollbar-thumb { background: #bfc8d3; border-radius: 10px; }
-        .chat-message {
-            padding: 11px 16px; border-radius: 18px; max-width: 83%;
-            word-wrap: break-word; line-height: 1.55; box-shadow: 0 2px 5px rgba(0,0,0,0.06);
-            font-size: 0.96em; font-weight: 400; position: relative;
-        }
-        .user-message { background: linear-gradient(135deg, #5c85d6 0%, #3b6cb7 100%); color: white; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 6px; }
-        .ai-message { background: #f0f3f7; color: #2c3e50; align-self: flex-start; margin-right: auto; border-bottom-left-radius: 6px; font-family: 'Ubuntu', 'Menlo', monospace; }
-        .ai-message em, .ai-message i { font-family: 'Ubuntu', inherit; font-style: italic; }
-        .ai-message strong, .ai-message b { font-family: 'Ubuntu', inherit; font-weight: 700; }
-        .ai-message.ai-error { background-color: #ffe3e3; color: #b71c1c; border: 1px solid #ffc5c5; font-family: 'Ubuntu', sans-serif; }
-        .chat-input-area {
-            padding: 15px 20px; border-top: 1px solid #e9edf2; background-color: #f8f9fc;
-            flex-shrink: 0; display: flex; flex-direction: column; gap: 10px;
-        }
-        #chatInput {
-            width: 100%; padding: 11px 16px; border-radius: 10px; border: 1px solid #d9e0ea;
-            resize: none; min-height: 46px; max-height: 120px; box-sizing: border-box;
-            font-family: 'Ubuntu', sans-serif; font-size: 0.96em; line-height: 1.5;
-            transition: border-color 0.2s, box-shadow 0.2s; background-color: #ffffff;
-        }
-        #chatInput:focus { border-color: #5c85d6; box-shadow: 0 0 0 3.5px rgba(92, 133, 214, 0.18); outline: none; }
-        #sendChatMessageButton {
-            padding: 11px 20px; width: 100%; font-family: 'Ubuntu', sans-serif;
-            font-size: 1em; font-weight: 500; background-color: #5c85d6; color: white;
-            border: none; border-radius: 10px; transition: background-color 0.2s, transform 0.15s ease-out;
-            cursor: pointer; margin-top:0;
-        }
-        #sendChatMessageButton:hover:not(:disabled) { background-color: #4a6fb5; transform: translateY(-1px); }
-        #sendChatMessageButton:disabled { background-color: #c3d9f0 !important; color: #7c8da3 !important; transform: translateY(0) !important;}
-        #chatStatus { font-size: 0.85em; color: #6c757d; text-align: center; min-height: 1.2em; padding-bottom: 0; font-weight: 400;}
-        #toggleChatButton { /* Butonul plutitor pentru chat */
-            position: fixed; bottom: 25px; right: 25px; padding: 0; z-index: 1001;
-            display: flex; align-items: center; justify-content: center;
-            background-color: #5c85d6; color: white; border: none; border-radius: 50%;
-            width: 58px; height: 58px; font-size: 26px;
-            box-shadow: 0 5px 15px rgba(92, 133, 214, 0.25); cursor: pointer; transition: all 0.3s ease;
-        }
-        #toggleChatButton:hover { background-color: #4a6fb5; transform: scale(1.1) rotate(10deg); }
-
-        /* Am eliminat stilurile pentru .collaboration-section și #generateLinkButton */
-
-        @media (max-width: 820px) {
-             .form-section-container, .card-view-unified {padding:20px; margin-left:15px; margin-right:15px; max-width:calc(100% - 30px);}
-        }
-        @media (max-width: 768px) {
-            body {padding:15px; font-size: 15px;}
-            .form-section-container, .card-view-unified {padding:15px; margin-left:10px; margin-right:10px; max-width:calc(100% - 20px);}
-            .app-header h1 { font-size: 1.7em; }
-            .tab-button { padding: 9px 18px; font-size: 1em;}
-            .form-section-container h2 {font-size:1.4em;}
-            #cardsContainerArea h3 {font-size: 1.3em;}
-            .step-navigation button, button#fisaAddButton, button#saveJournalEntryButton {font-size:0.95em; padding:10px 18px;}
-            .card-actions button {font-size:0.75em; padding:7px 10px;}
-            .chat-container { width: calc(100% - 30px); max-height: calc(100vh - 100px); bottom: 15px; left: 15px; right: auto; }
-            #toggleChatButton { width: 55px; height: 55px; font-size: 24px; bottom: 20px; right: 20px;}
-        }
-        @media (max-width: 480px) {
-            body {padding:10px; font-size: 14px;}
-            .form-section-container, .card-view-unified {padding:12px; margin-left:5px; margin-right:5px; max-width:calc(100% - 10px);}
-            .app-header h1 {font-size:1.5em;}
-            .tab-button { padding: 8px 12px; font-size: 0.9em;}
-            .form-section-container h2 {font-size:1.3em;} #cardsContainerArea h3 {font-size: 1.2em;}
-            textarea#journalContent { min-height: 150px; }
-            .step-navigation button, button#fisaAddButton, button#saveJournalEntryButton {font-size:0.9em; padding:9px 15px;}
-            .card-actions button {font-size:0.72em; padding:6px 8px; flex-basis: calc(50% - 4px);} /* Aproape 2 pe rând */
-            .response-card .card-header {padding:12px 15px; flex-direction: column; align-items: flex-start; gap: 4px;}
-            .response-card .card-header::after { align-self: flex-end; margin-top: -1.3em; }
-            .chat-container { max-height: calc(100vh - 80px); bottom: 10px; left: 10px; width: calc(100% - 20px); }
-            #toggleChatButton { width: 50px; height: 50px; font-size: 22px; bottom: 15px; right: 15px; }
-        }
-
-    </style>
+    /* Responsive adjustments (păstrăm media queries, ajustăm valorile dacă e nevoie) */
+    @media (max-width: 768px) {
+        body { padding: 15px; }
+        .app-header h1 { font-size: 2em; }
+        .app-header p { font-size: 1em; }
+        .tab-button { padding: 10px 20px; font-size: 1em; }
+        .form-section-container { padding: 25px 20px; }
+        .form-section-container h2 { font-size: 1.5em; }
+        textarea#journalContent { min-height: 180px; }
+        .card-actions button { font-size: 0.8em; padding: 8px 12px; }
+        .chat-container { width: calc(100% - 30px); bottom: 15px; left: 15px; right: auto; }
+        #toggleChatButton { width: 55px; height: 55px; font-size: 24px; bottom: 15px; right: 15px; }
+    }
+    @media (max-width: 480px) {
+        body { padding: 10px; }
+        .app-header h1 { font-size: 1.7em; }
+        .tab-button { padding: 8px 15px; font-size: 0.9em; }
+        .form-section-container { padding: 20px 15px; }
+        .form-section-container h2 { font-size: 1.35em; }
+        .question-card { padding: 15px; }
+        .question-card h3 { font-size: 1.1em; }
+        textarea { padding: 10px 12px; }
+        textarea#journalContent { min-height: 150px; }
+        .step-navigation button, button#fisaAddButton, button#saveJournalEntryButton { padding: 10px 18px; font-size: 0.95em; }
+        .card-actions button { flex-basis: calc(50% - 6px); font-size: 0.78em;}
+        .response-card .card-header { padding: 15px; }
+        .response-card .card-header span:first-child { font-size: 1.05em; }
+        .response-card .card-header .card-date { font-size: 0.8em;}
+        .chat-container { width: calc(100% - 20px); bottom: 10px; left: 10px; }
+        #toggleChatButton { width: 50px; height: 50px; font-size: 22px; bottom: 10px; right: 10px;}
+    }
+</style>
 </head>
 <body>
 
