@@ -2108,7 +2108,43 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
         bottom: var(--spacing-unit); right: var(--spacing-unit);
     }
 }
+#minimizeChatButton {
+    background: none;
+    border: none;
+    color: var(--color-text-medium); /* Culoarea săgeții */
+    cursor: pointer;
+    padding: 0; /* Elimină padding-ul dacă săgeata este creată cu CSS */
+    line-height: 1;
+    position: relative; /* Necesar pentru poziționarea pseudo-elementului */
+    width: 20px;  /* Setează o lățime pentru buton */
+    height: 20px; /* Setează o înălțime pentru buton */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
 
+#minimizeChatButton::after { /* Sau ::before */
+    content: '';
+    display: block;
+    width: 6px;  /* Mărimea săgeții */
+    height: 6px; /* Mărimea săgeții */
+    border-left: 2px solid currentColor; /* Grosimea și culoarea liniei */
+    border-bottom: 2px solid currentColor; /* Grosimea și culoarea liniei */
+    transform: rotate(-45deg); /* Rotim un pătrat pentru a forma un chevron */
+    /* Ajustări fine de poziție dacă este necesar */
+    /* margin-top: -2px; */
+}
+
+#minimizeChatButton:hover {
+    color: var(--color-primary);
+}
+/* Poți adăuga o tranzitie pentru culoare la hover pe săgeată */
+#minimizeChatButton::after {
+    transition: border-color 0.2s ease-in-out;
+}
+#minimizeChatButton:hover::after {
+    border-color: var(--color-primary);
+}
 /* --- MODERN FRESH STYLES END --- */
     </style>
 </head>
