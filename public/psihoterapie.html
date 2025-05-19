@@ -1359,26 +1359,48 @@ ${initialContextSummary}---`;
             color: #333a40; line-height: 1.6; font-size: 16px;
         }
 
-        .app-header { text-align: center; margin-bottom: 25px; }
-        .app-header h1 { font-size: 2em; color: #2c3840; margin-bottom: 5px; font-weight: 500;}
-        .app-header p { font-size: 1em; color: #556575; margin-top: 0;}
+/* APP HEADER */
+.app-header { text-align: center; margin-bottom: calc(var(--spacing-unit) * 5); /* 40px */ }
+.app-header h1 {
+    font-size: 2.25em; /* Slightly larger */
+    color: var(--color-text-dark);
+    margin-bottom: var(--spacing-unit);
+    font-weight: 700; /* Bolder */
+    letter-spacing: -0.5px;
+}
+.app-header p { font-size: 1.1em; color: var(--color-text-light); margin-top: 0; font-weight: 300; }
 
-        .tab-navigation { display: flex; justify-content: center; margin-bottom: 25px; gap: 15px; }
-        .tab-button {
-            padding: 10px 25px; font-size: 1.1em; font-weight: 500;
-            border: 2px solid transparent; border-bottom-color: #d1d9e2;
-            background: none; color: #6c757d; cursor: pointer;
-            transition: all 0.2s ease; border-radius: 8px 8px 0 0;
-        }
-        .tab-button:hover { color: #3b74d7; border-bottom-color: #a3b8d9; }
-        .tab-button.active {
-            color: #3b74d7; border-color: #3b74d7; border-bottom-color: #fff; /* Simulează conectarea cu containerul */
-            background-color: #fff; box-shadow: 0 -2px 5px -2px rgba(0,0,0,0.1);
-            position: relative; top: 1px; /* Aliniere fină */
-        }
+/* TAB NAVIGATION */
+.tab-navigation {
+    display: flex;
+    justify-content: center;
+    margin-bottom: calc(var(--spacing-unit) * 4); /* 32px */
+    gap: 0; /* Remove gap, use borders for separation */
+    border-bottom: 1px solid #dee2e6;
+}
+.tab-button {
+    padding: calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 3); /* 12px 24px */
+    font-size: 1.05em; font-weight: 500;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: none;
+    color: var(--color-text-light);
+    cursor: pointer;
+    transition: color 0.25s ease, border-color 0.25s ease;
+    border-radius: 0; /* Remove individual radius */
+    margin-bottom: -1px; /* Overlap border-bottom of nav */
+}
+.tab-button:hover {
+    color: var(--color-primary);
+}
+.tab-button.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    font-weight: 600;
+}
 
-        .tab-content { display: none; } /* Se afișează prin JS */
-        .tab-content.active { display: block; }
+/* TAB CONTENT - active handled by JS */
+
 
         .form-section-container {
             max-width: 800px; margin: 0 auto 30px auto; background: #fff; padding: 25px 30px;
@@ -1626,7 +1648,7 @@ ${initialContextSummary}---`;
         }
         #chatInput:focus { border-color: #5c85d6; box-shadow: 0 0 0 3.5px rgba(92, 133, 214, 0.18); outline: none; }
         #sendChatMessageButton {
-            padding: 5px 10px; width: 100%; font-family: 'Ubuntu', sans-serif;
+            padding: 3px 6px; width: 100%; font-family: 'Ubuntu', sans-serif;
             font-size: 1em; font-weight: 500; background-color: #5c85d6; color: white;
             border: none; border-radius: 10px; transition: background-color 0.2s, transform 0.15s ease-out;
             cursor: pointer; margin-top:0;
@@ -1635,10 +1657,10 @@ ${initialContextSummary}---`;
         #sendChatMessageButton:disabled { background-color: #c3d9f0 !important; color: #7c8da3 !important; transform: translateY(0) !important;}
         #chatStatus { font-size: 0.85em; color: #6c757d; text-align: center; min-height: 1.2em; padding-bottom: 0; font-weight: 400;}
         #toggleChatButton { /* Butonul plutitor pentru chat */
-            position: fixed; bottom: 15px; right: 15px; padding: 0; z-index: 1001;
+            position: fixed; bottom: 10px; right: 10px; padding: 0; z-index: 1001;
             display: flex; align-items: center; justify-content: center;
             background-color: #5c85d6; color: white; border: none; border-radius: 50%;
-            width: 38px; height: 38px; font-size: 26px;
+            width: 28px; height: 28px; font-size: 26px;
             box-shadow: 0 5px 15px rgba(92, 133, 214, 0.25); cursor: pointer; transition: all 0.3s ease;
         }
         #toggleChatButton:hover { background-color: #4a6fb5; transform: scale(1) rotate(10deg); }
