@@ -1974,16 +1974,13 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     .step-navigation button, button#fisaAddButton, button#saveJournalEntryButton {font-size:0.9em; padding:var(--spacing-unit) calc(var(--spacing-unit)*2);}
     .card-actions button {font-size:0.75em; padding:calc(var(--spacing-unit)*0.75) var(--spacing-unit);}
 
-     .chat-container {
-        width: calc(100% - var(--spacing-unit)*2);
-        /* MODIFICAT: Reducem max-height semnificativ */
-        max-height: 65vh; /* Sau poți experimenta cu 60vh sau 70vh dacă preferi */
-        /* max-height: calc(100vh - 60px); VALOARE ANTERIOARĂ */
-        bottom: var(--spacing-unit);
-        left: var(--spacing-unit);
-        right: var(--spacing-unit);
-        border-radius: var(--border-radius-medium);
-    }
+    .chat-container {
+        width: calc(100% - var(--spacing-unit)*2); /* Lățime aproape completă, cu margini mici */
+        max-height: calc(100vh - 60px); /* Mai mult spațiu vertical, mai aproape de marginea de sus */
+        bottom: var(--spacing-unit); /* Mai aproape de marginea de jos */
+        left: var(--spacing-unit); /* Mai aproape de marginea din stânga */
+        right: var(--spacing-unit); /* Adaugat pentru a centra pe ecrane mici, dacă left/width nu sunt suficiente */
+        border-radius: var(--border-radius-medium); /* Raze mai mici pe mobil */
     }
     #toggleChatButton {
         width: 40px; height: 40px; font-size: 18px; line-height: 40px;
@@ -2026,9 +2023,11 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     .response-card .card-header::after { align-self: flex-end; margin-top: -1.5em; font-size: 1.3em;}
 
     .chat-container {
-         max-height: calc(100vh - 50px); /* Ajustare fină pentru ecrane foarte mici */
-         bottom: 0; left: 0; width: 100%;  /* Full screen modal style pe telefoane foarte mici */
-        border-radius: 0; 
+        /* max-height: calc(100vh - 50px); /* Ajustare fină pentru ecrane foarte mici */
+        /* bottom: 0; left: 0; width: 100%; */ /* Full screen modal style pe telefoane foarte mici */
+        /* border-radius: 0; */
+        /* Ajustări de mai sus pot fi activate dacă dorim un aspect full-screen pe ecrane foarte mici */
+        /* Pentru moment, păstrăm consistența cu 768px */
         width: calc(100% - var(--spacing-unit)*2); /* Lățime aproape completă, cu margini mici */
         max-height: calc(100vh - var(--spacing-unit)*2 - 50px); /* 50px pentru UI-ul browserului jos */
         bottom: var(--spacing-unit);
