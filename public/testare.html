@@ -99,48 +99,7 @@
         document.getElementById('tabButtonFisa').addEventListener('click', () => showTab('fisa'));
         showTab('jurnal'); // Afișează jurnalul ca default
 
-        if (!collabId) {
-            onAuthStateChanged(auth, async (user) => {
-                currentUserId = user ? user.uid : null;
-                const mainContentArea = document.getElementById('mainContentArea');
-                const cardsContainerArea = document.getElementById('cardsContainerArea');
-                const toggleChatBtn = document.getElementById("toggleChatButton"); // Unificat
-                const chatContainer = document.getElementById("chatContainer"); // Unificat
-
-                if (user) {
-                    if (mainContentArea) mainContentArea.style.display = '';
-                    if (cardsContainerArea) cardsContainerArea.style.display = '';
-                    if (toggleChatBtn) toggleChatBtn.style.display = 'flex';
-                    
-                    console.log("Utilizator autentificat (aplicație unificată):", user.uid);
-                    initializeFisaFormFunctionality();
-                    initializeJurnalFormFunctionality();
-
-                    if (!dataAlreadyLoaded) {
-                        incarcaToateIntrospectiile(user.uid);
-                        dataAlreadyLoaded = true;
-                    }
-                } else {
-                    console.log("Utilizator neautentificat, redirecționare...");
-                    if (mainContentArea) mainContentArea.style.display = 'none';
-                    if (cardsContainerArea) cardsContainerArea.style.display = 'none';
-                    if (toggleChatBtn) toggleChatBtn.style.display = 'none';
-                    if (chatContainer) chatContainer.style.display = 'none';
-                    isChatInitialized = false;
-                    chatSession = null;
-                    window.location.href = "login.html"; // Asigură-te că ai o pagină de login
-                }
-            });
-   //     } else { // Mod Colaborare
-   //         document.body.classList.add("collab-view");
-   //         document.getElementById('mainContentArea').style.display = 'none'; // Ascunde formularele
-   //         document.getElementById('cardsContainerArea').style.display = ''; // Afișează cardurile
-   //         document.getElementById('generateLinkButton')?.style.display = 'none';
-   //         document.getElementById('toggleChatButton').style.display = 'none';
-   //         document.getElementById('chatContainer').style.display = 'none';
-   //         const collabTitle = document.getElementById('collabViewTitle');
-   //         if(collabTitle) collabTitle.style.display = 'block';
-
+    
 
             setTimeout(async () => {
                 const pin = prompt("Introduceți codul PIN pentru a vizualiza introspecțiile partajate:");
