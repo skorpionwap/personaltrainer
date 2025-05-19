@@ -1241,26 +1241,82 @@ ${initialContextSummary}---`;
             if(chatInput) chatInput.focus();
         }
     }
+async function handleToggleChat() {
+    // 1. Verifică autentificarea utilizatorului
+    const user = auth.currentUser; // Presupunând că 'auth' este obiectul tău de autentificare Firebase/similar
+    if (!user) {
+        alert("Autentificare necesară pentru a folosi chat-ul.");
+        window.location.href = "login.html"; // Redirecționează către pagina de login
+        return;
+    }
 
-    async function handleToggleChat() {
-        const user = auth.currentUser;
-        if (!user) { alert("Autentificare necesară."); window.location.href = "login.html"; return; }
-        const chatContainer = document.getElementById("chatContainer");
-        const toggleButton = document.getElementById("toggleChatButton");
-        const sendButton = document.getElementById("sendChatMessageButton");
-        if (!chatContainer || !toggleButton) return;
+    // 2. Obține referințe la elementele HTML relevante
+    const chatContainer = document.getElementById("chatContainer");             // Containerul principal al chat-ului
+    const originalToggleButton = document.getElementById("toggleChatButton");   // Butonul plutitor original (ex: 💬)
+    const minimizeButtonInHeader = document.getElementById("minimizeChatButton"); // Noul buton de minimizare din antet (ex: ⌄)
+    const sendButton = document.getElementById("sendChatMessageButton");         // Butonul de trimitere mesaj din chat
+    const chatInput = document.getElementById("chatInput");                     // Câmpul de introducere text din chat
 
-        if (chatContainer.style.display === "none" || chatContainer.style.display === "") {
-            chatContainer.style.display = "flex"; toggleButton.innerHTML = "⌄";
+    // 3. Verifică dacă elementele esențiale au fost găsite pentru a evita erori
+    if (!chatContainer || !originalToggleButton || !minimizeButtonInHeader) {
+        console.error("Eroare: Unul sau mai multe elemente HTML esențiale pentru chat nu au fost găsite! Verifică ID-urile: chatContainer, toggleChatButton, minimizeChatButton.");
+        return;
+    }
+
+    // 4. Determină starea curentă a chat-ului (deschis sau închis)
+    // Considerăm chat-ul deschis dacă proprietatea 'display' a containerului NU este 'none'.
+    // Inițial, chatContainer.style.display poate fi "" (string gol) dacă nu e setat inline și e 'none' prin CSS,
+    // sau 'none' dacă a fost setat explicit.
+    const isChatCurrentlyOpen = chatContainer.style.display === "flex"; // Sau orice valoare ai folosit pentru a-l afișa (ex: "block")
+
+    if (isChatCurrentlyOpen) {
+        // ----- ACȚIUNE: Chat-ul este DESCHIS, deci îl ÎNCHIDEM -----
+
+        chatContainer.style.display = "none";             // Ascunde containerul de chat
+
+        // Afișează din nou butonul plutitor original și resetează-i iconița
+        originalToggleButton.style.display = 'flex';      // Sau 'block', 'inline-flex' depinde de stilizarea originală
+        originalToggleButton.innerHTML = "💬";           // Sau iconița ta originală pentru chat deschis
+
+        // Ascunde butonul de minimizare din antetul ferestrei de chat
+        minimizeButtonInHeader.style.display = 'none';
+
+    } else {
+        // ----- ACȚIUNE: Chat-ul este ÎNCHIS, deci îl DESCHIDEM -----
+
+        chatContainer.style.display = "flex";             // Afișează containerul de chat (folosește 'flex' dacă așa e structurat)
+
+        // Ascunde butonul plutitor original
+        originalToggleButton.style.display = 'none';
+
+        // Afișează butonul de minimizare în antetul ferestrei de chat
+        // 'inline-flex' sau 'inline-block' sunt potrivite pentru butoane în interiorul unui text/antet
+        minimizeButtonInHeader.style.display = 'inline-flex';
+        // Nu este nevoie să schimbăm innerHTML pentru minimizeButtonInHeader dacă '⌄' este deja setat în HTML
+
+        // Inițializează sesiunea de chat AI dacă este necesar
+        // Presupunând că ai variabilele globale `isChatInitialized`, `chatSession`, `geminiModelChat`
+        // și funcția `initializeAndStartChatSession` definite în altă parte a codului.
+        if (typeof isChatInitialized !== 'undefined' && typeof chatSession !== 'undefined' && typeof initializeAndStartChatSession === 'function') {
             if (!isChatInitialized || !chatSession) {
                 const sessionOK = await initializeAndStartChatSession(user.uid);
-                if (sendButton) sendButton.disabled = !sessionOK;
-            } else if (sendButton) { sendButton.disabled = !geminiModelChat; }
-            document.getElementById("chatInput")?.focus();
+                if (sendButton) {
+                    sendButton.disabled = !sessionOK;
+                }
+            } else if (sendButton && typeof geminiModelChat !== 'undefined') {
+                sendButton.disabled = !geminiModelChat;
+            }
         } else {
-            chatContainer.style.display = "none"; toggleButton.innerHTML = "💬";
+            console.warn("Variabilele/funcțiile de inițializare chat AI (isChatInitialized, chatSession, initializeAndStartChatSession, geminiModelChat) nu sunt definite global sau accesibile.");
+        }
+
+
+        // Setează focusul pe câmpul de input al chat-ului pentru o experiență mai bună
+        if (chatInput) {
+            chatInput.focus();
         }
     }
+}
 
     async function discussFisaWithChat(fisaData) {
         const user = auth.currentUser;
@@ -1338,7 +1394,8 @@ ${initialContextSummary}---`;
                 window.location.href = "login.html";
             }
         });
-
+       
+        document.getElementById("minimizeChatButton")?.addEventListener("click", handleToggleChat); 
         document.getElementById("toggleChatButton")?.addEventListener("click", handleToggleChat);
         document.getElementById("sendChatMessageButton")?.addEventListener("click", handleSendChatMessage);
         document.getElementById("chatInput")?.addEventListener("keypress", function(event) {
@@ -2283,7 +2340,10 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     <!-- Am eliminat collaboration-section și butonul generateLinkButton -->
 
    <div class="chat-container" id="chatContainer">
-    <h3>Discută cu PsihoGPT</h3>
+   <h3>
+    <span class="chat-title-text">Discută cu PsihoGPT</span>
+    <button id="minimizeChatButton" title="Minimizează Chat" style="display: none;">⌄</button>
+</h3>
     <div id="chatMessages"></div>
     <!-- NOU: Am adăugat div.chat-input-area -->
     <div class="chat-input-area">
