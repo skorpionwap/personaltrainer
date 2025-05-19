@@ -1243,63 +1243,22 @@ ${initialContextSummary}---`;
     }
 
     async function handleToggleChat() {
-        // Obține referința la utilizatorul curent
         const user = auth.currentUser;
-        if (!user) {
-            alert("Autentificare necesară pentru a folosi chat-ul.");
-            window.location.href = "login.html"; // Redirecționează către pagina de login
-            return;
-        }
+        if (!user) { alert("Autentificare necesară."); window.location.href = "login.html"; return; }
+        const chatContainer = document.getElementById("chatContainer");
+        const toggleButton = document.getElementById("toggleChatButton");
+        const sendButton = document.getElementById("sendChatMessageButton");
+        if (!chatContainer || !toggleButton) return;
 
-        // Obține referințe la elementele HTML relevante
-        const chatContainer = document.getElementById("chatContainer"); // Containerul principal al chat-ului
-        const originalToggleButton = document.getElementById("toggleChatButton"); // Butonul plutitor original (💬)
-        const minimizeButtonInHeader = document.getElementById("minimizeChatButton"); // Noul buton de minimizare din antet (⬇️)
-        const sendButton = document.getElementById("sendChatMessageButton"); // Butonul de trimitere mesaj
-
-        // Verifică dacă elementele au fost găsite pentru a evita erori
-        if (!chatContainer || !originalToggleButton || !minimizeButtonInHeader) {
-            console.error("Unul sau mai multe elemente HTML pentru chat nu au fost găsite!");
-            return;
-        }
-
-        // Verifică starea curentă a chat-ului (dacă este deschis sau închis)
-        // Presupunem că chat-ul este deschis dacă `display` este "flex"
-        const isChatCurrentlyOpen = chatContainer.style.display === "flex";
-
-        if (isChatCurrentlyOpen) {
-            // ----- ACȚIUNE: Închide chat-ul -----
-            chatContainer.style.display = "none"; // Ascunde containerul de chat
-
-            // Afișează din nou butonul plutitor original (💬)
-            originalToggleButton.style.display = 'flex'; // Sau 'block', depinde de stilizarea ta
-            originalToggleButton.innerHTML = "💬";      // Resetează iconița butonului plutitor
-
-            // Ascunde butonul de minimizare din antetul ferestrei de chat
-            minimizeButtonInHeader.style.display = 'none';
-        } else {
-            // ----- ACȚIUNE: Deschide chat-ul -----
-            chatContainer.style.display = "flex"; // Afișează containerul de chat
-
-            // Ascunde butonul plutitor original (💬)
-            originalToggleButton.style.display = 'none';
-
-            // Afișează butonul de minimizare în antetul ferestrei de chat
-            // 'inline-flex' sau 'inline-block' permite butonului să aibă dimensiuni și să fie pe aceeași linie (dacă antetul permite)
-            minimizeButtonInHeader.style.display = 'inline-flex';
-
-            // Inițializează sesiunea de chat AI dacă nu este deja activă
+        if (chatContainer.style.display === "none" || chatContainer.style.display === "") {
+            chatContainer.style.display = "flex"; toggleButton.innerHTML = "⌄";
             if (!isChatInitialized || !chatSession) {
                 const sessionOK = await initializeAndStartChatSession(user.uid);
-                // Activează/dezactivează butonul de trimitere mesaj în funcție de starea sesiunii AI
                 if (sendButton) sendButton.disabled = !sessionOK;
-            } else if (sendButton) {
-                // Asigură-te că butonul de trimitere este activat dacă modelul AI este disponibil
-                sendButton.disabled = !geminiModelChat;
-            }
-
-            // Setează focusul pe câmpul de input al chat-ului pentru o experiență mai bună
+            } else if (sendButton) { sendButton.disabled = !geminiModelChat; }
             document.getElementById("chatInput")?.focus();
+        } else {
+            chatContainer.style.display = "none"; toggleButton.innerHTML = "💬";
         }
     }
 
@@ -1381,7 +1340,6 @@ ${initialContextSummary}---`;
         });
 
         document.getElementById("toggleChatButton")?.addEventListener("click", handleToggleChat);
-        document.getElementById("minimizeChatButton")?.addEventListener("click", handleToggleChat);
         document.getElementById("sendChatMessageButton")?.addEventListener("click", handleSendChatMessage);
         document.getElementById("chatInput")?.addEventListener("keypress", function(event) {
             if (event.key === "Enter" && !event.shiftKey) {
@@ -1856,57 +1814,13 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     z-index: 1000; padding: 0; box-sizing: border-box; overflow: hidden;
     border: 1px solid #DEE2E6;
 }
-.chat-container h3 { /* Titlul Chat-ului */
-    text-align: center; /* Păstrează textul centrat dacă butonul nu ar fi acolo */
-    color: var(--color-text-dark);
-    margin: 0;
-    padding: calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 2);
-    font-size: 1.05em;
-    font-weight: 600;
+.chat-container h3 { /* Titlu Chat */
+    text-align: center; color: var(--color-text-dark); margin: 0;
+    padding: calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 2); /* 12px 16px | Redus usor */
+    font-size: 1.05em; font-weight: 600; /* Redus usor */
     background-color: #F8F9FA;
-    border-bottom: 1px solid #E9ECEF;
-    flex-shrink: 0;
-    /* ADAUGAT pentru alinierea butonului */
-    display: flex;
-    justify-content: space-between; /* Împinge butonul spre dreapta */
-    align-items: center;
+    border-bottom: 1px solid #E9ECEF; flex-shrink: 0;
 }
-
-/* Stil pentru textul titlului, pentru a-l menține centrat-ish */
-.chat-container h3 span.chat-title-text {
-    flex-grow: 1; /* Permite textului să ocupe spațiul disponibil */
-    text-align: center; /* Centrează textul titlului */
-    /* Poți adăuga un padding-left dacă butonul de minimizare are o lățime fixă
-       și vrei ca titlul să pară perfect centrat în spațiul rămas.
-       Ex: padding-left: 30px; (ajustează valoarea după lățimea butonului)
-       Sau, dacă butonul este la final, poți folosi padding-right pe text.
-       Momentan, cu justify-content: space-between, ar trebui să fie ok.
-    */
-}
-
-/* ADAUGĂ pentru noul buton de minimizare */
-#minimizeChatButton {
-    background: none;
-    border: none;
-    color: var(--color-text-medium);
-    font-size: 1.5em; /* Ajustează pentru mărimea dorită a iconiței */
-    cursor: pointer;
-    padding: 0 var(--spacing-unit); /* Spațiere orizontală */
-    line-height: 1; /* Important pentru alinierea verticală a iconiței */
-    /* Nu mai este nevoie de margin-left: auto; dacă folosim space-between pe părinte */
-    position: relative; /* Asigură că este click-abil peste padding-ul h3 */
-    z-index: 1;
-    height: 24px; /* Definește o zonă click-abilă minimă */
-    width: 24px;  /* Definește o zonă click-abilă minimă */
-    display: inline-flex; /* Sau inline-block, pentru a permite dimensionarea */
-    align-items: center;
-    justify-content: center;
-}
-
-#minimizeChatButton:hover {
-    color: var(--color-primary); /* Schimbă culoarea la hover */
-}
-
 #chatMessages {
     flex-grow: 1; overflow-y: auto; padding: calc(var(--spacing-unit)*1.5); /* 12px | Redus padding */
     background: var(--color-bg-content);
@@ -1971,8 +1885,8 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
 
 #sendChatMessageButton {
     flex-shrink: 0; /* NOU: Butonul nu se micșorează */
-    width: 55px;    /* NOU: Lățime fixă */
-    height: 55px;   /* NOU: Înălțime fixă (potrivită cu min-height al inputului) */
+    width: 40px;    /* NOU: Lățime fixă */
+    height: 40px;   /* NOU: Înălțime fixă (potrivită cu min-height al inputului) */
     padding: 0;     /* NOU: Eliminăm padding-ul intern dacă setăm dimensiuni fixe */
     font-family: var(--font-primary);
     font-size: 1.2em; /* Mărime potrivită pentru un icon/simbol */
@@ -1991,7 +1905,7 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     line-height: 1; /* Asigură centrarea corectă a textului/iconului */
 }
 #sendChatMessageButton::before { /* Folosim un pseudo-element pentru icon */
-    content: "▶"; /* Sau alt icon. Ex: "➤", "▶", "✓" */
+    content: "➢"; /* Sau alt icon. Ex: "➤", "▶", "✓" */
     /* Pentru un SVG:
     content: ""; display: block; width: 20px; height: 20px;
     background-image: url('path/to/send-icon.svg');
@@ -2027,7 +1941,7 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     display: flex; align-items: center; justify-content: center;
     background: linear-gradient(145deg, var(--color-secondary) 0%, var(--color-primary) 100%);
     color: var(--color-text-inverted); border: none; border-radius: 50%;
-    width: 34px; height: 34px; /* Redus | Original 56x56, apoi 20x20 care era prea mic */
+    width: 44px; height: 44px; /* Redus | Original 56x56, apoi 20x20 care era prea mic */
     font-size: 20px; /* Redus | Original 28px */
     line-height: 44px; /* Aliniat cu înălțimea */
     box-shadow: 0 4px 12px rgba(74, 144, 226, 0.25); /* Redus umbra */
@@ -2069,7 +1983,7 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
         border-radius: var(--border-radius-medium); /* Raze mai mici pe mobil */
     }
     #toggleChatButton {
-        width: 34px; height: 34px; font-size: 18px; line-height: 40px;
+        width: 40px; height: 40px; font-size: 18px; line-height: 40px;
         bottom: calc(var(--spacing-unit)*1.5); right: calc(var(--spacing-unit)*1.5); /* 12px */
     }
     #chatInput {
@@ -2133,7 +2047,7 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
         width: 36px; height: 36px;
     }
     #toggleChatButton {
-        width: 28px; height: 28px; font-size: 16px; line-height: 38px;
+        width: 38px; height: 38px; font-size: 16px; line-height: 38px;
         bottom: var(--spacing-unit); right: var(--spacing-unit);
     }
 }
@@ -2369,14 +2283,14 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     <!-- Am eliminat collaboration-section și butonul generateLinkButton -->
 
    <div class="chat-container" id="chatContainer">
-  <h3><span class="chat-title-text">Discută cu PsihoGPT</span> <button id="minimizeChatButton" title="Minimizează Chat" style="display: none;">⌄</button></h3>
+    <h3>Discută cu PsihoGPT</h3>
     <div id="chatMessages"></div>
     <!-- NOU: Am adăugat div.chat-input-area -->
     <div class="chat-input-area">
         <textarea id="chatInput" rows="2" placeholder="Scrie mesajul tău... Enter pentru a trimite."></textarea>
         <button id="sendChatMessageButton" disabled title="Trimite Mesaj"></button> <!-- Am adăugat title înapoi -->
     </div>
- <!--   <p id="chatStatus">Chatul AI nu este activ.</p> -->
+    <p id="chatStatus">Chatul AI nu este activ.</p>
 </div>
 <button id="toggleChatButton" style="display: none;">💬</button>
 </body>
