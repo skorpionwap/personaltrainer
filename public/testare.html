@@ -370,10 +370,10 @@
             return "EROARE: Model AI neinițializat. Verifică cheia API.";
         }
         try {
-            console.log(`Trimitem la Gemini (${modelToUse === geminiModelChat ? "Chat" : (modelToUse === geminiModelFisaFeedback ? "Fișă" : "Jurnal") }, primele 200 caractere):`, promptText.substring(0, 200));
+            console.log(`Trimitem la Gemini (${modelToUse === geminiModelChat ? "Chat" : (modelToUse === geminiModelFisaFeedback ? "Fișă" : "Jurnal") }, primele 200 caractere):`, promptText.substring(0, 20000));
             const requestPayload = {
                 contents: [{ role: "user", parts: [{ text: promptText }] }],
-                generationConfig: { temperature: 0.6, maxOutputTokens: 4000, ...generationConfigOptions }
+                generationConfig: { temperature: 0.6, maxOutputTokens: 80000, ...generationConfigOptions }
             };
             const result = await modelToUse.generateContent(requestPayload);
             const response = result.response;
