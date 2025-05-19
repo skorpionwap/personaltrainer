@@ -289,6 +289,81 @@
         document.getElementById("saveJournalEntryButton")?.addEventListener("click", salveazaIntrospectieJurnal);
     }
 
+        async function salveazaIntrospectieJurnal() {
+        const journalTextarea = document.getElementById("journalContent");
+        const journalTitleInput = document.getElementById("journalTitle");
+        const confirmationMessage = document.getElementById('jurnalConfirmationMessage');
+
+        if (!journalTextarea || journalTextarea.value.trim() === "") {
+            alert("Vă rugăm să scrieți ceva în jurnal înainte de a salva.");
+            return;
+        }
+
+        const tipPromptFolosit = selectedJurnalPrompt ? selectedJurnalPrompt.id : "prompt_personalizat";
+
+        const continutJurnal = {
+            titluJurnal: (journalTitleInput?.value.trim() !== "") ? journalTitleInput.value.trim() : `Intrare din ${new Date().toLocaleDateString("ro-RO")}`,
+            textJurnal: journalTextarea.value,
+            promptUtilizatJurnal: tipPromptFolosit
+        };
+
+        const introspectieData = {
+            ownerUid: currentUserId,
+            type: 'jurnal',
+            timestampCreare: Timestamp.fromDate(new Date()),
+            dateAfisare: new Date().toLocaleDateString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric' }),
+            continut: continutJurnal
+        };
+
+        if (!introspectieData.ownerUid) {
+            alert("Trebuie să fiți autentificat pentru a salva datele.");
+            window.location.href = "login.html"; return;
+        }
+
+        const saveButton = document.getElementById("saveJournalEntryButton");
+        const originalButtonText = saveButton.textContent;
+        saveButton.textContent = "Se salvează..."; saveButton.disabled = true;
+        if(confirmationMessage) confirmationMessage.style.display = 'none';
+
+        try {
+            const docRef = await addDoc(collection(db, "introspectii"), introspectieData);
+            introspectieData.id = docRef.id;
+            saveButton.textContent = "Se generează AI...";
+
+            const parsedFeedback = await genereazaFeedbackPentruIntrospectie(introspectieData);
+
+            const docSnapshot = await getDoc(docRef);
+            if (docSnapshot.exists()) {
+                afiseazaCardIntrospectie({ id: docSnapshot.id, ...docSnapshot.data() });
+            } else {
+                introspectieData.feedbackAI_history = parsedFeedback && !parsedFeedback.error ? [parsedFeedback] : [];
+                afiseazaCardIntrospectie(introspectieData);
+            }
+
+            journalTextarea.value = "";
+            if (journalTitleInput) journalTitleInput.value = "";
+            toggleActiveJurnalPrompt(false); // Ascunde ghidul activ
+            if(selectedJurnalPrompt) selectedJurnalPrompt.previousIdForClearCheck = null;
+
+            if(confirmationMessage) {
+                confirmationMessage.textContent = parsedFeedback.error ? `Intrare salvată. Feedback AI: ${parsedFeedback.rawText}` : 'Intrare salvată și feedback AI generat!';
+                confirmationMessage.className = `confirmation-message ${parsedFeedback.error ? 'error' : 'success'}`;
+                confirmationMessage.style.display = 'block';
+                setTimeout(() => { if(confirmationMessage) confirmationMessage.style.display = 'none'; }, 9000);
+            }
+        } catch (error) {
+            console.error("Eroare la salvarea intrării de jurnal sau generare feedback:", error);
+            if(confirmationMessage){
+                confirmationMessage.textContent = 'Eroare la salvare sau la generarea feedback-ului AI.';
+                confirmationMessage.className = 'confirmation-message error';
+                confirmationMessage.style.display = 'block';
+            }
+        } finally {
+            saveButton.textContent = originalButtonText;
+            saveButton.disabled = false;
+        }
+    }
+
     async function callGeminiAPI(promptText, modelToUse, generationConfigOptions = {}) {
         if (!modelToUse) {
             console.error("Modelul Gemini specificat este invalid sau neinițializat.");
