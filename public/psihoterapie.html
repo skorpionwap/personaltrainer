@@ -1172,7 +1172,7 @@ ${initialContextSummary}---`;
             const chatConfig = { history: [{ role: "user", parts: [{ text: systemInstructionText }] }, ...historyForGeminiInitialization], generationConfig: { temperature: 0.75 } };
             chatSession = geminiModelChat.startChat(chatConfig);
             console.log("Sesiune chat Gemini inițializată. Istoric trimis:", chatConfig.history.length);
-            if (chatStatus) chatStatus.textContent = "Chat pregătit.";
+            if (chatStatus) chatStatus.textContent = "Janet - Psihoterapeut Cognitiv-Comportamental Integrativ";
             if (messagesDiv) messagesDiv.innerHTML = '';
             loadedHistoryFromDB.forEach(msg => displayChatMessage(msg.content, msg.role === "model" ? "AI" : "user"));
             if (loadedHistoryFromDB.length === 0) {
@@ -1205,7 +1205,7 @@ ${initialContextSummary}---`;
 
         displayChatMessage(messageText, "user");
         await saveChatMessage(user.uid, { role: "user", content: messageText, timestamp: new Date().toISOString() });
-        chatInput.value = ""; sendButton.disabled = true; chatStatus.textContent = "PsihoGPT analizează...";
+        chatInput.value = ""; sendButton.disabled = true; chatStatus.textContent = "Psihoterapeut Janet analizează...";
 
         if (!chatSession || !isChatInitialized) {
             chatSession = await initializeAndStartChatSession(user.uid);
@@ -1225,7 +1225,7 @@ ${initialContextSummary}---`;
             }
             displayChatMessage(aiResponseText, isBlockedBySafety ? "AI-error" : "AI");
             await saveChatMessage(user.uid, { role: "model", content: aiResponseText, timestamp: new Date().toISOString() });
-            chatStatus.textContent = "Chat pregătit.";
+            chatStatus.textContent = "Janet - Psihoterapeut Cognitiv-Comportamental Integrativ";
         } catch (error) {
             console.error("Eroare trimitere/procesare mesaj Gemini (chat):", error, error.stack);
             chatStatus.textContent = "Eroare comunicare AI.";
