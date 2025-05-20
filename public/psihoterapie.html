@@ -1985,12 +1985,18 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     cursor: not-allowed !important;
 }
 #chatStatus {
-    font-size: 0.8em; color: var(--color-text-light); text-align: center;
-    min-height: 1.2em; padding-bottom: calc(var(--spacing-unit)*0.5); /* Redus usor */
+    font-size: 0.8em;
+    color: var(--color-text-light);
+    text-align: center;
+    min-height: 1.2em;
+    /* Am adăugat + 2px la padding-ul original */
+    padding-bottom: calc(var(--spacing-unit) * 0.5 + 2px);
     font-weight: 300;
-    background-color: #F8F9FA; /* Același fundal ca input area */
-    margin:0; /* Elimină orice margine default */
-    padding-top: calc(var(--spacing-unit)*0.5);
+    background-color: #F8F9FA;
+    margin:0;
+    /* Am adăugat + 2px la padding-ul original */
+    padding-top: calc(var(--spacing-unit) * 0.5 + 2px);
+}
 }
 #toggleChatButton {
     position: fixed; bottom: calc(var(--spacing-unit)*2); right: calc(var(--spacing-unit)*2); /* 16px | Redus pozitionarea */
