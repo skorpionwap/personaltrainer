@@ -1172,7 +1172,7 @@ ${initialContextSummary}---`;
             const chatConfig = { history: [{ role: "user", parts: [{ text: systemInstructionText }] }, ...historyForGeminiInitialization], generationConfig: { temperature: 0.75 } };
             chatSession = geminiModelChat.startChat(chatConfig);
             console.log("Sesiune chat Gemini inițializată. Istoric trimis:", chatConfig.history.length);
-            if (chatStatus) chatStatus.textContent = "Janet - Psihoterapeut Cognitiv-Comportamental - Integrativ";
+            if (chatStatus) chatStatus.textContent = "Chat pregătit.";
             if (messagesDiv) messagesDiv.innerHTML = '';
             loadedHistoryFromDB.forEach(msg => displayChatMessage(msg.content, msg.role === "model" ? "AI" : "user"));
             if (loadedHistoryFromDB.length === 0) {
@@ -1205,7 +1205,7 @@ ${initialContextSummary}---`;
 
         displayChatMessage(messageText, "user");
         await saveChatMessage(user.uid, { role: "user", content: messageText, timestamp: new Date().toISOString() });
-        chatInput.value = ""; sendButton.disabled = true; chatStatus.textContent = "Psihologul Janet analizează...";
+        chatInput.value = ""; sendButton.disabled = true; chatStatus.textContent = "PsihoGPT analizează...";
 
         if (!chatSession || !isChatInitialized) {
             chatSession = await initializeAndStartChatSession(user.uid);
@@ -1225,7 +1225,7 @@ ${initialContextSummary}---`;
             }
             displayChatMessage(aiResponseText, isBlockedBySafety ? "AI-error" : "AI");
             await saveChatMessage(user.uid, { role: "model", content: aiResponseText, timestamp: new Date().toISOString() });
-            chatStatus.textContent = "Terapeutul Janet este online";
+            chatStatus.textContent = "Chat pregătit.";
         } catch (error) {
             console.error("Eroare trimitere/procesare mesaj Gemini (chat):", error, error.stack);
             chatStatus.textContent = "Eroare comunicare AI.";
@@ -1985,12 +1985,12 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     cursor: not-allowed !important;
 }
 #chatStatus {
-    font-size: 0.5em; color: var(--color-text-light); text-align: center;
+    font-size: 0.6em; color: var(--color-text-light); text-align: center;
     min-height: 1.2em; padding-bottom: calc(var(--spacing-unit)*0.5); /* Redus usor */
     font-weight: 300;
     background-color: #F8F9FA; /* Același fundal ca input area */
     margin:0; /* Elimină orice margine default */
-    padding-top: calc(var(--spacing-unit)*1.5);
+    padding-top: calc(var(--spacing-unit)*0.5);
 }
 #toggleChatButton {
     position: fixed; bottom: calc(var(--spacing-unit)*2); right: calc(var(--spacing-unit)*2); /* 16px | Redus pozitionarea */
@@ -2382,12 +2382,11 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
 </h3>
     <div id="chatMessages"></div>
     <!-- NOU: Am adăugat div.chat-input-area -->
- 
     <div class="chat-input-area">
         <textarea id="chatInput" rows="2" placeholder="Scrie mesajul tău... Enter pentru a trimite."></textarea>
         <button id="sendChatMessageButton" disabled title="Trimite Mesaj"></button> <!-- Am adăugat title înapoi -->
     </div>
-        <p id="chatStatus">Chatul AI nu este activ.</p>
+    <p id="chatStatus">Chatul AI nu este activ.</p>
 </div>
 <button id="toggleChatButton" style="display: none;">💬</button>
 </body>
