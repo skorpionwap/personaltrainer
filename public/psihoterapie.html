@@ -1986,11 +1986,11 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
 }
 #chatStatus {
     font-size: 0.8em; color: var(--color-text-light); text-align: center;
-    min-height: 1.2em; padding-bottom: calc(var(--spacing-unit)*0.7); /* Redus usor */
+    min-height: 1.2em; padding-bottom: calc(var(--spacing-unit)*0.8); /* Redus usor */
     font-weight: 300;
     background-color: #F8F9FA; /* Același fundal ca input area */
     margin:0; /* Elimină orice margine default */
-    padding-top: calc(var(--spacing-unit)*0.7);
+    padding-top: calc(var(--spacing-unit)*0.8);
 }
 #toggleChatButton {
     position: fixed; bottom: calc(var(--spacing-unit)*2); right: calc(var(--spacing-unit)*2); /* 16px | Redus pozitionarea */
@@ -2382,12 +2382,12 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
 </h3>
     <div id="chatMessages"></div>
     <!-- NOU: Am adăugat div.chat-input-area -->
-     <p id="chatStatus">Chatul AI nu este activ.</p>
+ 
     <div class="chat-input-area">
         <textarea id="chatInput" rows="2" placeholder="Scrie mesajul tău... Enter pentru a trimite."></textarea>
         <button id="sendChatMessageButton" disabled title="Trimite Mesaj"></button> <!-- Am adăugat title înapoi -->
     </div>
-    
+        <p id="chatStatus">Chatul AI nu este activ.</p>
 </div>
 <button id="toggleChatButton" style="display: none;">💬</button>
 </body>
