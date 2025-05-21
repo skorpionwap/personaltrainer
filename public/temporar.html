@@ -23,35 +23,33 @@
         measurementId: "G-WLWNGNDK5V",
     };
 
-    const app = initializeApp(firebaseConfig);
+     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    const GEMINI_API_KEY = "AIzaSyYOUR_GEMINI_API_KEY"; // <<--- ÎNLOCUIEȘTE CU CHEIA TA GEMINI
-    const GEMINI_MODEL_NAME_FEEDBACK_FISA = "gemini-1.5-flash-preview-0514"; // Sau modelul dorit
-    const GEMINI_MODEL_NAME_FEEDBACK_JURNAL = "gemini-1.5-flash-preview-0514"; // Sau modelul dorit
-    const GEMINI_MODEL_NAME_CHAT = "gemini-1.5-flash-preview-0514"; // Asigură-te că suportă thinking
+    const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng";
+    const GEMINI_MODEL_NAME_FEEDBACK_FISA = "gemini-2.5-flash-preview-05-20";
+    const GEMINI_MODEL_NAME_FEEDBACK_JURNAL = "gemini-2.5-flash-preview-05-20";
+    const GEMINI_MODEL_NAME_CHAT = "gemini-2.5-flash-preview-05-20";
 
     let genAI, geminiModelFisaFeedback, geminiModelJurnalFeedback, geminiModelChat;
 
-    if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "" && !GEMINI_API_KEY.includes("YOUR_GEMINI_API_KEY")) {
+    if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
         try {
             genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
             geminiModelFisaFeedback = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_FEEDBACK_FISA });
             geminiModelJurnalFeedback = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_FEEDBACK_JURNAL });
             geminiModelChat = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_CHAT });
-            console.log("SDK Gemini inițializat. Modele: Fișă:", GEMINI_MODEL_NAME_FEEDBACK_FISA, "Jurnal:", GEMINI_MODEL_NAME_FEEDBACK_JURNAL, "Chat:", GEMINI_MODEL_NAME_CHAT);
+            console.log("SDK Gemini inițializat. Modele: Fișă Feedback:", GEMINI_MODEL_NAME_FEEDBACK_FISA, "Jurnal Feedback:", GEMINI_MODEL_NAME_FEEDBACK_JURNAL, "Chat:", GEMINI_MODEL_NAME_CHAT);
         } catch (e) {
-            console.error("CRITICAL: Eroare la inițializarea SDK Gemini:", e);
-            alert("Eroare critică la inițializarea serviciului AI. Funcționalitatea AI va fi sever limitată.");
+            console.error("Eroare critică la inițializarea SDK Gemini:", e);
+            alert("Eroare la inițializarea serviciului AI. Funcționalitatea AI va fi limitată.");
             geminiModelFisaFeedback = null; geminiModelJurnalFeedback = null; geminiModelChat = null;
         }
     } else {
-        console.warn("ATENȚIE: Cheia API Gemini nu este configurată corect sau este un placeholder. Funcționalitatea AI va fi dezactivată.");
-        alert("Funcționalitatea AI este DEZACTIVATĂ. Verifică configurația cheii API Gemini în cod.");
+        console.warn("Cheia API Gemini nu este configurată. Funcționalitatea AI va fi dezactivată.");
         geminiModelFisaFeedback = null; geminiModelJurnalFeedback = null; geminiModelChat = null;
     }
-
     // --- VARIABILE GLOBALE ȘI STĂRI ---
     let currentUserId = null;
     let dataAlreadyLoaded = false;
