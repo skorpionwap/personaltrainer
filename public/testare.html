@@ -32,7 +32,7 @@
     const GEMINI_MODEL_NAME_CHAT = "gemini-2.5-flash-preview-05-20"; // Example, ensure this model supports thinking
 
     let genAI, geminiModelFisaFeedback, geminiModelJurnalFeedback, geminiModelChat;
-    
+
  if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
         try {
             genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -1305,7 +1305,8 @@ ${initialContextSummary}---`;
             if (chatStatus) chatStatus.textContent = "Janet - Psihoterapeut Cognitiv-Comportamental Integrativ";
 
             if (loadedHistoryFromDB.length === 0) { // Only send initial greeting if no history
-                 const firstAiResponseStream = await chatSession.sendMessageStream("Salut!"); // Stream initial greeting
+                 const firstAiResponseResult = await chatSession.sendMessageStream("Salut!"); // Așteaptă promisiunea
+                 const firstAiResponseStream = firstAiResponseResult.stream;                 // Extrage fluxul din rezultat
                  let firstAiText = "";
                  let firstAiThoughts = "";
                  const firstAiMessageElement = document.createElement("div");
@@ -1400,7 +1401,8 @@ ${initialContextSummary}---`;
         let anErrorOccurred = false;
 
         try {
-            const stream = await chatSession.sendMessageStream(messageText);
+             const result = await chatSession.sendMessageStream(messageText); // Așteaptă promisiunea
+             const stream = result.stream;                                  // Extrage fluxul din rezultat
 
             for await (const chunk of stream) {
                 let newTextForMainAnswerThisChunk = "";
