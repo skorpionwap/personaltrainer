@@ -1445,40 +1445,57 @@ ${initialContextSummary}---`;
             }
 
             // After stream finishes:
-            if (collectedThoughts.trim() !== "") {
-                const thoughtsDetails = document.createElement("details");
-                thoughtsDetails.className = "ai-thoughts-details";
-                thoughtsDetails.innerHTML = `
-                    <summary>Procesul de gândire al AI</summary>
-                    <pre class="ai-thoughts-content">${collectedThoughts.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>
-                `;
+        let finalHtmlContent = "";
+        let hasActualResponse = fullAiResponseText.trim() !== "";
+
+        if (anErrorOccurred && !hasActualResponse) {
+            // Dacă a apărut o eroare în stream ȘI nu avem text de răspuns,
+            // fullAiResponseText ar putea deja conține mesajul de eroare din stream.
+            // Dacă nu, setăm unul generic.
+            if (fullAiResponseText.trim() === "") { // Adică eroarea din stream nu a setat text
+                fullAiResponseText = "Eroare în timpul generării răspunsului.";
+            }
+            finalHtmlContent = formatStreamingMessage(fullAiResponseText);
+            aiMessageElement.classList.add("ai-error"); // Asigură-te că este marcat ca eroare
+        } else if (!hasActualResponse && !anErrorOccurred) {
+            // Nu a fost eroare, dar nu am primit text de răspuns
+            fullAiResponseText = "Nu am putut genera un răspuns sau răspunsul a fost gol.";
+            finalHtmlContent = formatStreamingMessage(fullAiResponseText);
+            // Poate vrei să adaugi și aici clasa .ai-error sau una specifică pentru "răspuns gol"
+        } else if (hasActualResponse) {
+            // Avem un răspuns valid
+            finalHtmlContent = formatStreamingMessage(fullAiResponseText);
+        }
+
+        // Acum setează conținutul principal
+        aiMessageElement.innerHTML = finalHtmlContent;
+
+        // Adaugă "thoughts" dacă există, la începutul elementului
+        if (collectedThoughts.trim() !== "") {
+            const thoughtsDetails = document.createElement("details");
+            thoughtsDetails.className = "ai-thoughts-details";
+            thoughtsDetails.innerHTML = `
+                <summary>Procesul de gândire al AI</summary>
+                <pre class="ai-thoughts-content">${collectedThoughts.trim().replace(/</g, "<").replace(/>/g, ">")}</pre>
+            `;
+            // Verifică dacă aiMessageElement are deja conținut înainte de a insera
+            if (aiMessageElement.firstChild) {
                 aiMessageElement.insertBefore(thoughtsDetails, aiMessageElement.firstChild);
-                 if (messagesDiv) messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll again if thoughts added
+            } else {
+                aiMessageElement.appendChild(thoughtsDetails); // Dacă era complet gol
             }
+        }
 
-            if (fullAiResponseText.trim() === "" && !anErrorOccurred) {
-                 fullAiResponseText = "Nu am putut genera un răspuns sau răspunsul a fost gol.";
-                 // Append this message to existing content (which might just be thoughts)
-                 aiMessageElement.innerHTML += formatStreamingMessage(fullAiResponseText);
-            } else if (fullAiResponseText.trim() !== "" && !anErrorOccurred) {
-                // Ensure final formatting is applied if it wasn't fully streamed (e.g. last chunk was small)
-                 aiMessageElement.innerHTML = formatStreamingMessage(fullAiResponseText);
-                 if (collectedThoughts.trim() !== "") { // Re-add thoughts if re-rendering main content
-                    const thoughtsDetails = document.createElement("details");
-                    thoughtsDetails.className = "ai-thoughts-details";
-                    thoughtsDetails.innerHTML = `<summary>Procesul de gândire al AI</summary><pre class="ai-thoughts-content">${collectedThoughts.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`;
-                    aiMessageElement.insertBefore(thoughtsDetails, aiMessageElement.firstChild);
-                 }
-            }
+        if (messagesDiv) messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll final
 
-
-            await saveChatMessage(user.uid, {
-                role: "model",
-                content: fullAiResponseText,
-                thoughts: collectedThoughts.trim() || null,
-                error: anErrorOccurred,
-                timestamp: new Date().toISOString()
-            });
+        // Salvează în Firestore
+        await saveChatMessage(user.uid, {
+            role: "model",
+            content: fullAiResponseText, // Salvează textul final, care poate fi mesajul de eroare/gol
+            thoughts: collectedThoughts.trim() || null,
+            error: anErrorOccurred || !hasActualResponse, // Marchează ca eroare și dacă răspunsul e gol
+            timestamp: new Date().toISOString()
+        });
             chatStatus.textContent = "Janet - Psihoterapeut Cognitiv-Comportamental Integrativ";
 
         } catch (error) {
