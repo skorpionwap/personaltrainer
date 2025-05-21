@@ -313,10 +313,7 @@ const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng";
             continut: continutJurnal
         };
 
-        if (!introspectieData.ownerUid) {
-            alert("Trebuie să fiți autentificat pentru a salva datele.");
-            window.location.href = "login.html"; return;
-        }
+       
 
         const saveButton = document.getElementById("saveJournalEntryButton");
         const originalButtonText = saveButton.textContent;
