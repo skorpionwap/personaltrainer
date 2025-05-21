@@ -1278,11 +1278,16 @@ ${initialContextSummary}---`; // Am prescurtat System Prompt pentru claritate, e
         return chatSession;
     }
 
-    async function handleSendChatMessage() {
+  async function handleSendChatMessage() {
         const chatInput = document.getElementById("chatInput");
         const sendButton = document.getElementById("sendChatMessageButton");
         const chatStatus = document.getElementById("chatStatus");
-        if (!chatInput || !sendButton || !chatStatus) return;
+        const messagesDiv = document.getElementById("chatMessages"); // Definim aici pentru a fi disponibil peste tot
+
+        if (!chatInput || !sendButton || !chatStatus || !messagesDiv) {
+            console.error("Eroare: Unul sau mai multe elemente HTML pentru chat lipsesc.");
+            return;
+        }
 
         const messageText = chatInput.value.trim();
         if (messageText === "") return;
@@ -1290,7 +1295,7 @@ ${initialContextSummary}---`; // Am prescurtat System Prompt pentru claritate, e
         const user = auth.currentUser;
         if (!user) {
             alert("Autentificare necesară.");
-            window.location.href = "login.html";
+            window.location.href = "login.html"; // Asigură-te că este calea corectă
             return;
         }
 
@@ -1300,118 +1305,141 @@ ${initialContextSummary}---`; // Am prescurtat System Prompt pentru claritate, e
         sendButton.disabled = true;
         chatStatus.textContent = "Psihoterapeut Janet analizează...";
 
-        const messagesDiv = document.getElementById("chatMessages");
+        // Creăm elementul pentru mesajul AI imediat
         const aiMessageElement = document.createElement("div");
         aiMessageElement.classList.add("chat-message", "ai-message");
         aiMessageElement.style.whiteSpace = "pre-wrap";
-        if (messagesDiv) messagesDiv.appendChild(aiMessageElement);
-        if (messagesDiv) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        messagesDiv.appendChild(aiMessageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
         if (!chatSession || !isChatInitialized) {
-            console.log("Chat session not initialized or invalid, attempting re-initialization.");
+            console.log("Sesiunea de chat nu este inițializată sau este invalidă, se încearcă re-inițializarea.");
             chatSession = await initializeAndStartChatSession(user.uid);
             if (!chatSession) {
                 chatStatus.textContent = "Eroare re-inițializare chat.";
-                aiMessageElement.innerHTML = formatStreamingMessage("EROARE: Nu s-a putut (re)inițializa sesiunea de chat.");
+                const errorMsg = "EROARE: Nu s-a putut (re)inițializa sesiunea de chat.";
+                aiMessageElement.innerHTML = formatStreamingMessage(errorMsg);
                 aiMessageElement.classList.add("ai-error");
-                sendButton.disabled = true;
+                sendButton.disabled = true; // Păstrăm butonul dezactivat
+                 await saveChatMessage(user.uid, { // Salvăm și eroarea de inițializare
+                    role: "model",
+                    content: errorMsg,
+                    error: true,
+                    timestamp: new Date().toISOString()
+                });
                 return;
             }
         }
 
         let fullAiResponseText = "";
-        // Am eliminat collectedThoughts
         let anErrorOccurred = false;
+        let receivedAnyTextInStream = false; // Flag pentru a urmări dacă am primit text efectiv
 
         try {
             const result = await chatSession.sendMessageStream(messageText);
             const stream = result.stream;
 
             for await (const chunk of stream) {
-                // Optional: console.log("CHUNK primit:", JSON.stringify(chunk, null, 2));
-                  console.log("RAW CHUNK RECEIVED:", JSON.stringify(chunk, null, 2)); // Inspectează tot chunk-ul
-                let newTextForMainAnswerThisChunk = "";
+                console.log("RAW CHUNK RECEIVED:", JSON.stringify(chunk, null, 2)); // Păstrăm pentru depanare
+
+                let textFromThisChunk = "";
                 if (chunk.response?.candidates?.[0]?.content?.parts) {
                     for (const part of chunk.response.candidates[0].content.parts) {
                         if (part.text) {
-                            // Nu mai verificăm part.thought
-                            newTextForMainAnswerThisChunk += part.text;
+                            textFromThisChunk += part.text;
+                            receivedAnyTextInStream = true; // Am primit text
                         }
                     }
                 }
 
-                if (newTextForMainAnswerThisChunk) {
-                    fullAiResponseText += newTextForMainAnswerThisChunk;
-                    aiMessageElement.innerHTML = formatStreamingMessage(fullAiResponseText);
+                if (textFromThisChunk) {
+                    fullAiResponseText += textFromThisChunk;
+                    aiMessageElement.innerHTML = formatStreamingMessage(fullAiResponseText); // Actualizare progresivă
                 }
-                if (messagesDiv) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll după fiecare actualizare
 
-
+                // Verificări de eroare DUPĂ procesarea părților de text din chunk
                 const candidate = chunk.response?.candidates?.[0];
                 if (candidate?.finishReason && !["STOP", "MAX_TOKENS", "MODEL_LENGTH"].includes(candidate.finishReason)) {
                     const blockMessage = `AI oprit prematur (Motiv: ${candidate.finishReason}). Detalii: ${JSON.stringify(candidate.safetyRatings || 'N/A')}`;
-                    aiMessageElement.innerHTML += `<br><p class="ai-error-inline">${formatStreamingMessage(blockMessage)}</p>`;
-                    fullAiResponseText += `\n${blockMessage}`;
+                    if (!aiMessageElement.innerHTML.includes(blockMessage.substring(0,50))) { // Evităm duplicarea mesajului de eroare
+                        aiMessageElement.innerHTML += `<br><p class="ai-error-inline">${formatStreamingMessage(blockMessage)}</p>`;
+                    }
+                    fullAiResponseText += `\n${blockMessage}`; // Adăugăm la textul complet pentru salvare
                     anErrorOccurred = true;
-                    break;
+                    break; // Ieșim din bucla stream-ului
                 }
+
                 if (chunk.response?.promptFeedback?.blockReason) {
                     const blockMessage = `Mesaj/Răspuns blocat (Motiv: ${chunk.response.promptFeedback.blockReason}). Detalii: ${JSON.stringify(chunk.response.promptFeedback.blockReasonDetail || chunk.response.promptFeedback.safetyRatings || 'N/A')}`;
-                    aiMessageElement.innerHTML += `<br><p class="ai-error-inline">${formatStreamingMessage(blockMessage)}</p>`;
+                    if (!aiMessageElement.innerHTML.includes(blockMessage.substring(0,50))) {
+                        aiMessageElement.innerHTML += `<br><p class="ai-error-inline">${formatStreamingMessage(blockMessage)}</p>`;
+                    }
                     fullAiResponseText += `\n${blockMessage}`;
                     anErrorOccurred = true;
                     break;
                 }
             }
 
-            // Am eliminat blocul care adăuga thoughtsDetails aici
-
-            if (fullAiResponseText.trim() === "" && !anErrorOccurred) {
-                 fullAiResponseText = "Nu am putut genera un răspuns sau răspunsul a fost gol.";
-                 aiMessageElement.innerHTML = formatStreamingMessage(fullAiResponseText);
-            } else if (fullAiResponseText.trim() !== "" && !anErrorOccurred) {
-                 aiMessageElement.innerHTML = formatStreamingMessage(fullAiResponseText);
+            // După ce bucla stream-ului s-a terminat
+            if (!receivedAnyTextInStream && !anErrorOccurred) {
+                // Nu s-a primit niciun text și nu a fost nicio eroare explicită din API
+                const fallbackMessage = "Nu am putut genera un răspuns sau răspunsul a fost gol.";
+                aiMessageElement.innerHTML = formatStreamingMessage(fallbackMessage); // Suprascriem dacă e gol, sau adăugăm
+                fullAiResponseText = fallbackMessage; // Setăm pentru salvare
+            } else if (fullAiResponseText.trim() === "" && receivedAnyTextInStream && !anErrorOccurred) {
+                // S-a primit text, dar din diverse motive (ex. doar spații albe) textul final e gol.
+                // Acest caz e mai puțin probabil dacă `receivedAnyTextInStream` e true și `part.text` nu e doar spațiu.
+                const fallbackMessage = "Răspunsul primit a fost gol după procesare.";
+                aiMessageElement.innerHTML = formatStreamingMessage(fallbackMessage);
+                fullAiResponseText = fallbackMessage;
             }
+            // Nu mai este nevoie de `else if` care doar reformata, deoarece `aiMessageElement.innerHTML`
+            // a fost actualizat continuu. `fullAiResponseText` conține deja textul complet.
 
+            // Salvarea în Firestore
             await saveChatMessage(user.uid, {
                 role: "model",
-                content: fullAiResponseText,
-                // Nu mai salvăm 'thoughts'
-                error: anErrorOccurred,
+                content: fullAiResponseText, // Salvează textul final, care poate include mesaje de eroare sau fallback
+                error: anErrorOccurred, // Indică dacă o eroare a oprit stream-ul
                 timestamp: new Date().toISOString()
             });
             chatStatus.textContent = "Janet - Psihoterapeut Cognitiv-Comportamental Integrativ";
 
         } catch (error) {
-            console.error("Eroare trimitere/procesare mesaj Gemini (chat stream):", error, error.stack);
-            chatStatus.textContent = "Eroare comunicare AI.";
-            let displayError = `Eroare comunicare AI: ${error.message}`;
-            if (error.message?.toLowerCase().includes("quota")) displayError = "Limită utilizare AI atinsă.";
-            else if (error.message?.toLowerCase().includes("safety") || error.message?.toLowerCase().includes("blocked")) displayError = "Mesaj/Răspuns blocat. Reformulează?";
-            else if (error.message?.toLowerCase().includes("api key not valid") || error.message?.toLowerCase().includes("api_key_not_valid")) displayError = "Cheie API Gemini invalidă.";
-
+            console.error("Eroare majoră în trimiterea/procesarea mesajului Gemini (chat stream):", error, error.stack);
+            chatStatus.textContent = "Eroare critică comunicare AI.";
+            let displayError = `Eroare critică: ${error.message}`;
+            // Aici poți adăuga logica de formatare a mesajului de eroare, dacă e necesar
 
             aiMessageElement.innerHTML = formatStreamingMessage(displayError);
-            aiMessageElement.classList.add("ai-error");
-            anErrorOccurred = true;
+            aiMessageElement.classList.add("ai-error"); // Asigură stilizarea de eroare
+            anErrorOccurred = true; // Setăm flag-ul de eroare
 
+            // Salvăm eroarea
             await saveChatMessage(user.uid, {
                 role: "model",
                 content: displayError,
-                // Nu mai salvăm 'thoughts'
                 error: true,
                 timestamp: new Date().toISOString()
             });
+            // Considerăm resetarea sesiunii în caz de erori grave
             isChatInitialized = false;
             chatSession = null;
         } finally {
+            // Reactivăm butonul de send doar dacă nu a fost o eroare care a invalidat sesiunea
+            // și dacă modelul este încă disponibil.
             if (geminiModelChat && isChatInitialized && sendButton) {
                 sendButton.disabled = false;
             } else if (sendButton) {
-                sendButton.disabled = true;
-                if (chatStatus) chatStatus.textContent = "Chat AI indisponibil.";
+                sendButton.disabled = true; // Rămâne dezactivat dacă sesiunea e invalidă
+                if (chatStatus && (!isChatInitialized || !geminiModelChat)) {
+                     chatStatus.textContent = "Chat AI indisponibil.";
+                }
             }
-            if (chatInput) chatInput.focus();
+            if (chatInput) {
+                chatInput.focus();
+            }
         }
     }
 
