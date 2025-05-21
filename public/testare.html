@@ -32,8 +32,8 @@
     const GEMINI_MODEL_NAME_CHAT = "gemini-2.5-flash-preview-05-20"; // Example, ensure this model supports thinking
 
     let genAI, geminiModelFisaFeedback, geminiModelJurnalFeedback, geminiModelChat;
-
-    if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "" && !GEMINI_API_KEY.startsWith("AIzaSyA") && !GEMINI_API_KEY.includes("YOUR_API_KEY")) { // Basic check
+    
+ if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== "") {
         try {
             genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
             geminiModelFisaFeedback = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_FEEDBACK_FISA });
@@ -46,8 +46,7 @@
             geminiModelFisaFeedback = null; geminiModelJurnalFeedback = null; geminiModelChat = null;
         }
     } else {
-        console.warn("Cheia API Gemini nu este configurată sau pare a fi un placeholder. Funcționalitatea AI va fi dezactivată.");
-        alert("Funcționalitatea AI este dezactivată. Verifică configurația cheii API Gemini.");
+        console.warn("Cheia API Gemini nu este configurată. Funcționalitatea AI va fi dezactivată.");
         geminiModelFisaFeedback = null; geminiModelJurnalFeedback = null; geminiModelChat = null;
     }
 
