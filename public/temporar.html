@@ -1656,13 +1656,20 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
     }
 
     // --- FUNCȚIA PRINCIPALĂ DE INTRARE (ONLOAD) ---
-    window.onload = function () {
+   window.onload = function () {
         console.log("DOM complet încărcat. Se inițializează aplicația...");
-        messagesDivGlobalRef = document.getElementById("chatMessages"); // Inițializează referința globală
-        if (!messagesDivGlobalRef) {
-            console.error("CRITICAL: Elementul #chatMessages nu a fost găsit la onload!");
-        }
 
+        // MUTĂ INIȚIALIZAREA AICI:
+        messagesDivGlobalRef = document.getElementById("chatMessages");
+        if (!messagesDivGlobalRef) {
+            console.error("CRITICAL ERROR: Elementul #chatMessages nu a fost găsit la onload! Funcționalitatea chat-ului va fi afectată.");
+            // Poți decide să oprești execuția sau să afișezi o alertă majoră aici,
+            // deoarece fără messagesDiv, chat-ul este inutilizabil.
+            // alert("Eroare critică: Componenta de chat nu s-a putut încărca.");
+            // return; // Oprește execuția dacă e critic
+        } else {
+            console.log("Referința la #chatMessages a fost stabilită cu succes.");
+        }
 
         document.getElementById('tabButtonJurnal').addEventListener('click', () => showTab('jurnal'));
         document.getElementById('tabButtonFisa').addEventListener('click', () => showTab('fisa'));
@@ -1675,7 +1682,7 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
             const cardsContainerArea = document.getElementById('cardsContainerArea');
             const toggleChatBtn = document.getElementById("toggleChatButton");
             const chatContainer = document.getElementById("chatContainer");
-            const chatStatus = document.getElementById("chatStatus"); // Adăugat pentru a reseta statusul
+            const chatStatus = document.getElementById("chatStatus");
 
             if (user) {
                 console.log(`[AUTH_CHANGE] Utilizator AUTENTIFICAT: ${user.uid}. Se afișează conținutul principal.`);
@@ -1687,23 +1694,33 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
                 initializeJurnalFormFunctionality();
 
                 if (!dataAlreadyLoaded) {
-                    await incarcaToateIntrospectiile(user.uid);
+                    await incarcaToateIntrospectiile(user.uid); // Așteaptă încărcarea
                     dataAlreadyLoaded = true;
                 }
-                // Nu mai inițializăm chat-ul aici; se face la primul toggle sau la 'Discută Fișa'
+                // Nu inițializăm chat-ul aici; se face la primul toggle sau 'Discută Fișa'
             } else {
                 console.log("[AUTH_CHANGE] Utilizator NEAUTENTIFICAT. Redirecționare către login.html...");
                 if (mainContentArea) mainContentArea.style.display = 'none';
                 if (cardsContainerArea) cardsContainerArea.style.display = 'none';
                 if (toggleChatBtn) toggleChatBtn.style.display = 'none';
-                if (chatContainer) chatContainer.style.display = 'none'; // Ascunde și containerul chat
-                if (chatStatus) chatStatus.textContent = "Chatul AI nu este activ."; // Resetează status
+                if (chatContainer) chatContainer.style.display = 'none';
+                if (chatStatus) chatStatus.textContent = "Chatul AI nu este activ.";
 
-                isChatInitialized = false; // Resetează starea chat-ului
+                isChatInitialized = false;
                 chatSession = null;
-                if (messagesDivGlobalRef) messagesDivGlobalRef.innerHTML = ""; // Golește mesajele din chat la logout
+                if (messagesDivGlobalRef) { // Verifică dacă referința există înainte de a o folosi
+                    messagesDivGlobalRef.innerHTML = ""; // Golește mesajele din chat la logout
+                } else {
+                    console.warn("[AUTH_CHANGE] messagesDivGlobalRef nu este definit la logout, nu se pot goli mesajele.");
+                }
 
-                window.location.href = "login.html";
+
+                // Asigură-te că redirecționarea se întâmplă după ce ai făcut curățenie
+                // Poate fi necesară o mică întârziere dacă sunt operațiuni asincrone înainte de redirect
+                // Deși în acest caz, `window.location.href` ar trebui să fie destul de imediat.
+                setTimeout(() => {
+                     window.location.href = "login.html";
+                }, 0); // Timeout 0 pentru a permite finalizarea oricăror operațiuni DOM/UI curente
             }
         });
 
