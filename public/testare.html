@@ -1282,72 +1282,76 @@ ${initialContextSummary}---`; // Am prescurtat System Prompt pentru claritate, e
         const chatInput = document.getElementById("chatInput");
         const sendButton = document.getElementById("sendChatMessageButton");
         const chatStatus = document.getElementById("chatStatus");
-        const messagesDiv = document.getElementById("chatMessages"); // Definim aici pentru a fi disponibil peste tot
+        const messagesDiv = document.getElementById("chatMessages");
 
         if (!chatInput || !sendButton || !chatStatus || !messagesDiv) {
-            console.error("Eroare: Unul sau mai multe elemente HTML pentru chat lipsesc.");
+            console.error("handleSendChatMessage: Eroare - Unul sau mai multe elemente HTML pentru chat lipsesc.");
+            // Poți afișa o alertă utilizatorului aici dacă dorești
             return;
         }
 
         const messageText = chatInput.value.trim();
-        if (messageText === "") return;
+        if (messageText === "") {
+            return; // Nu trimite mesaje goale
+        }
 
         const user = auth.currentUser;
         if (!user) {
-            alert("Autentificare necesară.");
+            alert("Autentificare necesară pentru a trimite mesaje.");
             window.location.href = "login.html"; // Asigură-te că este calea corectă
             return;
         }
 
+        // Afișează mesajul utilizatorului și salvează-l
         displayChatMessage(messageText, "user");
         await saveChatMessage(user.uid, { role: "user", content: messageText, timestamp: new Date().toISOString() });
+
+        // Resetează input-ul și actualizează starea UI
         chatInput.value = "";
         sendButton.disabled = true;
         chatStatus.textContent = "Psihoterapeut Janet analizează...";
 
-        // Creăm elementul pentru mesajul AI imediat
+        // Creează elementul pentru răspunsul AI
         const aiMessageElement = document.createElement("div");
         aiMessageElement.classList.add("chat-message", "ai-message");
-        aiMessageElement.style.whiteSpace = "pre-wrap";
+        aiMessageElement.style.whiteSpace = "pre-wrap"; // Important pentru formatarea cu <pre> sau \n
         messagesDiv.appendChild(aiMessageElement);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll la noul element gol
 
+        // Verifică și (re)inițializează sesiunea de chat dacă este necesar
         if (!chatSession || !isChatInitialized) {
-            console.log("Sesiunea de chat nu este inițializată sau este invalidă, se încearcă re-inițializarea.");
+            console.log("handleSendChatMessage: Sesiunea de chat nu este inițializată sau este invalidă, se încearcă re-inițializarea.");
             chatSession = await initializeAndStartChatSession(user.uid);
             if (!chatSession) {
                 chatStatus.textContent = "Eroare re-inițializare chat.";
-                const errorMsg = "EROARE: Nu s-a putut (re)inițializa sesiunea de chat.";
-                aiMessageElement.innerHTML = formatStreamingMessage(errorMsg);
+                const initErrorMsg = "EROARE: Nu s-a putut (re)inițializa sesiunea de chat.";
+                aiMessageElement.innerHTML = formatStreamingMessage(initErrorMsg);
                 aiMessageElement.classList.add("ai-error");
                 sendButton.disabled = true; // Păstrăm butonul dezactivat
-                 await saveChatMessage(user.uid, { // Salvăm și eroarea de inițializare
-                    role: "model",
-                    content: errorMsg,
-                    error: true,
-                    timestamp: new Date().toISOString()
-                });
+                await saveChatMessage(user.uid, { role: "model", content: initErrorMsg, error: true, timestamp: new Date().toISOString() });
                 return;
             }
         }
 
         let fullAiResponseText = "";
-        let anErrorOccurred = false;
-        let receivedAnyTextInStream = false; // Flag pentru a urmări dacă am primit text efectiv
+        let anErrorOccurredInStream = false; // Flag specific pentru erori din API în timpul stream-ului
+        let receivedActualTextInStream = false; // Flag pentru a urmări dacă am primit text non-gol
 
         try {
             const result = await chatSession.sendMessageStream(messageText);
-            const stream = result.stream;
+            const stream = result.stream; // Extragem corect stream-ul
 
             for await (const chunk of stream) {
-                console.log("RAW CHUNK RECEIVED:", JSON.stringify(chunk, null, 2)); // Păstrăm pentru depanare
+                console.log("RAW CHUNK RECEIVED (handleSendChatMessage):", JSON.stringify(chunk, null, 2));
 
                 let textFromThisChunk = "";
                 if (chunk.response?.candidates?.[0]?.content?.parts) {
                     for (const part of chunk.response.candidates[0].content.parts) {
-                        if (part.text) {
+                        if (part.text && typeof part.text === 'string') {
                             textFromThisChunk += part.text;
-                            receivedAnyTextInStream = true; // Am primit text
+                            if (part.text.trim() !== "") { // Verificăm dacă textul nu e doar spațiu alb
+                                receivedActualTextInStream = true;
+                            }
                         }
                     }
                 }
@@ -1362,73 +1366,81 @@ ${initialContextSummary}---`; // Am prescurtat System Prompt pentru claritate, e
                 const candidate = chunk.response?.candidates?.[0];
                 if (candidate?.finishReason && !["STOP", "MAX_TOKENS", "MODEL_LENGTH"].includes(candidate.finishReason)) {
                     const blockMessage = `AI oprit prematur (Motiv: ${candidate.finishReason}). Detalii: ${JSON.stringify(candidate.safetyRatings || 'N/A')}`;
-                    if (!aiMessageElement.innerHTML.includes(blockMessage.substring(0,50))) { // Evităm duplicarea mesajului de eroare
+                    // Adaugă mesajul de eroare la elementul existent, evitând duplicarea
+                    if (!aiMessageElement.innerHTML.includes(blockMessage.substring(0, 50))) {
                         aiMessageElement.innerHTML += `<br><p class="ai-error-inline">${formatStreamingMessage(blockMessage)}</p>`;
                     }
                     fullAiResponseText += `\n${blockMessage}`; // Adăugăm la textul complet pentru salvare
-                    anErrorOccurred = true;
+                    anErrorOccurredInStream = true;
+                    console.warn("handleSendChatMessage: Stream oprit prematur - ", blockMessage);
                     break; // Ieșim din bucla stream-ului
                 }
 
                 if (chunk.response?.promptFeedback?.blockReason) {
                     const blockMessage = `Mesaj/Răspuns blocat (Motiv: ${chunk.response.promptFeedback.blockReason}). Detalii: ${JSON.stringify(chunk.response.promptFeedback.blockReasonDetail || chunk.response.promptFeedback.safetyRatings || 'N/A')}`;
-                    if (!aiMessageElement.innerHTML.includes(blockMessage.substring(0,50))) {
+                    if (!aiMessageElement.innerHTML.includes(blockMessage.substring(0, 50))) {
                         aiMessageElement.innerHTML += `<br><p class="ai-error-inline">${formatStreamingMessage(blockMessage)}</p>`;
                     }
                     fullAiResponseText += `\n${blockMessage}`;
-                    anErrorOccurred = true;
+                    anErrorOccurredInStream = true;
+                    console.warn("handleSendChatMessage: Stream blocat - ", blockMessage);
                     break;
                 }
-            }
+            } // Sfârșitul buclei for await
 
-            // După ce bucla stream-ului s-a terminat
-            if (!receivedAnyTextInStream && !anErrorOccurred) {
-                // Nu s-a primit niciun text și nu a fost nicio eroare explicită din API
-                const fallbackMessage = "Nu am putut genera un răspuns sau răspunsul a fost gol.";
-                aiMessageElement.innerHTML = formatStreamingMessage(fallbackMessage); // Suprascriem dacă e gol, sau adăugăm
-                fullAiResponseText = fallbackMessage; // Setăm pentru salvare
-            } else if (fullAiResponseText.trim() === "" && receivedAnyTextInStream && !anErrorOccurred) {
-                // S-a primit text, dar din diverse motive (ex. doar spații albe) textul final e gol.
-                // Acest caz e mai puțin probabil dacă `receivedAnyTextInStream` e true și `part.text` nu e doar spațiu.
-                const fallbackMessage = "Răspunsul primit a fost gol după procesare.";
-                aiMessageElement.innerHTML = formatStreamingMessage(fallbackMessage);
-                fullAiResponseText = fallbackMessage;
-            }
-            // Nu mai este nevoie de `else if` care doar reformata, deoarece `aiMessageElement.innerHTML`
-            // a fost actualizat continuu. `fullAiResponseText` conține deja textul complet.
+            // Logica de după finalizarea stream-ului
+            console.log("handleSendChatMessage: Stream FINISHED.");
+            console.log("  Final fullAiResponseText:", JSON.stringify(fullAiResponseText));
+            console.log("  Final receivedActualTextInStream:", receivedActualTextInStream);
+            console.log("  Final anErrorOccurredInStream:", anErrorOccurredInStream);
 
-            // Salvarea în Firestore
+            if (!anErrorOccurredInStream && !receivedActualTextInStream) {
+                // Nu a fost o eroare din API ȘI nu s-a primit deloc text inteligibil
+                const fallbackMsg = "Nu am putut genera un răspuns sau răspunsul a fost gol (stream gol, fără eroare API).";
+                aiMessageElement.innerHTML = formatStreamingMessage(fallbackMsg);
+                fullAiResponseText = fallbackMsg; // Actualizăm pentru salvare
+                console.log("handleSendChatMessage: AFIȘAT FALLBACK - Stream gol, fără eroare API.");
+            } else if (!anErrorOccurredInStream && receivedActualTextInStream && fullAiResponseText.trim() === "") {
+                // S-a primit text, dar după trim este gol (ex: doar spații albe)
+                const fallbackMsg = "Răspunsul primit a fost gol după procesare (stream non-gol, dar text vid).";
+                aiMessageElement.innerHTML = formatStreamingMessage(fallbackMsg);
+                fullAiResponseText = fallbackMsg; // Actualizăm pentru salvare
+                console.log("handleSendChatMessage: AFIȘAT FALLBACK - Stream non-gol, dar text vid.");
+            }
+            // Altfel (dacă anErrorOccurredInStream e true SAU receivedActualTextInStream e true și fullAiResponseText are conținut):
+            // - Mesajul de eroare este deja în aiMessageElement și fullAiResponseText.
+            // - Sau răspunsul valid este deja în aiMessageElement și fullAiResponseText.
+            // Nu mai este nevoie să actualizăm aiMessageElement.innerHTML aici dacă nu suntem într-un caz de fallback.
+
+            // Salvarea în Firestore (include și mesajele de eroare inline sau fallback-uri)
             await saveChatMessage(user.uid, {
                 role: "model",
-                content: fullAiResponseText, // Salvează textul final, care poate include mesaje de eroare sau fallback
-                error: anErrorOccurred, // Indică dacă o eroare a oprit stream-ul
+                content: fullAiResponseText,
+                error: anErrorOccurredInStream, // Reflectă doar erorile din API din timpul stream-ului
                 timestamp: new Date().toISOString()
             });
             chatStatus.textContent = "Janet - Psihoterapeut Cognitiv-Comportamental Integrativ";
 
-        } catch (error) {
-            console.error("Eroare majoră în trimiterea/procesarea mesajului Gemini (chat stream):", error, error.stack);
+        } catch (error) { // Acest catch prinde erori mai mari (ex: probleme de rețea, erori SDK neașteptate)
+            console.error("handleSendChatMessage: Eroare CRITICĂ în sendMessageStream sau procesare:", error, error.stack);
             chatStatus.textContent = "Eroare critică comunicare AI.";
-            let displayError = `Eroare critică: ${error.message}`;
-            // Aici poți adăuga logica de formatare a mesajului de eroare, dacă e necesar
+            const criticalErrorMsg = `EROARE CRITICĂ (catch): ${error.message || "Eroare necunoscută"}`;
 
-            aiMessageElement.innerHTML = formatStreamingMessage(displayError);
-            aiMessageElement.classList.add("ai-error"); // Asigură stilizarea de eroare
-            anErrorOccurred = true; // Setăm flag-ul de eroare
+            aiMessageElement.innerHTML = formatStreamingMessage(criticalErrorMsg);
+            aiMessageElement.classList.add("ai-error");
+            // anErrorOccurredInStream ar putea fi false aici dacă eroarea a apărut înainte de buclă
+            // sau true dacă a apărut o eroare în buclă care a aruncat excepția mai departe.
 
-            // Salvăm eroarea
             await saveChatMessage(user.uid, {
                 role: "model",
-                content: displayError,
-                error: true,
+                content: criticalErrorMsg,
+                error: true, // Setăm error la true pentru erori critice
                 timestamp: new Date().toISOString()
             });
-            // Considerăm resetarea sesiunii în caz de erori grave
-            isChatInitialized = false;
+            isChatInitialized = false; // Considerăm sesiunea invalidă
             chatSession = null;
         } finally {
-            // Reactivăm butonul de send doar dacă nu a fost o eroare care a invalidat sesiunea
-            // și dacă modelul este încă disponibil.
+            // Reactivăm butonul de send doar dacă sesiunea este încă validă și modelul există
             if (geminiModelChat && isChatInitialized && sendButton) {
                 sendButton.disabled = false;
             } else if (sendButton) {
@@ -1438,7 +1450,7 @@ ${initialContextSummary}---`; // Am prescurtat System Prompt pentru claritate, e
                 }
             }
             if (chatInput) {
-                chatInput.focus();
+                chatInput.focus(); // Focus pe input pentru următorul mesaj
             }
         }
     }
