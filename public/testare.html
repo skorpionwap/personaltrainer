@@ -1329,6 +1329,7 @@ ${initialContextSummary}---`; // Am prescurtat System Prompt pentru claritate, e
 
             for await (const chunk of stream) {
                 // Optional: console.log("CHUNK primit:", JSON.stringify(chunk, null, 2));
+                  console.log("RAW CHUNK RECEIVED:", JSON.stringify(chunk, null, 2)); // Inspectează tot chunk-ul
                 let newTextForMainAnswerThisChunk = "";
                 if (chunk.response?.candidates?.[0]?.content?.parts) {
                     for (const part of chunk.response.candidates[0].content.parts) {
