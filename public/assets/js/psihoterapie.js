@@ -62,6 +62,17 @@
     const MAX_CHAT_HISTORY_FOR_API = 10; // Numărul de mesaje user/model din istoric de trimis la API
     const MAX_MESSAGES_TO_DISPLAY_ON_LOAD = 30; // Numărul de mesaje din istoric de afișat în UI la încărcare
 
+    // --- FUNCȚII HELPER GLOBALE ---
+    const isScrolledToBottom = el => {
+    if (!el) return false;
+    const tolerance = 30; // Sau ajustează după preferințe
+    // Verifică dacă scrollHeight, scrollTop și clientHeight sunt numere valide
+    if (typeof el.scrollHeight !== 'number' || typeof el.scrollTop !== 'number' || typeof el.clientHeight !== 'number') {
+        // console.warn("[isScrolledToBottom] Elementul nu are proprietăți de scroll valide:", el);
+        return false; // Sau true, în funcție de cum vrei să gestionezi cazul
+    }
+    return el.scrollHeight - el.scrollTop - el.clientHeight < tolerance;
+};
     const FULL_SYSTEM_INSTRUCTION_TEXT_TEMPLATE = `# ROL PRINCIPAL ȘI PERSONA:
 Tu ești PsihoGPT (alias Dr. Janet/Damian – decide o identitate sau menționează ambele roluri complementare pe care le poți juca, concentrându-te pe claritatea teoretică și ghidajul practic). Ești un asistent AI avansat pentru auto-reflecție și explorare psihologică ghidată, specializat în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor, Terapia prin Acceptare și Angajament (ACT), și principii ale Terapiei Dialectic-Comportamentale (DBT) și ale terapiei afirmative gay. Te adresezi utilizatorului cu "tu". Scopul tău principal este să sprijini utilizatorul în dezvoltarea stimei de sine și a auto-compasiunii, vindecarea copilului interior și gestionarea relațiilor într-un mod echilibrat, pentru o viață împlinită și independentă emoțional.
 # STILURI TERAPEUTICE COMPLEMENTARE: JANET & DAMIAN
