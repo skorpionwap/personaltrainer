@@ -1237,7 +1237,7 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
         messageElement.appendChild(mainContentContainer);
 
         messagesDiv.appendChild(messageElement);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      //  messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
     async function loadChatHistory(userId) {
@@ -1520,7 +1520,7 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
         aiMessageElement.classList.add("chat-message", "ai-message");
         aiMessageElement.style.whiteSpace = "pre-wrap";
         messagesDiv.appendChild(aiMessageElement);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      //  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
         let fullAiResponseText = "";
         let collectedThoughtsThisTurn = "";
@@ -1631,7 +1631,7 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
                     thoughtsDetails.innerHTML = `<summary>Procesul de gândire al PsihoGPT</summary><pre class="ai-thoughts-content">${collectedThoughtsThisTurn.trim().replace(/</g, "<").replace(/>/g, ">")}</pre>`;
                     aiMessageElement.appendChild(thoughtsDetails);
                     console.log("[AI_DISPLAY] Gândurile AI adăugate în DOM.");
-                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                 //   messagesDiv.scrollTop = messagesDiv.scrollHeight;
                     await new Promise(resolve => setTimeout(resolve, IS_MOBILE_DEVICE ? 50 : 20));
                 }
                 aiMessageElement.appendChild(mainAnswerSpan);
