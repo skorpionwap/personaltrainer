@@ -1644,7 +1644,7 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
                     while (currentIndex < formattedHTML.length) {
                         const nextChunkEnd = Math.min(currentIndex + TYPING_CHUNK_SIZE, formattedHTML.length);
                         mainAnswerSpan.innerHTML = formattedHTML.substring(0, nextChunkEnd);
-                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                   //     messagesDiv.scrollTop = messagesDiv.scrollHeight; 
                         await new Promise(resolve => setTimeout(resolve, TYPING_CHUNK_DELAY_MS));
                         currentIndex = nextChunkEnd;
                     }
@@ -1673,7 +1673,7 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
             console.log("  Final collectedThoughtsThisTurn:", JSON.stringify(collectedThoughtsThisTurn.substring(0,100) + "..."));
             console.log("  Final anErrorOccurredInStream:", anErrorOccurredInStream);
 
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+       //     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
             if (currentUser) {
                 try {
