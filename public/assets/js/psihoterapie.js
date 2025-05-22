@@ -1076,30 +1076,34 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
         }
     }
 
-    function formatStreamingMessage(message) {
+   function formatStreamingMessage(message) {
         console.log("[FORMAT_STREAM] Formatare mesaj (primele 50 char):", message?.substring(0, 50));
         if (message === null || typeof message === 'undefined') return "";
+
         // Asigură-te că escape-ezi caracterele HTML ÎNAINTE de a aplica formatarea Markdown
+        // Secvența corectă de escapare:
         let escapedMessage = String(message)
-            .replace(/&/g, "&")
+            .replace(/&/g, "&")  // Întâi &
             .replace(/</g, "<")
             .replace(/>/g, ">")
             .replace(/"/g, """)
-            .replace(/'/g, "'");
+            .replace(/'/g, "'"); // Asigură-te că aceasta este corectă
 
         let htmlContent = escapedMessage
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/__(.*?)__/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
             .replace(/_(.*?)_/g, '<em>$1</em>')
-            // Pentru ```, textul interior e deja escapat, deci e ok
-            .replace(/```([\s\S]*?)```/g, (match, p1) => `<pre class="code-block-chat">${p1.trim()}</pre>`)
-            .replace(/`([^`]+)`/g, '<code class="inline-code-chat">$1</code>');
+            .replace(/```([\s\S]*?)```/g, (match, p1) => `<pre class="code-block-chat">${p1.trim()}</pre>`) // textul din p1 e deja escapat
+            .replace(/`([^`]+)`/g, '<code class="inline-code-chat">$1</code>'); // textul din $1 e deja escapat
 
         htmlContent = htmlContent.replace(/^#{1,6}\s+(.*)/gm, (match, p1) => `<h6>${p1.trim()}</h6>`);
 
         const lines = htmlContent.split('\n');
-        let inList = false; let listType = ''; let processedHtml = "";
+        let inList = false;
+        let listType = '';
+        let processedHtml = "";
+
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
             const trimmedLine = line.trim();
@@ -1107,41 +1111,54 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
             let listItemContent = '';
 
             // Verifică dacă linia este deja un tag HTML block pentru a nu o încadra în <p>
-            const isBlock = /^\s*<(p|pre|h[1-6]|ul|ol|li|blockquote|div|table|hr|details|summary)/i.test(line);
+            // Am simplificat regex-ul și l-am făcut case-insensitive
+            const isBlock = /^\s*<\/?(p|pre|h[1-6]|ul|ol|li|blockquote|div|table|hr|details|summary)/i.test(line);
 
-            if (trimmedLine.startsWith('<ul>') || trimmedLine.startsWith('<ol>')) { // Cazul listelor generate de AI ca text
-                 if (inList) processedHtml += `</${listType}>\n`; // Închide lista anterioară dacă există
-                 listType = trimmedLine.includes('ul') ? 'ul' : 'ol';
-                 processedHtml += `<${listType}>\n`;
-                 inList = true;
-                 continue;
+            // Detectare și procesare pentru tag-uri de listă HTML (dacă AI-ul le generează ca text escapat)
+            if (trimmedLine.toLowerCase().startsWith('<ul>') || trimmedLine.toLowerCase().startsWith('<ol>')) {
+                if (inList) processedHtml += `</${listType}>\n`;
+                listType = trimmedLine.includes('ul') ? 'ul' : 'ol';
+                processedHtml += `<${listType}>\n`;
+                inList = true;
+                continue;
             }
-            if (trimmedLine.startsWith('</ul>') || trimmedLine.startsWith('</ol>')) {
+            if (trimmedLine.toLowerCase().startsWith('</ul>') || trimmedLine.toLowerCase().startsWith('</ol>')) {
                 if (inList) processedHtml += `</${listType}>\n`;
                 inList = false;
                 listType = '';
                 continue;
             }
-            if (trimmedLine.startsWith('<li>')) {
-                listItemContent = trimmedLine.substring(8, trimmedLine.lastIndexOf('</li>'));
-                 if (!inList) { // O listă ar trebui să înceapă cu <ul> sau <ol>
-                    console.warn("[FORMAT_STREAM] Element <li> găsit fără tag de listă părinte. Se încadrează implicit în <ul>.");
-                    processedHtml += `<ul>\n`;
-                    inList = true;
-                    listType = 'ul';
-                 }
-                processedHtml += `  <li>${listItemContent}</li>\n`; // listItemContent e deja escapat
+            if (trimmedLine.toLowerCase().startsWith('<li>')) {
+                // Extrage conținutul dintre <li> și </li>
+                const matchLi = trimmedLine.match(/^<li>([\s\S]*)<\/li>$/i);
+                if (matchLi && matchLi[1]) {
+                    listItemContent = matchLi[1]; // Conținutul e deja escapat
+                    if (!inList) {
+                        console.warn("[FORMAT_STREAM] Element <li> găsit fără tag de listă părinte. Se încadrează implicit în <ul>.");
+                        processedHtml += `<ul>\n`;
+                        inList = true;
+                        listType = 'ul';
+                    }
+                    processedHtml += `  <li>${listItemContent}</li>\n`;
+                } else {
+                    // Dacă formatul e neașteptat, tratează ca text normal
+                    if (inList) { processedHtml += `</${listType}>\n`; inList = false; listType = ''; }
+                    if (line.trim() !== "" && !isBlock) processedHtml += `<p>${line}</p>\n`;
+                    else if (line.trim() !== "") processedHtml += line + '\n';
+                }
                 continue;
             }
-
 
             // Detectare manuală pentru Markdown lists
             if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ') || trimmedLine.startsWith('+ ')) {
                 currentListType = 'ul';
-                listItemContent = trimmedLine.substring(trimmedLine.indexOf(' ') + 1);
-            } else if (trimmedLine.match(/^\d+\.\s+/)) {
-                currentListType = 'ol';
-                listItemContent = trimmedLine.substring(trimmedLine.indexOf('.') + 2);
+                listItemContent = trimmedLine.substring(trimmedLine.indexOf(' ') + 1).trim();
+            } else {
+                const markdownOlMatch = trimmedLine.match(/^(\d+)\.\s+(.*)/);
+                if (markdownOlMatch) {
+                    currentListType = 'ol';
+                    listItemContent = markdownOlMatch[2].trim();
+                }
             }
 
             if (currentListType) {
@@ -1159,14 +1176,15 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
                     listType = '';
                 }
                 if (line.trim() !== "" && !isBlock) {
-                    processedHtml += `<p>${line}</p>\n`; // line e deja escapat
-                } else if (line.trim() !== "" || line.includes("<pre") || line.includes("<h")) {
+                    processedHtml += `<p>${line}</p>\n`;
+                } else if (line.trim() !== "") {
+                    // Păstrează liniile care sunt deja block-uri HTML sau au conținut și nu sunt goale
                     processedHtml += line + (line.endsWith('\n') ? '' : '\n');
                 }
             }
         }
         if (inList) { processedHtml += `</${listType}>\n`; }
-        return processedHtml.replace(/<p><\/p>/g, '');
+        return processedHtml.replace(/<p><\/p>\s*\n?/g, ''); // Elimină paragrafele goale, inclusiv newline-ul asociat
     }
 
     function displayChatMessage(messageContent, role, thoughtsContent = null) {
