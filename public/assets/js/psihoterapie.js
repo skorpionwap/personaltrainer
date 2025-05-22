@@ -111,10 +111,6 @@ Empatie, validare, ghidare reflexivă, adaptabilitate.
 Context din ultimele introspecții (fișe/jurnal) completate de utilizator:
 {{INITIAL_CONTEXT_SUMMARY_PLACEHOLDER}}---`;
 
-    const CONDENSED_SYSTEM_INSTRUCTION_TEXT = `# ROL RECAPITULARE: PsihoGPT (Janet/Damian)
-Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Janet (empatic) și Damian (provocator) conform nevoii utilizatorului. Menține empatia, întrebările deschise, validarea și ghidează reflexiv. Obiectiv central: stima de sine, auto-compasiune, autonomie emoțională, reglarea emoției primare în timp real. Folosește istoricul recent de chat pentru context.
----`;
-
     const jurnalPromptsList = [
         {
             label: "🌡️ Explorează o emoție", id: "explorare_emotie",
