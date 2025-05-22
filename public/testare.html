@@ -56,6 +56,8 @@
     let currentFisaStep = 1;
     let totalFisaSteps = 0;
     let selectedJurnalPrompt = null;
+     // <<< ADAUGĂ ACEASTĂ LINIE AICI >>>
+    const MAX_CHAT_HISTORY_FOR_API = 20; // Setează la valoarea dorită (ex: 20 pentru 10 schimburi user/AI)
     const jurnalPromptsList = [ /* ... Lista ta de prompturi ... */
             {
                 label: "🌡️ Explorează o emoție", id: "explorare_emotie",
