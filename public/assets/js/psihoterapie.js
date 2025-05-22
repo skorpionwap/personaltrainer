@@ -1405,7 +1405,8 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
             ],
             generationConfig: {
                 temperature: 0.75,
-                thinking_config: { include_thoughts: true }
+                thinking_config: { include_thoughts: true },
+                language: "ro"
             }
         };
 
