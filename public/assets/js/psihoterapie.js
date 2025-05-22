@@ -1072,6 +1072,162 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
         }
     }
 
+
+    // --- Formatare și Afișare Mesaje Chat ---
+function formatStreamingMessage(message) {
+    console.log("[FORMAT_STREAM] Formatare mesaj (primele 50 char):", message?.substring(0, 50));
+    if (message === null || typeof message === 'undefined') return "";
+
+    let escapedMessage = String(message)
+        .replace(/&/g, "&")  // Corectat &
+        .replace(/</g, "<")   // Corectat <
+        .replace(/>/g, ">")   // Corectat >
+        .replace(/'/g, "'"); // Corectat ' sau '
+
+    let htmlContent = escapedMessage
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/__(.*?)__/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/_(.*?)_/g, '<em>$1</em>')
+        .replace(/```([\s\S]*?)```/g, (match, p1) => `<pre class="code-block-chat">${p1.trim()}</pre>`)
+        .replace(/`([^`]+)`/g, '<code class="inline-code-chat">$1</code>');
+
+    htmlContent = htmlContent.replace(/^#{1,6}\s+(.*)/gm, (match, p1) => `<h6>${p1.trim()}</h6>`);
+
+    const lines = htmlContent.split('\n');
+    let inList = false;
+    let listType = '';
+    let processedHtml = "";
+
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        const trimmedLine = line.trim();
+        let currentListType = '';
+        let listItemContent = '';
+        const isBlock = /^\s*<\/?(p|pre|h[1-6]|ul|ol|li|blockquote|div|table|hr|details|summary)/i.test(line);
+
+        if (trimmedLine.toLowerCase().startsWith('<ul>') || trimmedLine.toLowerCase().startsWith('<ol>')) {
+            if (inList) processedHtml += `</${listType}>\n`;
+            listType = trimmedLine.toLowerCase().startsWith('<ul>') ? 'ul' : 'ol'; // Asigură-te că verifici corect
+            processedHtml += `<${listType}>\n`;
+            inList = true;
+            continue;
+        }
+        if (trimmedLine.toLowerCase().startsWith('</ul>') || trimmedLine.toLowerCase().startsWith('</ol>')) {
+            if (inList) processedHtml += `</${listType}>\n`;
+            inList = false;
+            listType = '';
+            continue;
+        }
+        if (trimmedLine.toLowerCase().startsWith('<li>')) {
+            const matchLi = trimmedLine.match(/^<li>([\s\S]*)<\/li>$/i);
+            if (matchLi && matchLi[1]) {
+                listItemContent = matchLi[1];
+                if (!inList) {
+                    console.warn("[FORMAT_STREAM] Element <li> găsit fără tag de listă părinte. Se încadrează implicit în <ul>.");
+                    processedHtml += `<ul>\n`;
+                    inList = true;
+                    listType = 'ul';
+                }
+                processedHtml += `  <li>${listItemContent}</li>\n`;
+            } else {
+                if (inList) { processedHtml += `</${listType}>\n`; inList = false; listType = ''; }
+                if (line.trim() !== "" && !isBlock) processedHtml += `<p>${line}</p>\n`;
+                else if (line.trim() !== "") processedHtml += line + '\n';
+            }
+            continue;
+        }
+
+        if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ') || trimmedLine.startsWith('+ ')) {
+            currentListType = 'ul';
+            listItemContent = trimmedLine.substring(trimmedLine.indexOf(' ') + 1).trim();
+        } else {
+            const markdownOlMatch = trimmedLine.match(/^(\d+)\.\s+(.*)/);
+            if (markdownOlMatch) {
+                currentListType = 'ol';
+                listItemContent = markdownOlMatch[2].trim();
+            }
+        }
+
+        if (currentListType) {
+            if (!inList || listType !== currentListType) {
+                if (inList) processedHtml += `</${listType}>\n`;
+                processedHtml += `<${currentListType}>\n`;
+                inList = true;
+                listType = currentListType;
+            }
+            processedHtml += `  <li>${listItemContent}</li>\n`;
+        } else {
+            if (inList) {
+                processedHtml += `</${listType}>\n`;
+                inList = false;
+                listType = '';
+            }
+            if (line.trim() !== "" && !isBlock) {
+                processedHtml += `<p>${line}</p>\n`;
+            } else if (line.trim() !== "") {
+                processedHtml += line + (line.endsWith('\n') ? '' : '\n');
+            }
+        }
+    }
+    if (inList) { processedHtml += `</${listType}>\n`; }
+    return processedHtml.replace(/<p><\/p>\s*\n?/g, '');
+}
+
+
+function displayChatMessage(messageContent, role, thoughtsContent = null) {
+    console.log(`[DISPLAY_CHAT] Afișare mesaj. Rol: ${role}, Conținut (primele 50): '${messageContent?.substring(0, 50)}...', Thoughts: ${thoughtsContent ? 'DA' : 'NU'}`);
+    // Asigură-te că messagesDivGlobalRef este setat înainte de a apela această funcție
+    // Cel mai bine e să fie setat în DOMContentLoaded.
+    if (!messagesDivGlobalRef) {
+        console.error("[DISPLAY_CHAT] EROARE: messagesDivGlobalRef nu este definit! Încerc să-l obțin din nou.");
+        messagesDivGlobalRef = document.getElementById("chatMessages");
+        if (!messagesDivGlobalRef) {
+            console.error("[DISPLAY_CHAT] EROARE CRITICA: messagesDivGlobalRef tot nu este definit!");
+            return;
+        }
+    }
+
+    const messageElement = document.createElement("div");
+    messageElement.classList.add("chat-message");
+    messageElement.style.whiteSpace = "pre-wrap";
+
+    let messageClass = "";
+    if (role === "user") {
+        messageClass = "user-message";
+    } else if (role === "AI-error" || (typeof messageContent === 'string' && messageContent.toUpperCase().startsWith("EROARE"))) {
+        messageClass = "ai-message ai-error";
+    } else { // model sau AI
+        messageClass = "ai-message";
+    }
+    messageClass.split(' ').forEach(cls => messageElement.classList.add(cls));
+
+    if ((role === "model" || role === "AI") && thoughtsContent && thoughtsContent.trim() !== "") {
+        const thoughtsDetails = document.createElement("details");
+        thoughtsDetails.className = "ai-thoughts-details";
+        const summary = document.createElement("summary");
+        summary.textContent = `Procesul de gândire al PsihoGPT ${role === "model" ? "(live)" : "(istoric)"}`;
+        thoughtsDetails.appendChild(summary);
+        const pre = document.createElement("pre");
+        pre.className = "ai-thoughts-content";
+        pre.textContent = thoughtsContent.trim();
+        thoughtsDetails.appendChild(pre);
+        messageElement.appendChild(thoughtsDetails);
+    }
+
+    const mainContentContainer = document.createElement('div');
+    mainContentContainer.className = 'main-answer-text';
+    if (role === "user") {
+        mainContentContainer.textContent = messageContent;
+    } else {
+        mainContentContainer.innerHTML = formatStreamingMessage(messageContent);
+    }
+    messageElement.appendChild(mainContentContainer);
+
+    messagesDivGlobalRef.appendChild(messageElement);
+    messagesDivGlobalRef.scrollTop = messagesDivGlobalRef.scrollHeight; // Scroll la noul mesaj
+}
+
    async function getInitialContextSummary(userIdForContext) {
     let contextSummary = "\n\n--- REZUMAT DIN INTROSPECȚIILE ANTERIOARE (ULTIMELE 3) ---\n";
     if (!userIdForContext) {
