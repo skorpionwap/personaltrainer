@@ -1175,26 +1175,29 @@ async function initializeAndStartChatSession(userId) {
     isChatInitialized = false; // Resetează starea
     chatSession = null; // Resetează sesiunea
 
-    let initialContextSummary = "REZUMAT DIN INTROSPECȚIILE ANTERIOARE (ULTIMELE 3):\n";
-    // ... (logica de încărcare context, la fel ca înainte)
-    try {
-        if (userId) {
-            const q = query(
-                collection(db, "introspectii"),
-                where("ownerUid", "==", userId),
-                orderBy("timestampCreare", "desc"),
-                limit(3)
-            );
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                querySnapshot.forEach(docSnap => { /* ... */ });
-            } else {
-                initialContextSummary += "Nicio introspecție recentă.\n";
+   let initialContextSummary = "REZUMAT DIN INTROSPECȚIILE ANTERIOARE (ULTIMELE 3, FĂRĂ DISTINCȚIE FIȘĂ/JURNAL):\n";
+        try {
+            if (userId) {
+                const q = query(collection(db, "introspectii"), where("ownerUid", "==", userId), orderBy("timestampCreare", "desc"), limit(3));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    querySnapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        const entryDate = data.dateAfisare || (data.timestampCreare ? new Date(data.timestampCreare.toDate()).toLocaleDateString("ro-RO") : 'N/A');
+                        if (data.type === 'fisa') {
+                            initialContextSummary += ` - Fișă (${entryDate}): Situatia - ${(data.continut.situatie || "").substring(0, 50)}...; Ganduri - ${(data.continut.ganduri || "").substring(0,50)}...\n`;
+                        } else if (data.type === 'jurnal') {
+                            initialContextSummary += ` - Jurnal (${entryDate}): Titlu - ${(data.continut.titluJurnal || "Fără titlu").substring(0,50)}...; Text (primele cuvinte) - ${(data.continut.textJurnal || "").substring(0,50)}...\n`;
+                        }
+                    });
+                } else { initialContextSummary += "Nicio introspecție recentă găsită.\n"; }
             }
+        } catch(e) {
+            console.error("Eroare încărcare context introspecții pentru chat:", e);
+            initialContextSummary += "Eroare la încărcarea contextului.\n";
         }
-    } catch(e) { /* ... */ }
 
-    const systemInstructionText = `# ROL PRINCIPAL ȘI PERSONA:
+    const systemInstructionText = `# ROL PRINCIPAL:
 Tu ești PsihoGPT (alias Dr. Janet/Damian – decide o identitate sau menționează ambele roluri complementare pe care le poți juca, concentrându-te pe claritatea teoretică și ghidajul practic). Ești un asistent AI avansat pentru auto-reflecție și explorare psihologică ghidată, specializat în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor, Terapia prin Acceptare și Angajament (ACT), și principii ale Terapiei Dialectic-Comportamentale (DBT) și ale terapiei afirmative gay. Te adresezi utilizatorului cu "tu". Scopul tău principal este să sprijini utilizatorul în dezvoltarea stimei de sine și a auto-compasiunii, vindecarea copilului interior și gestionarea relațiilor într-un mod echilibrat, pentru o viață împlinită și independentă emoțional.
 # STILURI TERAPEUTICE COMPLEMENTARE: JANET & DAMIAN
 
@@ -1325,8 +1328,8 @@ ${initialContextSummary}---`;
                 temperature: 0.75,
                 thinking_config: { // CEREM EXPLICIT GÂNDURILE
                     include_thoughts: true,
-                    // include_thinking_tokens_count: true, // Opțional
-                    // thought_stream_token_limit: 250,    // Opțional
+                    include_thinking_tokens_count: true, // Opțional
+                    thought_stream_token_limit: 250,    // Opțional
                 }
             },
             // safetySettings: [ ... ] // Opțional
