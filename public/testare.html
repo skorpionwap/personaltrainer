@@ -1411,7 +1411,7 @@ ${initialContextSummary}---`;
     let apiErrorMessageFromStream = "";
     // Nu mai avem nevoie de receivedActualTextInStream aici, vom verifica lungimea fullAiResponseText
 
-    const TYPING_DELAY_MS = 0; // Sau valoarea ta
+    const TYPING_DELAY_MS = 50; // Sau valoarea ta
 
     try {
         if (!chatSession || !isChatInitialized) {
@@ -1679,41 +1679,41 @@ ${initialContextSummary}---`;
         }
     }
 
-    async function discussFisaWithChat(fisaData) {
-        console.log("[DISCUSS_FISA] Se inițiază discuție despre fișa:", fisaData.id);
-        // ... (la fel ca înainte)
+      async function discussFisaWithChat(fisaData) {
         const user = auth.currentUser;
         if (!user) { alert("Autentificare necesară."); window.location.href = "login.html"; return; }
         const chatContainer = document.getElementById("chatContainer");
         if (chatContainer.style.display === "none" || chatContainer.style.display === "") {
-            console.log("[DISCUSS_FISA] Chat-ul este închis, se deschide...");
-            await handleToggleChat(); // Aceasta va și inițializa chat-ul dacă e nevoie
+            await handleToggleChat();
         }
-
-        // Adaugă o mică pauză pentru a permite inițializării chat-ului să se finalizeze dacă a fost apelată
         if (!chatSession || !isChatInitialized) {
-            console.log("[DISCUSS_FISA] Așteptare inițializare chat...");
-            await new Promise(resolve => setTimeout(resolve, 700)); // Mărește puțin pauza
-        }
-
-        if (!chatSession || !isChatInitialized) {
-            console.error("[DISCUSS_FISA] Eroare: Sesiunea de chat nu este pregătită după așteptare.");
-            displayChatMessage("Eroare: Sesiunea de chat nu e pregătită. Încearcă din nou.", "AI-error"); return;
+            displayChatMessage("Eroare: Sesiunea de chat nu e pregătită.", "AI-error"); return;
         }
         const c = fisaData.continut;
         let message = `Salut PsihoGPT,\n\nAș dori să discutăm despre următoarea fișă de monitorizare (datată ${fisaData.dateAfisare || 'N/A'}):\n\n`;
-        message += `**Situația:** ${c.situatie || 'N/A'}\n**Gânduri automate:** ${c.ganduri || 'N/A'}\n**Emoții:** ${c.emotii || 'N/A'}\n\n`;
-        // ... (restul construcției mesajului, prescurtat)
+        message += `**Situația:** ${c.situatie || 'N/A'}\n**Gânduri automate:** ${c.ganduri || 'N/A'}\n**Emoții:** ${c.emotii || 'N/A'}\n`;
+        message += `**Mod activ:** ${c.mod_activ || 'N/A'}\n**Comportament:** ${c.comportament || 'N/A'}\n**Nevoile profunde:** ${c.nevoi_profunde || 'N/A'}\n`;
+        message += `**Ajută comportamentul?:** ${c.ajutor_comportament || 'N/A'}\n**Adult Sănătos (perspectivă):** ${c.adult_sanatos || 'N/A'}\n\n`;
+        message += "**Analiza gândurilor:**\n";
+        message += `  *Dovezi adevăr:* ${c.dovezi_adevar || 'N/A'}\n  *Dovezi fals:* ${c.dovezi_fals || 'N/A'}\n`;
+        message += `  *Expl. alt.:* ${c.explicatie_alternativa || 'N/A'}\n  *Cel mai rău:* ${c.scenariu_negativ || 'N/A'}\n`;
+        message += `  *Cel mai bun:* ${c.scenariu_optimist || 'N/A'}\n  *Realist:* ${c.rezultat_realist || 'N/A'}\n`;
+        message += `  *Schimbare gândire:* ${c.schimbare_gandire || 'N/A'}\n  *Sfat prieten:* ${c.sfat_prieten || 'N/A'}\n\n`;
+        message += "**Clarificări:**\n";
+        message += `  *Partea rea?:* ${c.partea_rea || 'N/A'}\n  *Responsabilitate excesivă?:* ${c.responsabilitate || 'N/A'}\n`;
+        message += `  *Condamnare eveniment unic?:* ${c.condamnare || 'N/A'}\n  *Termeni extremi?:* ${c.termeni_extremi || 'N/A'}\n`;
+        message += `  *Exagerare?:* ${c.exagerare || 'N/A'}\n  *Alți factori?:* ${c.factori_responsabili || 'N/A'}\n`;
+        message += `  *Concluzii pripite?:* ${c.concluzii || 'N/A'}\n  *Întrebări fără răspuns?:* ${c.intrebari_fara_raspuns || 'N/A'}\n`;
+        message += `  *Focus pe slăbiciuni?:* ${c.slabiciuni || 'N/A'}\n  *Cum ar trebui?:* ${c.cum_ar_trebui || 'N/A'}\n`;
+        message += `  *Perfecționism?:* ${c.perfectiune || 'N/A'}\n\n`;
         message += "Ce întrebări sau reflecții ai pentru mine pe baza acestei fișe?";
         const chatInput = document.getElementById("chatInput");
         if(chatInput) {
             chatInput.value = message;
-            console.log("[DISCUSS_FISA] Mesaj fișă pregătit, se apelează handleSendChatMessage.");
             handleSendChatMessage();
-        } else {
-            console.error("[DISCUSS_FISA] Elementul chatInput nu a fost găsit.");
         }
     }
+    
 
     // --- FUNCȚIA PRINCIPALĂ DE INTRARE (ONLOAD) ---
     window.onload = function () {
@@ -1781,7 +1781,7 @@ ${initialContextSummary}---`;
     };
 </script>
     <style>
- /* ... (CSS-ul tău complet, inclusiv .ai-thoughts-details) ... */
+
  /* --- MODERN FRESH STYLES START --- */
 :root {
     --font-primary: 'Ubuntu', 'Roboto', 'Montserrat', sans-serif;
