@@ -1407,7 +1407,7 @@ async function initializeAndStartChatSession(userId, isInitialPageLoad = false) 
             history: historyForChatSession, // FĂRĂ promptul de sistem aici
             generationConfig: {
                 temperature: 0.75, // Sau altă valoare preferată
-                thinking_config: { include_thoughts: true } // Include dacă modelul suportă și vrei "thoughts"
+               // thinking_config: { include_thoughts: true } // Include dacă modelul suportă și vrei "thoughts"
             }
         });
         console.log("[CHAT_INIT] Sesiune chat Gemini inițializată (fără SystemInstruction în history array). Model:", GEMINI_MODEL_NAME_CHAT);
