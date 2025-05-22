@@ -61,6 +61,10 @@
 
     const MAX_CHAT_HISTORY_FOR_API = 10; // Numărul de mesaje user/model din istoric de trimis la API
     const MAX_MESSAGES_TO_DISPLAY_ON_LOAD = 30; // Numărul de mesaje din istoric de afișat în UI la încărcare
+    // >>> ADAUGĂ SAU VERIFICĂ ACESTE LINII DACĂ LIPESC <<<
+    const CHUNK_SIZE = IS_MOBILE_DEVICE ? 50 : 30; // Sau valorile tale preferate
+    const CHUNK_DELAY = IS_MOBILE_DEVICE ? 30 : 20; // Sau valorile tale preferate
+// >>>---------------------------------------------<<<
 
     // --- FUNCȚII HELPER GLOBALE (dacă nu sunt deja definite) ---
 const isScrolledToBottom = el => {
