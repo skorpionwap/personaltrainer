@@ -1205,7 +1205,7 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
             generationConfig: {
                 temperature: 0.75,
               
-                 thinking_config: { include_thoughts: true }
+                 thinking_config: { include_thoughts: false }
             }
         });
         console.log("[CHAT_INIT] Sesiune chat inițializată. Model:", GEMINI_MODEL_NAME_CHAT);
