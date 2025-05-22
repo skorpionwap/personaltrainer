@@ -138,17 +138,17 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
         }
     ];
 
-    // --- FUNCȚII UTILITARE ȘI DE UI ---
+    // -----------------------------------------------------------------
+    // DEFINIȚIILE FUNCȚIILOR
+    // -----------------------------------------------------------------
+
     function showTab(tabName) {
-        console.log("[UI] Afișare tab:", tabName);
         document.getElementById('jurnalFormContainer').style.display = (tabName === 'jurnal' ? 'block' : 'none');
         document.getElementById('fisaFormContainer').style.display = (tabName === 'fisa' ? 'block' : 'none');
         document.getElementById('tabButtonJurnal').classList.toggle('active', tabName === 'jurnal');
         document.getElementById('tabButtonFisa').classList.toggle('active', tabName === 'fisa');
-        const jurnalConfirm = document.getElementById('jurnalConfirmationMessage');
-        const fisaConfirm = document.getElementById('fisaConfirmationMessage');
-        if (jurnalConfirm) jurnalConfirm.style.display = 'none';
-        if (fisaConfirm) fisaConfirm.style.display = 'none';
+        document.getElementById('jurnalConfirmationMessage').style.display = 'none';
+        document.getElementById('fisaConfirmationMessage').style.display = 'none';
     }
 
     function updateFisaProgressBar() {
@@ -177,7 +177,6 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
     }
 
     function initializeFisaFormFunctionality() {
-        console.log("[INIT_FISA] Inițializare funcționalitate formular fișă.");
         const formSteps = document.querySelectorAll('form#fisaExercitiuForm div.question-card.form-step');
         if (formSteps.length > 0) {
             totalFisaSteps = formSteps.length;
@@ -188,7 +187,6 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
             updateFisaProgressBar();
         } else {
             totalFisaSteps = 0;
-            console.warn("[INIT_FISA] Nu s-au găsit pași pentru formularul fișă.");
         }
         document.getElementById("fisaNextButton")?.addEventListener("click", fisaNextStep);
         document.getElementById("fisaPrevButton")?.addEventListener("click", fisaPreviousStep);
@@ -203,38 +201,33 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
 
         if (show && promptData) {
             selectedJurnalPrompt = promptData;
-            if (titleEl) titleEl.textContent = `Ghid activ: ${promptData.label}`;
-            if (contentEl) contentEl.textContent = promptData.text;
-            if (box) box.style.display = 'block';
+            if(titleEl) titleEl.textContent = `Ghid activ: ${promptData.label}`;
+            if(contentEl) contentEl.textContent = promptData.text;
+            if(box) box.style.display = 'block';
             if (contentEl) contentEl.scrollTop = 0;
-
+            
             if (journalTextarea && journalTextarea.value.trim() !== "" && promptData.id !== (selectedJurnalPrompt?.previousIdForClearCheck)) {
                 if (confirm("Dorești să ștergi conținutul actual al jurnalului pentru a începe cu acest nou ghid?")) {
                    journalTextarea.value = "";
                 }
             }
-            if (selectedJurnalPrompt) selectedJurnalPrompt.previousIdForClearCheck = promptData.id;
+            if(selectedJurnalPrompt) selectedJurnalPrompt.previousIdForClearCheck = promptData.id;
         } else {
             selectedJurnalPrompt = null;
-            if (box) box.style.display = 'none';
+            if(box) box.style.display = 'none';
         }
     }
 
-    window.hideActiveJurnalPromptManual = function() {
+    window.hideActiveJurnalPromptManual = function() { // Rămâne globală pentru onclick din HTML
         const box = document.getElementById('activeJurnalPromptBox');
-        if (box) box.style.display = 'none';
+        if(box) box.style.display = 'none';
     }
 
-    async function salveazaIntrospectieFisa() {
-        console.log("[FISA_SAVE] Încercare salvare fișă.");
+       async function salveazaIntrospectieFisa() {
         const form = document.getElementById("fisaExercitiuForm");
         const confirmationMessage = document.getElementById('fisaConfirmationMessage');
 
-        if (!form) {
-            console.error("[FISA_SAVE] Formularul 'fisaExercitiuForm' nu a fost găsit.");
-            return;
-        }
-        if (!form.checkValidity()) {
+        if (form && !form.checkValidity()) {
             form.reportValidity();
             const currentStepElement = form.querySelector('.form-step-active');
             const firstInvalidField = currentStepElement?.querySelector(':invalid:not(fieldset)');
@@ -242,14 +235,19 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
                 firstInvalidField.focus();
                 alert("Vă rugăm completați toate câmpurile obligatorii din pasul curent înainte de a salva.");
             } else {
-                alert("Vă rugăm completați toate câmpurile obligatorii din pasul curent.");
+                alert("Vă rugăm completați toate câmpurile obligatorii.");
             }
             return;
         }
 
         const continutFisa = {};
-        const formData = new FormData(form);
-        formData.forEach((value, key) => { continutFisa[key] = value.trim(); });
+        if (form) {
+            const formData = new FormData(form);
+            formData.forEach((value, key) => { continutFisa[key] = value.trim(); });
+        } else {
+            console.error("Formularul 'fisaExercitiuForm' nu a fost găsit.");
+            return;
+        }
 
         const introspectieData = {
             ownerUid: currentUserId,
@@ -265,38 +263,37 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
         }
 
         const addButton = document.getElementById("fisaAddButton");
-        let originalAddButtonText = addButton ? addButton.textContent : "Salvează Fișa și Generează Feedback AI";
+        let originalAddButtonText = "";
         if (addButton) {
+            originalAddButtonText = addButton.textContent;
             addButton.textContent = "Se salvează și se generează...";
             addButton.disabled = true;
         }
         if (confirmationMessage) confirmationMessage.style.display = 'none';
 
         try {
-            console.log("[FISA_SAVE] Salvare date fișă în Firestore...");
             const docRef = await addDoc(collection(db, "introspectii"), introspectieData);
-            introspectieData.id = docRef.id;
-            console.log("[FISA_SAVE] Fișă salvată cu ID:", docRef.id, ". Se generează feedback AI...");
+            introspectieData.id = docRef.id; // Adaugă ID-ul pentru generarea feedback-ului
             if (addButton) addButton.textContent = "Se generează AI...";
 
             const feedbackGenerat = await genereazaFeedbackPentruIntrospectie(introspectieData);
-            console.log("[FISA_SAVE] Feedback AI generat:", feedbackGenerat ? 'DA' : 'NU', feedbackGenerat?.error ? 'CU EROARE' : 'FĂRĂ EROARE');
-
-            const docSnapshot = await getDoc(docRef);
+            
+            const docSnapshot = await getDoc(docRef); // Re-fetch pentru a avea și feedback-ul salvat
             if (docSnapshot.exists()) {
                 afiseazaCardIntrospectie({ id: docSnapshot.id, ...docSnapshot.data() });
             } else {
-                console.warn("[FISA_SAVE] Documentul nu a fost găsit imediat după salvare. Folosim date locale pentru afișare.");
-                introspectieData.feedbackAI_history = feedbackGenerat && !feedbackGenerat.error && !feedbackGenerat.error_parsing ? [feedbackGenerat] : [];
+                // Fallback dacă doc-ul nu e imediat vizibil (puțin probabil)
+                introspectieData.feedbackAI_history = feedbackGenerat && !feedbackGenerat.error ? [feedbackGenerat] : [];
                 afiseazaCardIntrospectie(introspectieData);
             }
 
-            form.reset();
-            currentFisaStep = 1;
-            document.querySelectorAll('form#fisaExercitiuForm .form-step').forEach(step => step.classList.remove('form-step-active'));
-            document.getElementById('fisa-step-1')?.classList.add('form-step-active');
-            updateFisaProgressBar();
-            console.log("[FISA_SAVE] Formular fișă resetat.");
+            if (form) {
+                form.reset(); currentFisaStep = 1;
+                form.querySelectorAll('.form-step').forEach(step => step.classList.remove('form-step-active'));
+                const firstStepEl = document.getElementById('fisa-step-1');
+                if (firstStepEl) firstStepEl.classList.add('form-step-active');
+                updateFisaProgressBar();
+            }
 
             if (confirmationMessage) {
                 if (feedbackGenerat && !feedbackGenerat.error && !feedbackGenerat.error_parsing) {
@@ -313,12 +310,11 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
                 setTimeout(() => { if (confirmationMessage) confirmationMessage.style.display = 'none'; }, 9000);
             }
         } catch (error) {
-            console.error("[FISA_SAVE] Eroare la salvarea fișei sau generare feedback:", error);
+            console.error("Eroare la salvarea fișei sau generare feedback:", error);
             if (confirmationMessage) {
                 confirmationMessage.textContent = 'Eroare la salvarea fișei. Încercați din nou.';
                 confirmationMessage.className = 'confirmation-message error';
                 confirmationMessage.style.display = 'block';
-                 setTimeout(() => { if (confirmationMessage) confirmationMessage.style.display = 'none'; }, 7000);
             }
         } finally {
             if (addButton) {
@@ -329,13 +325,9 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
     }
 
     function initializeJurnalFormFunctionality() {
-        console.log("[INIT_JURNAL] Inițializare funcționalitate formular jurnal.");
         const promptsContainerEl = document.getElementById("reflectionPrompts");
         const journalTextarea = document.getElementById("journalContent");
-        if (!promptsContainerEl || !journalTextarea) {
-             console.warn("[INIT_JURNAL] Elemente DOM lipsă pentru formularul jurnal.");
-             return;
-        }
+        if (!promptsContainerEl || !journalTextarea) return;
 
         promptsContainerEl.innerHTML = '';
         jurnalPromptsList.forEach(prompt => {
@@ -353,25 +345,20 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
         document.getElementById("saveJournalEntryButton")?.addEventListener("click", salveazaIntrospectieJurnal);
     }
 
-    async function salveazaIntrospectieJurnal() {
-        console.log("[JURNAL_SAVE] Încercare salvare jurnal.");
+        async function salveazaIntrospectieJurnal() {
         const journalTextarea = document.getElementById("journalContent");
         const journalTitleInput = document.getElementById("journalTitle");
         const confirmationMessage = document.getElementById('jurnalConfirmationMessage');
 
-        if (!journalTextarea || !journalTitleInput || !confirmationMessage) {
-            console.error("[JURNAL_SAVE] Elemente DOM lipsă pentru salvarea jurnalului.");
-            return;
-        }
-
-        if (journalTextarea.value.trim() === "") {
+        if (!journalTextarea || journalTextarea.value.trim() === "") {
             alert("Vă rugăm să scrieți ceva în jurnal înainte de a salva.");
             return;
         }
 
         const tipPromptFolosit = selectedJurnalPrompt ? selectedJurnalPrompt.id : "prompt_personalizat";
+
         const continutJurnal = {
-            titluJurnal: (journalTitleInput.value.trim() !== "") ? journalTitleInput.value.trim() : `Intrare din ${new Date().toLocaleDateString("ro-RO")}`,
+            titluJurnal: (journalTitleInput?.value.trim() !== "") ? journalTitleInput.value.trim() : `Intrare din ${new Date().toLocaleDateString("ro-RO")}`,
             textJurnal: journalTextarea.value,
             promptUtilizatJurnal: tipPromptFolosit
         };
@@ -390,95 +377,83 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
         }
 
         const saveButton = document.getElementById("saveJournalEntryButton");
-        const originalButtonText = saveButton ? saveButton.textContent : "Salvează Jurnal și Cere Feedback AI";
-        if (saveButton) {
-            saveButton.textContent = "Se salvează...";
-            saveButton.disabled = true;
-        }
-        confirmationMessage.style.display = 'none';
+        const originalButtonText = saveButton.textContent;
+        saveButton.textContent = "Se salvează..."; saveButton.disabled = true;
+        if(confirmationMessage) confirmationMessage.style.display = 'none';
 
         try {
-            console.log("[JURNAL_SAVE] Salvare date jurnal în Firestore...");
             const docRef = await addDoc(collection(db, "introspectii"), introspectieData);
             introspectieData.id = docRef.id;
-            console.log("[JURNAL_SAVE] Jurnal salvat cu ID:", docRef.id, ". Se generează feedback AI...");
-            if (saveButton) saveButton.textContent = "Se generează AI...";
+            saveButton.textContent = "Se generează AI...";
 
             const parsedFeedback = await genereazaFeedbackPentruIntrospectie(introspectieData);
-            console.log("[JURNAL_SAVE] Feedback AI generat:", parsedFeedback ? 'DA' : 'NU', parsedFeedback?.error ? 'CU EROARE' : 'FĂRĂ EROARE');
-
 
             const docSnapshot = await getDoc(docRef);
             if (docSnapshot.exists()) {
                 afiseazaCardIntrospectie({ id: docSnapshot.id, ...docSnapshot.data() });
             } else {
-                 console.warn("[JURNAL_SAVE] Documentul nu a fost găsit imediat după salvare. Folosim date locale.");
-                introspectieData.feedbackAI_history = parsedFeedback && !parsedFeedback.error && !parsedFeedback.error_parsing ? [parsedFeedback] : [];
+                introspectieData.feedbackAI_history = parsedFeedback && !parsedFeedback.error ? [parsedFeedback] : [];
                 afiseazaCardIntrospectie(introspectieData);
             }
 
             journalTextarea.value = "";
-            journalTitleInput.value = "";
-            toggleActiveJurnalPrompt(false);
+            if (journalTitleInput) journalTitleInput.value = "";
+            toggleActiveJurnalPrompt(false); // Ascunde ghidul activ
             if(selectedJurnalPrompt) selectedJurnalPrompt.previousIdForClearCheck = null;
-            console.log("[JURNAL_SAVE] Formular jurnal resetat.");
 
-            confirmationMessage.textContent = parsedFeedback.error ? `Intrare salvată. Feedback AI: ${parsedFeedback.rawText || 'Eroare necunoscută la generare.'}` : 'Intrare salvată și feedback AI generat!';
-            confirmationMessage.className = `confirmation-message ${parsedFeedback.error ? 'error' : 'success'}`;
-            confirmationMessage.style.display = 'block';
-            setTimeout(() => { confirmationMessage.style.display = 'none'; }, 9000);
-
-        } catch (error) {
-            console.error("[JURNAL_SAVE] Eroare la salvarea intrării de jurnal sau generare feedback:", error);
-            confirmationMessage.textContent = 'Eroare la salvare sau la generarea feedback-ului AI.';
-            confirmationMessage.className = 'confirmation-message error';
-            confirmationMessage.style.display = 'block';
-             setTimeout(() => { confirmationMessage.style.display = 'none'; }, 7000);
-        } finally {
-            if (saveButton) {
-                saveButton.textContent = originalButtonText;
-                saveButton.disabled = false;
+            if(confirmationMessage) {
+                confirmationMessage.textContent = parsedFeedback.error ? `Intrare salvată. Feedback AI: ${parsedFeedback.rawText}` : 'Intrare salvată și feedback AI generat!';
+                confirmationMessage.className = `confirmation-message ${parsedFeedback.error ? 'error' : 'success'}`;
+                confirmationMessage.style.display = 'block';
+                setTimeout(() => { if(confirmationMessage) confirmationMessage.style.display = 'none'; }, 9000);
             }
+        } catch (error) {
+            console.error("Eroare la salvarea intrării de jurnal sau generare feedback:", error);
+            if(confirmationMessage){
+                confirmationMessage.textContent = 'Eroare la salvare sau la generarea feedback-ului AI.';
+                confirmationMessage.className = 'confirmation-message error';
+                confirmationMessage.style.display = 'block';
+            }
+        } finally {
+            saveButton.textContent = originalButtonText;
+            saveButton.disabled = false;
         }
     }
 
     async function callGeminiAPI(promptText, modelToUse, generationConfigOptions = {}) {
         if (!modelToUse) {
-            console.error("[GEMINI_API] Modelul Gemini specificat este invalid sau neinițializat.");
-            return "EROARE: Model AI neinițializat.";
+            console.error("Modelul Gemini specificat este invalid sau neinițializat.");
+            return "EROARE: Model AI neinițializat. Verifică cheia API.";
         }
         try {
-            const modelIdentifier = modelToUse === geminiModelChat ? "Chat" : (modelToUse === geminiModelFisaFeedback ? "Fișă" : "Jurnal");
-            console.log(`[GEMINI_API] Trimitere la Gemini. Model: ${modelIdentifier}, Config: ${JSON.stringify(generationConfigOptions)}, Prompt (primele 100): ${promptText.substring(0, 100)}...`);
+            console.log(`Trimitem la Gemini (${modelToUse === geminiModelChat ? "Chat" : (modelToUse === geminiModelFisaFeedback ? "Fișă" : "Jurnal") }, primele 200 caractere):`, promptText.substring(0, 20000));
             const requestPayload = {
                 contents: [{ role: "user", parts: [{ text: promptText }] }],
-                generationConfig: { temperature: 0.6, maxOutputTokens: 8192, ...generationConfigOptions }
+                generationConfig: { temperature: 0.6, maxOutputTokens: 80000, ...generationConfigOptions }
             };
             const result = await modelToUse.generateContent(requestPayload);
             const response = result.response;
 
             if (response?.candidates?.[0]?.content?.parts?.[0]?.text) {
                 if (response.candidates[0].finishReason && !["STOP", "MAX_TOKENS"].includes(response.candidates[0].finishReason)) {
-                    console.warn("[GEMINI_API] Generare oprită prematur:", response.candidates[0].finishReason, response.candidates[0].safetyRatings);
-                    return `EROARE Gemini: Generare oprită (Motiv: ${response.candidates[0].finishReason}).`;
+                    console.warn("Gemini a oprit generarea prematur:", response.candidates[0].finishReason, response.candidates[0].safetyRatings);
+                    return `EROARE Gemini: Generare oprită (Motiv: ${response.candidates[0].finishReason}). Detalii: ${JSON.stringify(response.candidates[0].safetyRatings || 'N/A')}`;
                 }
-                console.log("[GEMINI_API] Răspuns primit cu succes.");
                 return response.candidates[0].content.parts[0].text;
             } else if (response?.promptFeedback?.blockReason) {
-                console.error("[GEMINI_API] Prompt blocat de Gemini:", response.promptFeedback);
-                return `EROARE Gemini: Prompt blocat (Motiv: ${response.promptFeedback.blockReason}).`;
+                console.error("Prompt blocat de Gemini:", response.promptFeedback.blockReasonDetail || response.promptFeedback.blockReason);
+                 return `EROARE Gemini: Prompt blocat (Motiv: ${response.promptFeedback.blockReason}). Detalii: ${JSON.stringify(response.promptFeedback.blockReasonDetail || response.promptFeedback.safetyRatings || 'N/A')}`;
             } else {
-                console.error("[GEMINI_API] Răspuns Gemini neașteptat sau gol:", JSON.stringify(response, null, 2));
-                return "EROARE Gemini: Răspuns invalid/gol.";
+                console.error("Răspuns Gemini neașteptat sau gol:", JSON.stringify(response, null, 2));
+                return "EROARE Gemini: Răspuns invalid sau gol de la API.";
             }
         } catch (error) {
-            console.error("[GEMINI_API] Eroare detaliată la callGeminiAPI:", error, error.message, error.stack);
+            console.error("Eroare detaliată la callGeminiAPI:", error, error.stack);
             let errorMessage = `EROARE Gemini: ${error.message || "Eroare API necunoscută"}`;
-            if (error.toString().toLowerCase().includes("api key not valid") ||
+             if (error.toString().toLowerCase().includes("api key not valid") ||
                 (error.message && error.message.toLowerCase().includes("permission denied")) ||
                 (error.message && error.message.toLowerCase().includes("api_key_invalid")) ||
-                (error.status && error.status === 403) ||
-                (error.message && error.message.toLowerCase().includes("api_key_not_valid")) ) {
+                (error.status && error.status === 403)) {
                  errorMessage = "EROARE: Cheia API Gemini nu este validă sau nu are permisiuni.";
             } else if (error.message && (error.message.toLowerCase().includes("quota") || (error.status && error.status === 429) || (error.toString().toLowerCase().includes("resource has been exhausted")) )) {
                 errorMessage = "EROARE: Limita de utilizare API Gemini a fost depășită.";
@@ -492,13 +467,16 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
                  errorMessage = `EROARE Gemini: Modelul ${modelName} nu a fost găsit.`;
             }
             return errorMessage;
-        }
+         }
     }
 
     function buildAdaptiveAIPromptFisa(introspectieData) {
         const rowData = introspectieData.continut;
-        return `Analizează în profunzime această fișă completă de auto-reflecție. Utilizatorul a parcurs un exercițiu detaliat pentru a-și înțelege o situație specifică. Oferă feedback psihologic structurat, empatic și acționabil. Respectă cu strictețe formatul și ordinea secțiunilor de mai jos, folosind exact prefixele indicate (ex: \`EmpatieInițială:\`, \`PuncteForteObservate:\`). Folosește Markdown pentru formatarea textului în interiorul fiecărei secțiuni (ex: \`**Text bold**\`, \`*Text italic*\`, liste cu \`* Element\`).
+        return `
+Analizează în profunzime această fișă completă de auto-reflecție. Utilizatorul a parcurs un exercițiu detaliat pentru a-și înțelege o situație specifică. Oferă feedback psihologic structurat, empatic și acționabil. Respectă cu strictețe formatul și ordinea secțiunilor de mai jos, folosind exact prefixele indicate (ex: \`EmpatieInițială:\`, \`PuncteForteObservate:\`). Folosește Markdown pentru formatarea textului în interiorul fiecărei secțiuni (ex: \`**Text bold**\`, \`*Text italic*\`, liste cu \`* Element\`).
+
 **Datele Complete din Fișa de Reflecție a Utilizatorului:**
+
 **Secțiunea 1: Explorarea Situației și a Nevoilor**
 *   Care este situația?: ${rowData.situatie || 'N/A'}
 *   Ce îmi trece prin minte (gânduri automate)?: ${rowData.ganduri || 'N/A'}
@@ -508,6 +486,7 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
 *   Care sunt nevoile tale mai profunde?: ${rowData.nevoi_profunde || 'N/A'}
 *   Mă ajută comportamentul meu să îndeplinesc aceste nevoi?: ${rowData.ajutor_comportament || 'N/A'}
 *   Cum ar gândi și cum s-ar comporta Adultul Sănătos (perspectiva utilizatorului)?: ${rowData.adult_sanatos || 'N/A'}
+
 **Secțiunea 2: Analiza Gândurilor și a Percepțiilor**
 *   Ce mă face să cred că gândul automat este adevărat?: ${rowData.dovezi_adevar || 'N/A'}
 *   Ce mă face să cred că nu este adevărat?: ${rowData.dovezi_fals || 'N/A'}
@@ -517,6 +496,7 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
 *   Care este cel mai realist rezultat?: ${rowData.rezultat_realist || 'N/A'}
 *   Ce s-ar întâmpla dacă mi-aș schimba modul de gândire?: ${rowData.schimbare_gandire || 'N/A'}
 *   Ce i-aș spune unui prieten dacă ar fi în aceeași situație?: ${rowData.sfat_prieten || 'N/A'}
+
 **Secțiunea 3: Întrebări pentru Claritate și Reflecție Suplimentară**
 *   Văd doar partea rea a lucrurilor?: ${rowData.partea_rea || 'N/A'}
 *   Îmi asum responsabilitatea pentru lucruri care nu au stat în puterea mea?: ${rowData.responsabilitate || 'N/A'}
@@ -529,7 +509,9 @@ Continuă conversația ca ghid AI pentru introspecție, alternând stilurile Jan
 *   Mă concentrez doar asupra slăbiciunilor mele?: ${rowData.slabiciuni || 'N/A'}
 *   Mă zbat prea mult gândind la cum ar trebui să fie lucrurile?: ${rowData.cum_ar_trebui || 'N/A'}
 *   Mă aștept să fiu perfect?: ${rowData.perfectiune || 'N/A'}
+
 **CERINȚE PENTRU FEEDBACK-UL AI (folosește prefixele EXACT așa cum sunt scrise și formatarea Markdown în interiorul răspunsurilor):**
+
 EmpatieInițială: (1-2 propoziții empatice scurte, recunoscând efortul utilizatorului.)
 PuncteForteObservate: (Identifică 1-2 aspecte pozitive sau de auto-conștientizare observate în răspunsurile utilizatorului.)
 TiparePrincipale: (Descrie succint 1-3 tipare de gândire/emoționale/comportamentale centrale care reies din fișă.)
@@ -555,6 +537,7 @@ PerspectivaAdultSănătos: (Comentează răspunsul utilizatorului despre cum ar 
 ÎntrebareFinalăReflecție: (O întrebare generală, puternică și deschisă, care să încurajeze utilizatorul să integreze învățămintele din această fișă în viața sa de zi cu zi sau să reflecteze la un aspect mai larg.)
 SugestieMicPas: (O sugestie concretă, mică și realizabilă, pentru un pas pe care utilizatorul l-ar putea face în următoarele zile pentru a exersa o abilitate nouă, a contesta un gând, sau a acționa din perspectiva Adultului Sănătos, bazat pe analiza fișei.)
 ÎncurajareFinală: (1-2 propoziții de încurajare, validare și speranță.)
+
 Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată feedback-ul...") sau concluzii suplimentare ("Sper că acest feedback..."), în afara celor specificate. Asigură-te că fiecare secțiune începe exact cu prefixul dat (ex: \`EmpatieInițială:\`).`;
     }
 
@@ -562,18 +545,107 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
         const { titluJurnal, textJurnal, promptUtilizatJurnal } = introspectieData.continut;
         let specificInstructions = "";
         let modelFocus = "feedback general și reflecție";
-        let guideText = jurnalPromptsList.find(p => p.id === promptUtilizatJurnal)?.text || null;
+        let guideText = null;
 
-        let basePrompt = `Ești PsihoGPT ... (promptul tău complet pentru jurnal) ... Mulțumesc!`;
-        // ... (logica switch pentru specificInstructions ca înainte) ...
-        // ... (construirea promptului final cu ghidReferintaText etc.)
-        return `${basePrompt} ... (restul promptului tău) ... Mulțumesc!`;
+        const ghidGasit = jurnalPromptsList.find(p => p.id === promptUtilizatJurnal);
+        if (ghidGasit) {
+            guideText = ghidGasit.text;
+        }
+
+        let basePrompt = `Ești PsihoGPT – un terapeut AI avansat, extrem de empatic, cu o profundă înțelegere a psihologiei umane, antrenat în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor, Terapia prin Acceptare și Angajament (ACT), Scrierea Expresivă și principii de mindfulness. Comunică într-un limbaj cald, validant și ușor de înțeles, dar păstrează profunzimea analitică. Folosește formatare Markdown pentru structurare (titluri principale cu \`**Titlu Principal**\`, subtitluri dacă e cazul cu \`### Subtitlu\`, liste cu \`* Element listă\`, text bold cu \`**text bold**\` și italic cu \`*text italic*\` unde e cazul). Evită citatele direct din literatură dacă nu sunt absolut esențiale, concentrează-te pe limbajul tău.
+
+Obiectivul tău este să oferi un feedback personalizat, constructiv și profund pentru următoarea intrare în jurnal. Nu oferi sfaturi medicale sau diagnostice. Concentrează-te pe facilitarea auto-înțelegerii și a creșterii personale. Utilizatorul a avut la dispoziție un ghid vizual (tipul: "${promptUtilizatJurnal}") pentru a-și structura gândurile, iar textul de mai jos reprezintă răspunsurile sale la acel ghid sau o reflecție liberă inspirată de el.`;
+
+        switch (promptUtilizatJurnal) {
+            case "ritual_reconstructie":
+                specificInstructions = `Utilizatorul a folosit ghidul "Ritual de Reconstrucție Interioară", care are 7 secțiuni principale (I. Invitație la Autenticitate, II. Containere Emoționale, III. Decodificare Narativă, IV. Integrare Explicativă, V. Compasiune și Blândețe, VI. Reconfigurare Identitară, VII. Actul Sacru de Alegere) și poate o secțiune VIII (Scrisoare-Ritual). Feedback-ul tău AR TREBUI SĂ URMEZE ACEASTĂ STRUCTURĂ. Pentru FIECARE secțiune a ritualului (I-VII și opțional VIII):
+1.  **Numește secțiunea clar** (ex: \`**I. Invitație la Autenticitate:**\`).
+2.  Pe baza textului utilizatorului (\`Text Complet Jurnal Utilizator\` de mai jos), **extrage și reflectă** ce a scris sau ce pare să fi explorat pentru ACEASTĂ secțiune specifică. Fii concis și la obiect. Dacă utilizatorul nu pare să fi adresat o secțiune, menționează scurt sau sari peste ea.
+3.  **Oferă o scurtă validare empatică** dacă a completat ceva relevant pentru secțiune.
+4.  **Pune 1-2 întrebări de aprofundare SPECIFICE** pentru acea secțiune.
+După ce ai parcurs secțiunile individuale, adaugă o secțiune de \`**### Concluzii și Reflecții Finale:**\`
+*   **Sinteza Conexiunilor:** Identifică 1-2 conexiuni sau teme generale.
+*   **Încurajare și Pași Următori:** Încurajează procesul de transformare.`;
+                modelFocus = "analiză structurată a ritualului de reconstrucție.";
+                break;
+            case "dialog_voce_critica":
+                specificInstructions = `Utilizatorul a folosit ghidul "Dialog Voce Critică". Analizează răspunsurile și structurează feedback-ul:
+1.  **\`**Validare Empatică Inițială:\`**
+2.  **\`**Analiza Mesajului Critic:\`**
+3.  **\`**Impactul Emoțional și Corporal:\`**
+4.  **\`**Originea Vocii (dacă e explorată):\`**
+5.  **\`**Nevoia Neîmplinită:\`**
+6.  **\`**Forța Adultului Sănătos:\`**
+7.  **\`**### Întrebări de Aprofundare și Direcții:\`** (1-2 întrebări)
+8.  **\`**Notă despre Scheme (opțional):\`**`;
+                modelFocus = "analiză dialog voce critică, cultivarea Adultului Sănătos.";
+                break;
+            case "explorare_emotie":
+                specificInstructions = `Utilizatorul a folosit ghidul "Explorează o emoție". Feedback-ul parcurge pașii:
+1.  **\`**Validarea Emoției Denumite:\`**
+2.  **\`**Conexiunea Corp-Emoție:\`**
+3.  **\`**Relația Gânduri-Emoție:\`**
+4.  **\`**Contextul și Declanșatorul:\`**
+5.  **\`**Nevoia Fundamentală Semnalată:\`**
+6.  **\`**Gestul de Auto-Compasiune:\`**
+7.  **\`**### Reflecții Suplimentare și Întrebări:\`** (1-2 întrebări)`;
+                modelFocus = "analiză explorare emoție, înțelegere profundă.";
+                break;
+            case "recunostinta_resurse":
+                specificInstructions = `Utilizatorul a folosit "Recunoștință & Resurse". Structurează:
+1.  **\`**Aprecierea Practicii Recunoștinței:\`**
+2.  **\`**Observații asupra Elementelor de Recunoștință:\`**
+3.  **\`**Explorarea Resursei Interioare:\`**
+4.  **\`**Impactul Gestului de Auto-Îngrijire:\`**
+5.  **\`**### Întrebări pentru Consolidare:\`** (1-2 întrebări)`;
+                modelFocus = "încurajare recunoștință, conectare resurse.";
+                break;
+            case "analiza_situatie":
+                specificInstructions = `Utilizatorul a folosit "Analizează o situație". Reflectă structura:
+1.  **\`**Recunoașterea Efortului Analitic:\`**
+2.  **\`**Situația și Faptele:\`**
+3.  **\`**Interpretarea Inițială și Emoțiile:\`**
+4.  **\`**Puterea Reîncadrării (Reframing):\`**
+5.  **\`**Lecții Învățate:\`**
+6.  **\`**### Întrebări pentru Acțiune și Integrare:\`** (1-2 întrebări)`;
+                modelFocus = "susținere analiză situație, reîncadrare, acțiuni.";
+                break;
+            default: // prompt_personalizat
+                specificInstructions = `Utilizatorul a scris o intrare liberă. Feedback empatic:
+1.  **\`**Validare Empatică Generală:\`**
+2.  **\`**Identificarea Temelor Centrale (1-2):\`**
+3.  **\`**Reflecție Oglindă:\`**
+4.  **\`**### Întrebări Deschise și Evocatoare (2-3):\`**
+5.  **\`**Încurajare Finală:\`**`;
+                modelFocus = "reflecție empatică text liber, identificare teme, întrebări deschise.";
+                break;
+        }
+
+        const ghidReferintaText = guideText ? `\n\n--- TEXTUL GHIDULUI DE REFERINȚĂ (NU RĂSPUNSURILE UTILIZATORULUI) ---\n\`\`\`\n${guideText}\n\`\`\`\nUtilizatorul a avut acest ghid afișat și a scris răspunsurile în secțiunea "Text Complet Jurnal Utilizator" de mai jos.` : "\n\nUtilizatorul a scris liber sau detaliile specifice ale ghidului nu sunt furnizate aici; concentrează-te pe răspunsurile utilizatorului și tipul de ghid general.";
+
+        return `${basePrompt}
+${ghidReferintaText}
+
+**Focusul specific pentru această intrare de jurnal (bazat pe ghidul "${promptUtilizatJurnal}") este: ${modelFocus}.**
+
+**Instrucțiuni specifice pentru feedback bazat pe tipul de ghid ("${promptUtilizatJurnal}"):**
+${specificInstructions}
+---
+**INFORMAȚII DESPRE INTRAREA UTILIZATORULUI:**
+Titlu Jurnal: ${titluJurnal || "Fără titlu"}
+Tipul de Ghid Utilizat (selectat de utilizator / detectat): ${promptUtilizatJurnal}
+
+**TEXT COMPLET JURNAL UTILIZATOR (RĂSPUNSURILE SALE):**
+\`\`\`
+${textJurnal}
+\`\`\`
+---
+Te rog să generezi un feedback AI detaliat, empatic și structurat conform instrucțiunilor de mai sus, personalizat pe baza textului furnizat de utilizator. Asigură-te că respecți formatarea Markdown cerută pentru lizibilitate. Mulțumesc!`;
     }
 
     async function genereazaFeedbackPentruIntrospectie(introspectieData) {
-        console.log(`[FEEDBACK_GEN] Generare feedback pentru ID: ${introspectieData.id}, Tip: ${introspectieData.type}`);
         if (!introspectieData || !introspectieData.id || !introspectieData.type || !introspectieData.continut) {
-            return { rawText: "EROARE: Date incomplete pentru feedback.", error: true, timestamp: new Date().toISOString() };
+            return { rawText: "EROARE: Date incomplete.", error: true, timestamp: new Date().toISOString() };
         }
         let promptText = "";
         let modelToUse = null;
@@ -590,7 +662,7 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
             modelToUse = geminiModelJurnalFeedback;
             modelNameForLog = GEMINI_MODEL_NAME_FEEDBACK_JURNAL;
         } else {
-            return { rawText: "EROARE: Tip introspecție necunoscut pentru feedback.", error: true, timestamp: new Date().toISOString() };
+            return { rawText: "EROARE: Tip introspecție necunoscut.", error: true, timestamp: new Date().toISOString() };
         }
 
         const feedbackRawText = await callGeminiAPI(promptText, modelToUse);
@@ -599,9 +671,9 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
             model: `Gemini (${modelNameForLog})`,
             timestamp: new Date().toISOString(),
             error: typeof feedbackRawText === 'string' && feedbackRawText.toUpperCase().startsWith("EROARE:"),
-            error_parsing: false // Va fi setat la true dacă parsarea eșuează pentru fișe
+            error_parsing: false
         };
-
+        
         if (introspectieData.type === 'fisa' && !parsedFeedback.error) {
             const feedbackStructure = {
                 empatie_initiala: /^EmpatieInițială:\s*([\s\S]*?)(?=\n\S*?:|$)/im,
@@ -622,17 +694,10 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
                 if (match && match[1] && match[1].trim() !== "") {
                      parsedFeedback[key] = match[1].trim();
                 } else {
-                    console.warn(`[FEEDBACK_PARSE] Secțiunea '${key}' nu a putut fi extrasă din feedback-ul fișei.`);
-                    parsedFeedback[key] = `(Secțiune neextrasă: ${key})`;
-                    allParsingOk = false;
+                    parsedFeedback[key] = `(Secțiune neextrasă: ${key})`; allParsingOk = false;
                 }
             }
-            if (!allParsingOk) {
-                parsedFeedback.error_parsing = true;
-                console.warn("[FEEDBACK_PARSE] Parsarea feedback-ului pentru fișă a eșuat parțial.");
-            } else {
-                 console.log("[FEEDBACK_PARSE] Feedback fișă parsat cu succes.");
-            }
+            if (!allParsingOk) parsedFeedback.error_parsing = true;
         } else if (introspectieData.type === 'jurnal' && !parsedFeedback.error) {
             parsedFeedback.promptTypeAtGeneration = introspectieData.continut.promptUtilizatJurnal || "necunoscut";
         }
@@ -640,20 +705,16 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
         const docRef = doc(db, "introspectii", introspectieData.id);
         try {
             await updateDoc(docRef, { feedbackAI_history: arrayUnion(parsedFeedback) });
-            console.log(`[FEEDBACK_SAVE] Feedback AI (tip: ${introspectieData.type}) salvat pentru introspecție ID: ${introspectieData.id}`);
+            console.log(`Feedback AI (tip: ${introspectieData.type}) salvat pentru ${introspectieData.id}`);
         } catch (updateError) {
-            console.error(`[FEEDBACK_SAVE] Eroare la actualizarea feedback-ului în Firestore pentru ID ${introspectieData.id}:`, updateError);
+            console.error(`Eroare update feedback pentru ${introspectieData.id}:`, updateError);
         }
         return parsedFeedback;
     }
 
     async function incarcaToateIntrospectiile(userId) {
-        console.log(`[LOAD_INTROSPECTIONS] Încărcare toate introspecțiile pentru user ID: ${userId}`);
         const container = document.getElementById("introspectiiCardContainer");
-        if (!container || !userId) {
-            console.warn("[LOAD_INTROSPECTIONS] Container sau User ID lipsă.");
-            return;
-        }
+        if (!container || !userId) return;
         let loadingMsg = container.querySelector(".loading-message");
         if (!container.querySelector('.introspectie-card') && !loadingMsg) {
             loadingMsg = document.createElement("p");
@@ -661,62 +722,980 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
             loadingMsg.textContent = "Se încarcă introspecțiile...";
             container.appendChild(loadingMsg);
         }
-
         try {
             const q = query(collection(db, "introspectii"), where("ownerUid", "==", userId), orderBy("timestampCreare", "desc"));
-            console.log("[LOAD_INTROSPECTIONS] Query Firestore construit. Se așteaptă getDocs...");
-            const querySnapshotFromFirestore = await getDocs(q);
-            console.log("[LOAD_INTROSPECTIONS] Rezultat getDocs primit. Definit?", typeof querySnapshotFromFirestore !== 'undefined');
-
+            const querySnapshot = await getDocs(q);
             if (loadingMsg) loadingMsg.remove();
-            container.innerHTML = '';
-
-            if (!querySnapshotFromFirestore) {
-                console.error("[LOAD_INTROSPECTIONS] FATAL: querySnapshotFromFirestore este undefined după await!");
-                container.innerHTML = "<p class='error-loading-message'>Eroare internă la preluarea datelor introspecțiilor.</p>";
-                return;
-            }
-
-            if (querySnapshotFromFirestore.empty) {
-                console.log("[LOAD_INTROSPECTIONS] Nicio introspecție găsită în Firestore.");
+            container.innerHTML = ''; 
+            if (querySnapshot.empty) {
                 container.innerHTML = "<p class='no-entries-message'>Nicio introspecție salvată.</p>";
             } else {
-                console.log(`[LOAD_INTROSPECTIONS] Găsit ${querySnapshotFromFirestore.docs.length} introspecții.`);
-                querySnapshotFromFirestore.forEach((docSnap) => {
+                querySnapshot.forEach((docSnap) => {
                     afiseazaCardIntrospectie({ id: docSnap.id, ...docSnap.data() });
                 });
             }
         } catch (error) {
-            console.error("[LOAD_INTROSPECTIONS] Eroare în blocul try/catch:", error, error.stack);
+            console.error("Eroare încărcare introspecții:", error);
             if (loadingMsg) loadingMsg.remove();
-            if (container && !container.querySelector('.introspectie-card')) {
+            if (!container.querySelector('.introspectie-card')) {
                  container.innerHTML = "<p class='error-loading-message'>Eroare la încărcarea introspecțiilor.</p>";
             }
         }
     }
-
+    
     function afiseazaIstoricFeedbackIntrospectie(containerEl, feedbackHistory) {
-        // ... (codul tău existent, nemodificat) ...
-    }
-    function afiseazaCardIntrospectie(docData) {
-        // ... (codul tău existent, nemodificat) ...
-    }
-    async function regenereazaFeedbackPentruIntrospectieCard(introspectieId) {
-        // ... (codul tău existent, nemodificat) ...
-    }
-    async function stergeUltimulFeedbackIntrospectie(introspectieId) {
-        // ... (codul tău existent, nemodificat) ...
-    }
-    async function stergeTotIstoriculFeedbackIntrospectie(introspectieId) {
-        // ... (codul tău existent, nemodificat) ...
-    }
-    async function stergeIntrospectie(id, cardElement) {
-        // ... (codul tău existent, nemodificat) ...
+        containerEl.innerHTML = '';
+        if (!feedbackHistory || !Array.isArray(feedbackHistory) || feedbackHistory.length === 0) {
+            containerEl.innerHTML = "<p class='no-feedback-message'>Niciun feedback AI generat.</p>"; return;
+        }
+        feedbackHistory.slice().reverse().forEach((entry, index) => {
+            const itemContainer = document.createElement("div");
+            itemContainer.className = "feedback-entry-card";
+            const modelInfo = entry.model || 'N/A';
+            let promptTypeInfo = '';
+            if (entry.promptTypeAtGeneration && entry.promptTypeAtGeneration !== "necunoscut" && entry.promptTypeAtGeneration !== "prompt_personalizat") {
+                 const promptLabelFound = jurnalPromptsList.find(p => p.id === entry.promptTypeAtGeneration)?.label || entry.promptTypeAtGeneration.replace(/_/g, ' ');
+                 promptTypeInfo = ` (Ghid: ${promptLabelFound})`;
+            } else if (entry.promptTypeAtGeneration === "prompt_personalizat") {
+                 promptTypeInfo = ` (Scriere liberă)`;
+            }
+
+            itemContainer.innerHTML = `<p class="feedback-timestamp"><strong>Feedback #${feedbackHistory.length - index}</strong> (${new Date(entry.timestamp).toLocaleString("ro-RO")}) - ${modelInfo}${promptTypeInfo}</p>`;
+            
+            const contentWrapper = document.createElement("div");
+            contentWrapper.className = "content-ai";
+
+            if (entry.error) {
+                contentWrapper.innerHTML = `<p class="ai-text-error">${(entry.rawText || "Eroare generare.").replace(/\n/g, '<br>')}</p>`;
+            } else if (entry.error_parsing && entry.rawText) { // Afișăm textul brut dacă parsarea a eșuat (pt fișe)
+                contentWrapper.innerHTML = `<p style="color:orange;font-style:italic;">Atenție: Unele secțiuni din acest feedback (pentru fișă) nu au putut fi parsate corect. Se afișează textul brut:</p><div class="raw-feedback-display">${entry.rawText.replace(/\n/g, '<br>')}</div>`;
+            } else if (typeof entry.empatie_initiala === 'string') { // Format nou fișă, parsat corect
+                 const newFormatSections = [
+                    { title: "💬 Empatie Inițială", key: "empatie_initiala" }, { title: "🌟 Puncte Forte", key: "puncte_forte" },
+                    { title: "🔄 Tipare Principale", key: "tipare_principale" }, { title: "🔗 Conexiuni Cheie", key: "conexiuni_cheie" },
+                    { title: "🔍 Distorsiuni", key: "distorsiuni_identificate", isList: true }, { title: "🧠 Scheme", key: "scheme_activate", isList: true },
+                    { title: "🎭 Moduri Implicate", key: "moduri_implicate" }, { title: "💪 Adult Sănătos", key: "perspectiva_adult_sanatos" },
+                    { title: "❓ Reflecție Finală", key: "intrebare_finala_reflectie" }, { title: "👟 Mic Pas", key: "sugestie_mic_pas" },
+                    { title: "💖 Încurajare", key: "incurajare_finala" }
+                ];
+                newFormatSections.forEach(sc => {
+                    let contentText = entry[sc.key];
+                    if (typeof contentText === 'string' && contentText.trim() !== "" && !contentText.startsWith("(Secțiune neextrasă")) {
+                        const titleNoEmoji = sc.title.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+\s*/gu, '').trim();
+                        contentText = contentText.replace(new RegExp(`^${titleNoEmoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:?\\s*`, "im"), "").trim();
+                        let html = contentText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+                        
+                        const sectionDiv = document.createElement('div');
+                        sectionDiv.className = 'feedback-section-item';
+                        const titleH5 = document.createElement('h5');
+                        titleH5.innerHTML = sc.title + ":"; // Adăugăm : aici
+                        sectionDiv.appendChild(titleH5);
+
+                        if (sc.isList) {
+                            const list = document.createElement('ul');
+                            // O încercare mai robustă de a parsa listele Markdown
+                            const items = contentText.split('\n').map(line => line.trim()).filter(line => line.startsWith('* ') || line.startsWith('- '));
+                            if (items.length > 0) {
+                                items.forEach(item => {
+                                    const li = document.createElement('li');
+                                    li.innerHTML = item.substring(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+                                    list.appendChild(li);
+                                });
+                                sectionDiv.appendChild(list);
+                            } else if (contentText.trim()) { // Fallback dacă nu e format de listă dar are conținut
+                                const p = document.createElement('p');
+                                p.innerHTML = html.replace(/\n/g, '<br>');
+                                sectionDiv.appendChild(p);
+                            }
+                        } else {
+                            const p = document.createElement('p');
+                            p.innerHTML = html.replace(/\n/g, '<br>');
+                            sectionDiv.appendChild(p);
+                        }
+                        contentWrapper.appendChild(sectionDiv);
+
+                    } else if (contentText && contentText.startsWith("(Secțiune neextrasă")) {
+                         contentWrapper.innerHTML += `<h5>${sc.title}:</h5><p style="font-style:italic;">${contentText}</p>`;
+                    }
+                });
+            } else { // Jurnal sau format vechi/neparsat, afișăm rawText formatat cu Markdown simplu
+                let html = entry.rawText || 'Conținut indisponibil.';
+                // Aplică formatare Markdown pentru titluri Hx, liste, bold, italic
+                html = html.replace(/^#{1,6}\s+(.*)/gm, (match, p1) => `<h6>${p1.trim()}</h6>`); // Simplificat la h6 pentru consistență
+                html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/__(.*?)__/g, '<strong>$1</strong>');
+                html = html.replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/_(.*?)_/g, '<em>$1</em>');
+                
+                const lines = html.split('\n');
+                let inList = false;
+                let listHtml = "";
+                lines.forEach(line => {
+                    if (line.match(/^\s*[\*\-\+]\s+/)) {
+                        if (!inList) { listHtml += '<ul>'; inList = true; }
+                        listHtml += `<li>${line.replace(/^\s*[\*\-\+]\s+/, '')}</li>`;
+                    } else {
+                        if (inList) { listHtml += '</ul>'; inList = false; }
+                        listHtml += `<p>${line}</p>`; // Fiecare linie devine un paragraf dacă nu e listă
+                    }
+                });
+                if (inList) listHtml += '</ul>'; // Închide lista dacă e ultima
+                contentWrapper.innerHTML = listHtml.replace(/<p><\/p>/g, ''); // Elimină paragrafele goale
+
+            }
+            itemContainer.appendChild(contentWrapper);
+            containerEl.appendChild(itemContainer);
+        });
     }
 
-    // --- FUNCȚII PENTRU CHAT ---
-    // (formatStreamingMessage, displayChatMessage, loadChatHistory, saveChatMessage, getInitialContextSummary - definite mai sus)
-    // (initializeAndStartChatSession, handleSendChatMessage - definite mai sus)
+    function afiseazaCardIntrospectie(docData) {
+        const container = document.getElementById("introspectiiCardContainer");
+        const entryDate = docData.dateAfisare || (docData.timestampCreare?.toDate ? new Date(docData.timestampCreare.toDate()).toLocaleDateString("ro-RO") : 'Dată necunoscută');
+        let cardTitle = "";
+        let detailsContentHtml = "";
+
+        if (docData.type === 'fisa') {
+            cardTitle = `Fișă ${entryDate} - ${(docData.continut.situatie || 'Situație nedefinită').substring(0, 35)}...`;
+            const c = docData.continut;
+            detailsContentHtml = `
+                <h4>Explorarea situației și a nevoilor</h4>
+                <p><strong>Situația:</strong> ${c.situatie || 'N/A'}</p>
+                <p><strong>Gânduri:</strong> ${c.ganduri || 'N/A'}</p>
+                <p><strong>Emoții:</strong> ${c.emotii || 'N/A'}</p>
+                <p><strong>Mod activ:</strong> ${c.mod_activ || 'N/A'}</p>
+                <p><strong>Comportament:</strong> ${c.comportament || 'N/A'}</p>
+                <p><strong>Nevoile profunde:</strong> ${c.nevoi_profunde || 'N/A'}</p>
+                <p><strong>Ajutor comportament:</strong> ${c.ajutor_comportament || 'N/A'}</p>
+                <p><strong>Adultul Sănătos:</strong> ${c.adult_sanatos || 'N/A'}</p>
+                <hr>
+                <h4>Analiza gândurilor și a percepțiilor</h4>
+                <p><strong>Dovezi adevăr:</strong> ${c.dovezi_adevar || 'N/A'}</p>
+                <p><strong>Dovezi fals:</strong> ${c.dovezi_fals || 'N/A'}</p>
+                <p><strong>Explicație alternativă:</strong> ${c.explicatie_alternativa || 'N/A'}</p>
+                <p><strong>Scenariu negativ:</strong> ${c.scenariu_negativ || 'N/A'}</p>
+                <p><strong>Scenariu optimist:</strong> ${c.scenariu_optimist || 'N/A'}</p>
+                <p><strong>Rezultat realist:</strong> ${c.rezultat_realist || 'N/A'}</p>
+                <p><strong>Schimbare gândire:</strong> ${c.schimbare_gandire || 'N/A'}</p>
+                <p><strong>Sfat prieten:</strong> ${c.sfat_prieten || 'N/A'}</p>
+                <hr>
+                <h4>Întrebări pentru claritate</h4>
+                <p><strong>Partea rea:</strong> ${c.partea_rea || 'N/A'}</p>
+                <p><strong>Responsabilitate:</strong> ${c.responsabilitate || 'N/A'}</p>
+                <p><strong>Condamnare:</strong> ${c.condamnare || 'N/A'}</p>
+                <p><strong>Termeni extremi:</strong> ${c.termeni_extremi || 'N/A'}</p>
+                <p><strong>Exagerare:</strong> ${c.exagerare || 'N/A'}</p>
+                <p><strong>Factori responsabili:</strong> ${c.factori_responsabili || 'N/A'}</p>
+                <p><strong>Concluzii:</strong> ${c.concluzii || 'N/A'}</p>
+                <p><strong>Întrebări fără răspuns:</strong> ${c.intrebari_fara_raspuns || 'N/A'}</p>
+                <p><strong>Slăbiciuni:</strong> ${c.slabiciuni || 'N/A'}</p>
+                <p><strong>Cum ar trebui:</strong> ${c.cum_ar_trebui || 'N/A'}</p>
+                <p><strong>Perfecțiune:</strong> ${c.perfectiune || 'N/A'}</p>`;
+        } else if (docData.type === 'jurnal') {
+            let promptLabel = '(Scriere liberă)';
+            if (docData.continut.promptUtilizatJurnal && docData.continut.promptUtilizatJurnal !== 'prompt_personalizat') {
+                 const foundPrompt = jurnalPromptsList.find(p => p.id === docData.continut.promptUtilizatJurnal);
+                 if (foundPrompt) promptLabel = `(${foundPrompt.label.substring(0, foundPrompt.label.indexOf(" "))}...)`; // Prescurtăm eticheta
+                 else promptLabel = `(${docData.continut.promptUtilizatJurnal.replace(/_/g, ' ')})`;
+            }
+            cardTitle = `${docData.continut.titluJurnal || `Jurnal ${entryDate}`} ${promptLabel}`;
+            detailsContentHtml = `<p class="journal-entry-content-text-unified">${(docData.continut.textJurnal || 'Conținut indisponibil.').replace(/\n/g, '<br>')}</p>`;
+        }
+
+        const card = document.createElement("div");
+        card.className = "response-card introspectie-card";
+        card.setAttribute("data-id", docData.id);
+        card.setAttribute("data-type", docData.type);
+
+        const discussButtonHtml = docData.type === 'fisa' ?
+            `<button class="discuss-entry-with-chat-button" title="Discută această fișă cu PsihoGPT">Discută cu AI</button>` : '';
+
+        card.innerHTML = `
+            <div class="card-header">
+                <span>${cardTitle}</span>
+                <span class="card-date">${entryDate}</span>
+            </div>
+            <div class="card-content">
+                <details class="introspectie-entry-details">
+                    <summary>Vezi/Ascunde detaliile intrării</summary>
+                    <div class="introspectie-entry-content-text">${detailsContentHtml}</div>
+                </details>
+                <h4 class="ai-feedback-title">Feedback AI <span style="font-weight:300; font-style:italic; font-size:0.85em;">(PsihoGPT)</span></h4>
+                <div class="ai-feedback-history-container"></div>
+                <div class="card-actions">
+                    <button class="regenerate-feedback-button" title="Regenerează Feedback AI">Regenerează</button>
+                    ${discussButtonHtml}
+                    <button class="delete-last-feedback-button" title="Șterge Ultimul Feedback AI">Șterge Ultimul</button>
+                    <button class="delete-all-feedback-button" title="Șterge Tot Istoricul Feedback AI">Șterge Istoric AI</button>
+                    <button class="delete-introspectie-button" title="Șterge Această Intrare">Șterge Intrarea</button>
+                </div>
+            </div>`;
+
+        card.querySelector('.card-header').addEventListener('click', (e) => {
+            if (!e.target.closest('button') && !e.target.closest('details')) card.classList.toggle('open');
+        });
+        card.querySelector('.regenerate-feedback-button').addEventListener('click', (e) => { e.stopPropagation(); regenereazaFeedbackPentruIntrospectieCard(docData.id); });
+        if (docData.type === 'fisa') {
+            card.querySelector('.discuss-entry-with-chat-button')?.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const fullEntryDataSnap = await getDoc(doc(db, "introspectii", docData.id));
+                if (fullEntryDataSnap.exists()) {
+                     await discussFisaWithChat(fullEntryDataSnap.data());
+                } else { alert("Nu s-au putut încărca detaliile fișei."); }
+            });
+        }
+        card.querySelector('.delete-last-feedback-button').addEventListener('click', (e) => { e.stopPropagation(); stergeUltimulFeedbackIntrospectie(docData.id); });
+        card.querySelector('.delete-all-feedback-button').addEventListener('click', (e) => { e.stopPropagation(); stergeTotIstoriculFeedbackIntrospectie(docData.id); });
+        card.querySelector('.delete-introspectie-button').addEventListener('click', (e) => { e.stopPropagation(); stergeIntrospectie(docData.id, card); });
+        
+        const noEntriesMsg = container.querySelector('.no-entries-message');
+        if (noEntriesMsg) noEntriesMsg.remove();
+
+        if (container.firstChild && container.firstChild.nodeName !== 'P') {
+            container.insertBefore(card, container.firstChild);
+        } else {
+            if (container.firstChild && container.firstChild.nodeName === 'P') container.innerHTML = '';
+            container.appendChild(card);
+        }
+        const feedbackContainer = card.querySelector('.ai-feedback-history-container');
+        if (feedbackContainer) {
+            afiseazaIstoricFeedbackIntrospectie(feedbackContainer, docData.feedbackAI_history || []);
+        }
+    }
+    
+    async function regenereazaFeedbackPentruIntrospectieCard(introspectieId) {
+        const card = document.querySelector(`.introspectie-card[data-id="${introspectieId}"]`);
+        const btn = card?.querySelector('.regenerate-feedback-button');
+        const originalText = btn ? btn.textContent : "";
+        if (btn) { btn.textContent = "Se generează..."; btn.disabled = true; }
+        
+        const type = card?.dataset.type;
+        const confirmationElementId = type === 'fisa' ? 'fisaConfirmationMessage' : (type === 'jurnal' ? 'jurnalConfirmationMessage' : null);
+        const confirmationMsg = confirmationElementId ? document.getElementById(confirmationElementId) : null;
+
+        if(confirmationMsg) confirmationMsg.style.display = 'none';
+
+        try {
+            const entryDocSnap = await getDoc(doc(db, "introspectii", introspectieId));
+            if (!entryDocSnap.exists()) {
+                if(confirmationMsg) { confirmationMsg.textContent = 'Eroare: Intrarea nu mai există.'; confirmationMsg.className = 'confirmation-message error'; confirmationMsg.style.display = 'block';}
+                return;
+            }
+            const entryData = { id: entryDocSnap.id, ...entryDocSnap.data() };
+            const newFeedback = await genereazaFeedbackPentruIntrospectie(entryData);
+
+            const updatedDoc = await getDoc(doc(db, "introspectii", introspectieId));
+            if (updatedDoc.exists() && card) {
+                afiseazaIstoricFeedbackIntrospectie(card.querySelector('.ai-feedback-history-container'), updatedDoc.data().feedbackAI_history || []);
+            }
+             const message = newFeedback && !newFeedback.error && !newFeedback.error_parsing ? "Noul feedback AI a fost generat!" : `Feedback AI: ${newFeedback.rawText || 'Problemă.'}`;
+             if(confirmationMsg) { confirmationMsg.textContent = message; confirmationMsg.className = `confirmation-message ${newFeedback && !newFeedback.error && !newFeedback.error_parsing ? 'success' : 'error'}`; confirmationMsg.style.display = 'block'; setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);}
+        } catch (error) {
+            console.error("Eroare regenerare feedback:", error);
+             if(confirmationMsg) { confirmationMsg.textContent = 'Eroare la regenerare.'; confirmationMsg.className = 'confirmation-message error'; confirmationMsg.style.display = 'block';}
+        } finally {
+            if (btn) { btn.textContent = originalText; btn.disabled = false; }
+        }
+    }
+
+    async function stergeUltimulFeedbackIntrospectie(introspectieId) {
+        if (!confirm("Ștergeți ultimul feedback AI?")) return;
+        const card = document.querySelector(`.introspectie-card[data-id="${introspectieId}"]`);
+        const btn = card?.querySelector('.delete-last-feedback-button');
+        const originalText = btn ? btn.textContent : "";
+        if (btn) { btn.textContent = "Se șterge..."; btn.disabled = true; }
+
+        const type = card?.dataset.type;
+        const confirmationElementId = type === 'fisa' ? 'fisaConfirmationMessage' : (type === 'jurnal' ? 'jurnalConfirmationMessage' : null);
+        const confirmationMsg = confirmationElementId ? document.getElementById(confirmationElementId) : null;
+        if(confirmationMsg) confirmationMsg.style.display = 'none';
+
+        try {
+            const entryDocRef = doc(db, "introspectii", introspectieId);
+            const entrySnap = await getDoc(entryDocRef);
+            if (!entrySnap.exists() || !entrySnap.data().feedbackAI_history?.length) {
+                if(confirmationMsg) {confirmationMsg.textContent = "Nu există feedback."; confirmationMsg.className = 'confirmation-message warning'; confirmationMsg.style.display = 'block';}
+                return;
+            }
+            const history = entrySnap.data().feedbackAI_history;
+            history.pop();
+            await updateDoc(entryDocRef, { feedbackAI_history: history });
+            if(card) afiseazaIstoricFeedbackIntrospectie(card.querySelector('.ai-feedback-history-container'), history);
+            if(confirmationMsg) {confirmationMsg.textContent = "Ultimul feedback șters."; confirmationMsg.className = 'confirmation-message success'; confirmationMsg.style.display = 'block';}
+        } catch (err) {
+            if(confirmationMsg) {confirmationMsg.textContent = "Eroare ștergere."; confirmationMsg.className = 'confirmation-message error'; confirmationMsg.style.display = 'block';}
+        } finally {
+            if (btn) { btn.textContent = originalText; btn.disabled = false; }
+            if(confirmationMsg) setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);
+        }
+    }
+
+    async function stergeTotIstoriculFeedbackIntrospectie(introspectieId) {
+        if (!confirm("Sigur ștergeți TOT istoricul feedback AI?")) return;
+        const card = document.querySelector(`.introspectie-card[data-id="${introspectieId}"]`);
+        const btn = card?.querySelector('.delete-all-feedback-button');
+        const originalText = btn ? btn.textContent : "";
+        if (btn) { btn.textContent = "Se șterge..."; btn.disabled = true; }
+
+        const type = card?.dataset.type;
+        const confirmationElementId = type === 'fisa' ? 'fisaConfirmationMessage' : (type === 'jurnal' ? 'jurnalConfirmationMessage' : null);
+        const confirmationMsg = confirmationElementId ? document.getElementById(confirmationElementId) : null;
+        if(confirmationMsg) confirmationMsg.style.display = 'none';
+        
+        try {
+            const docRef = doc(db, "introspectii", introspectieId);
+            await updateDoc(docRef, { feedbackAI_history: [] });
+            if(card) afiseazaIstoricFeedbackIntrospectie(card.querySelector('.ai-feedback-history-container'), []);
+            if(confirmationMsg) {confirmationMsg.textContent = "Istoric feedback AI șters!"; confirmationMsg.className = 'confirmation-message success'; confirmationMsg.style.display = 'block';}
+        } catch (error) {
+            if(confirmationMsg) {confirmationMsg.textContent = "Eroare ștergere istoric."; confirmationMsg.className = 'confirmation-message error'; confirmationMsg.style.display = 'block';}
+        } finally {
+            if (btn) { btn.textContent = originalText; btn.disabled = false; }
+             if(confirmationMsg) setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 7000);
+        }
+    }
+
+    async function stergeIntrospectie(id, cardElement) {
+        if (confirm("Ștergeți această intrare și tot feedback-ul asociat?")) {
+            const type = cardElement?.dataset.type;
+            const confirmationElementId = type === 'fisa' ? 'fisaConfirmationMessage' : (type === 'jurnal' ? 'jurnalConfirmationMessage' : null);
+            const confirmationMsg = confirmationElementId ? document.getElementById(confirmationElementId) : null;
+            if(confirmationMsg) confirmationMsg.style.display = 'none';
+
+            try {
+                await deleteDoc(doc(db, "introspectii", id));
+                cardElement.remove();
+                const container = document.getElementById("introspectiiCardContainer");
+                if (container && !container.querySelector('.introspectie-card') && !container.querySelector('.no-entries-message')) {
+                    const noEntriesMsgElement = document.createElement("p");
+                    noEntriesMsgElement.className = "no-entries-message";
+                    noEntriesMsgElement.textContent = "Nicio introspecție.";
+                    container.appendChild(noEntriesMsgElement);
+                }
+                 if(confirmationMsg) {confirmationMsg.textContent = "Intrarea a fost ștearsă!"; confirmationMsg.className = 'confirmation-message success'; confirmationMsg.style.display = 'block'; setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 5000);}
+            } catch (error) {
+                if(confirmationMsg) {confirmationMsg.textContent = "Eroare ștergere intrare."; confirmationMsg.className = 'confirmation-message error'; confirmationMsg.style.display = 'block'; setTimeout(() => { if(confirmationMsg) confirmationMsg.style.display = 'none'; }, 5000);}
+            }
+        }
+    }
+
+    function formatStreamingMessage(message) {
+        console.log("[FORMAT_STREAM] Formatare mesaj (primele 50 char):", message?.substring(0, 50));
+        if (message === null || typeof message === 'undefined') return "";
+        // Asigură-te că escape-ezi caracterele HTML ÎNAINTE de a aplica formatarea Markdown
+        let escapedMessage = String(message)
+            .replace(/&/g, "&")
+            .replace(/</g, "<")
+            .replace(/>/g, ">")
+            .replace(/"/g, """)
+            .replace(/'/g, "'");
+
+        let htmlContent = escapedMessage
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/__(.*?)__/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/_(.*?)_/g, '<em>$1</em>')
+            // Pentru ```, textul interior e deja escapat, deci e ok
+            .replace(/```([\s\S]*?)```/g, (match, p1) => `<pre class="code-block-chat">${p1.trim()}</pre>`)
+            .replace(/`([^`]+)`/g, '<code class="inline-code-chat">$1</code>');
+
+        htmlContent = htmlContent.replace(/^#{1,6}\s+(.*)/gm, (match, p1) => `<h6>${p1.trim()}</h6>`);
+
+        const lines = htmlContent.split('\n');
+        let inList = false; let listType = ''; let processedHtml = "";
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            const trimmedLine = line.trim();
+            let currentListType = '';
+            let listItemContent = '';
+
+            // Verifică dacă linia este deja un tag HTML block pentru a nu o încadra în <p>
+            const isBlock = /^\s*<(p|pre|h[1-6]|ul|ol|li|blockquote|div|table|hr|details|summary)/i.test(line);
+
+            if (trimmedLine.startsWith('<ul>') || trimmedLine.startsWith('<ol>')) { // Cazul listelor generate de AI ca text
+                 if (inList) processedHtml += `</${listType}>\n`; // Închide lista anterioară dacă există
+                 listType = trimmedLine.includes('ul') ? 'ul' : 'ol';
+                 processedHtml += `<${listType}>\n`;
+                 inList = true;
+                 continue;
+            }
+            if (trimmedLine.startsWith('</ul>') || trimmedLine.startsWith('</ol>')) {
+                if (inList) processedHtml += `</${listType}>\n`;
+                inList = false;
+                listType = '';
+                continue;
+            }
+            if (trimmedLine.startsWith('<li>')) {
+                listItemContent = trimmedLine.substring(8, trimmedLine.lastIndexOf('</li>'));
+                 if (!inList) { // O listă ar trebui să înceapă cu <ul> sau <ol>
+                    console.warn("[FORMAT_STREAM] Element <li> găsit fără tag de listă părinte. Se încadrează implicit în <ul>.");
+                    processedHtml += `<ul>\n`;
+                    inList = true;
+                    listType = 'ul';
+                 }
+                processedHtml += `  <li>${listItemContent}</li>\n`; // listItemContent e deja escapat
+                continue;
+            }
+
+
+            // Detectare manuală pentru Markdown lists
+            if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ') || trimmedLine.startsWith('+ ')) {
+                currentListType = 'ul';
+                listItemContent = trimmedLine.substring(trimmedLine.indexOf(' ') + 1);
+            } else if (trimmedLine.match(/^\d+\.\s+/)) {
+                currentListType = 'ol';
+                listItemContent = trimmedLine.substring(trimmedLine.indexOf('.') + 2);
+            }
+
+            if (currentListType) {
+                if (!inList || listType !== currentListType) {
+                    if (inList) processedHtml += `</${listType}>\n`;
+                    processedHtml += `<${currentListType}>\n`;
+                    inList = true;
+                    listType = currentListType;
+                }
+                processedHtml += `  <li>${listItemContent}</li>\n`; // listItemContent e deja escapat
+            } else {
+                if (inList) {
+                    processedHtml += `</${listType}>\n`;
+                    inList = false;
+                    listType = '';
+                }
+                if (line.trim() !== "" && !isBlock) {
+                    processedHtml += `<p>${line}</p>\n`; // line e deja escapat
+                } else if (line.trim() !== "" || line.includes("<pre") || line.includes("<h")) {
+                    processedHtml += line + (line.endsWith('\n') ? '' : '\n');
+                }
+            }
+        }
+        if (inList) { processedHtml += `</${listType}>\n`; }
+        return processedHtml.replace(/<p><\/p>/g, '');
+    }
+
+    function displayChatMessage(messageContent, role, thoughtsContent = null) {
+        console.log(`[DISPLAY_CHAT] Afișare mesaj. Rol: ${role}, Conținut (primele 50): '${messageContent?.substring(0, 50)}...', Thoughts: ${thoughtsContent ? 'DA' : 'NU'}`);
+        const messagesDiv = messagesDivGlobalRef;
+        if (!messagesDiv) {
+            console.error("[DISPLAY_CHAT] EROARE: messagesDivGlobalRef nu este definit!");
+            return;
+        }
+
+        const messageElement = document.createElement("div");
+        messageElement.classList.add("chat-message");
+        messageElement.style.whiteSpace = "pre-wrap"; // Important pentru <pre> și \n
+
+        let messageClass = "";
+        if (role === "user") {
+            messageClass = "user-message";
+        } else if (role === "AI-error" || (typeof messageContent === 'string' && messageContent.toUpperCase().startsWith("EROARE"))) {
+            messageClass = "ai-message ai-error";
+        } else {
+            messageClass = "ai-message";
+        }
+        messageClass.split(' ').forEach(cls => messageElement.classList.add(cls));
+
+        // Adaugă "thoughts" PRIMELE dacă există
+        if ((role === "AI" || role === "model") && thoughtsContent && thoughtsContent.trim() !== "") {
+            console.log("[DISPLAY_CHAT] Adăugare 'thoughts' la elementul mesajului pentru rol:", role);
+            const thoughtsDetails = document.createElement("details");
+            thoughtsDetails.className = "ai-thoughts-details";
+            // Folosim textContent pentru a seta sumarul pentru a evita interpretarea HTML dacă `role` ar conține ceva neașteptat
+            const summary = document.createElement("summary");
+            summary.textContent = `Procesul de gândire al PsihoGPT ${role === "model" ? "(live)" : "(istoric)"}`;
+            thoughtsDetails.appendChild(summary);
+
+            const pre = document.createElement("pre");
+            pre.className = "ai-thoughts-content";
+            pre.textContent = thoughtsContent.trim(); // textContent va escape-a automat HTML-ul
+            thoughtsDetails.appendChild(pre);
+
+            messageElement.appendChild(thoughtsDetails);
+        }
+
+        // Adaugă conținutul principal al mesajului
+        const mainContentContainer = document.createElement('div');
+        mainContentContainer.className = 'main-answer-text'; // Pentru a-l putea stiliza/manipula separat
+        if (role === "user") {
+            mainContentContainer.textContent = messageContent; // Mesajele user nu ar trebui formatate ca HTML
+        } else {
+            mainContentContainer.innerHTML = formatStreamingMessage(messageContent);
+        }
+        messageElement.appendChild(mainContentContainer);
+
+        messagesDiv.appendChild(messageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    async function loadChatHistory(userId) {
+        console.log("[CHAT_HISTORY] Încărcare istoric chat pentru user ID:", userId);
+        if (!userId) {
+            console.warn("[CHAT_HISTORY] User ID lipsă, nu se poate încărca istoricul.");
+            return []; // Returnează array gol pentru a evita erori ulterioare
+        }
+        const historyDocRef = doc(db, "chatHistories", CHAT_HISTORY_DOC_ID_PREFIX + userId);
+        try {
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists() && docSnap.data().messages && Array.isArray(docSnap.data().messages)) {
+                const messages = docSnap.data().messages.sort((a, b) =>
+                    (a.timestamp?.toDate ? a.timestamp.toDate().getTime() : new Date(a.timestamp).getTime() || 0) -
+                    (b.timestamp?.toDate ? b.timestamp.toDate().getTime() : new Date(b.timestamp).getTime() || 0)
+                );
+                console.log(`[CHAT_HISTORY] Istoric chat încărcat: ${messages.length} mesaje.`);
+                return messages;
+            }
+            console.log("[CHAT_HISTORY] Niciun istoric chat găsit sau format invalid.");
+            return [];
+        } catch (error) {
+            console.error("[CHAT_HISTORY] Eroare la încărcarea istoricului de chat:", error);
+            return []; // Returnează array gol în caz de eroare
+        }
+    }
+
+    async function saveChatMessage(userId, messageObject) {
+        console.log(`[SAVE_CHAT] Salvare mesaj chat. Rol: ${messageObject.role}, Conținut (primele 30): '${messageObject.content?.substring(0, 30)}...', Thoughts: ${messageObject.thoughts ? 'DA' : 'NU'}, Error: ${messageObject.error}`);
+        if (!userId || !messageObject) {
+            console.warn("[SAVE_CHAT] Date incomplete pentru salvarea mesajului.", { userId, messageObject });
+            return;
+        }
+
+        const historyDocRef = doc(db, "chatHistories", CHAT_HISTORY_DOC_ID_PREFIX + userId);
+        const saveData = { ...messageObject };
+
+        if (saveData.timestamp && !(saveData.timestamp instanceof Timestamp)) {
+            saveData.timestamp = Timestamp.fromDate(new Date(saveData.timestamp));
+        }
+        if (typeof saveData.thoughts === 'string' && saveData.thoughts.trim() === "") {
+            saveData.thoughts = null;
+        } else if (typeof saveData.thoughts === 'undefined') {
+            saveData.thoughts = null;
+        }
+        // Asigură-te că 'error' este boolean
+        saveData.error = !!saveData.error;
+
+        try {
+            const docSnap = await getDoc(historyDocRef);
+            if (docSnap.exists()) {
+                await updateDoc(historyDocRef, { messages: arrayUnion(saveData) });
+            } else {
+                await setDoc(historyDocRef, { messages: [saveData] });
+            }
+            console.log("[SAVE_CHAT] Mesaj chat salvat cu succes în Firestore.");
+        } catch (error) {
+            console.error("[SAVE_CHAT] Eroare salvare mesaj chat în Firestore:", error);
+        }
+    }
+
+    async function getInitialContextSummary(userIdForContext) {
+        let contextSummary = "REZUMAT DIN INTROSPECȚIILE ANTERIOARE (ULTIMELE 3):\n";
+        if (!userIdForContext) {
+            contextSummary += "Niciun utilizator specificat pentru context.\n";
+            console.warn("[CONTEXT_SUMMARY] User ID lipsă pentru getInitialContextSummary.");
+            return contextSummary;
+        }
+        try {
+            console.log(`[CONTEXT_SUMMARY] Se încarcă introspecțiile pentru context pentru user: ${userIdForContext}`);
+            const q = query(collection(db, "introspectii"), where("ownerUid", "==", userIdForContext), orderBy("timestampCreare", "desc"), limit(3));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                querySnapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const entryDate = data.dateAfisare || (data.timestampCreare ? new Date(data.timestampCreare.toDate()).toLocaleDateString("ro-RO") : 'N/A');
+                    if (data.type === 'fisa') {
+                        contextSummary += ` - Fișă (${entryDate}): Situatia - ${(data.continut.situatie || "N/A").substring(0, 50)}... Ganduri - ${(data.continut.ganduri || "N/A").substring(0,50)}...\n`;
+                    } else if (data.type === 'jurnal') {
+                        contextSummary += ` - Jurnal (${entryDate}): Titlu - ${(data.continut.titluJurnal || "Fără titlu").substring(0,50)}... Text (primele cuvinte) - ${(data.continut.textJurnal || "N/A").substring(0,50)}...\n`;
+                    }
+                });
+                 console.log(`[CONTEXT_SUMMARY] Context introspecții încărcat. Lungime sumar: ${contextSummary.length}`);
+            } else {
+                contextSummary += "Nicio introspecție recentă găsită.\n";
+                console.log("[CONTEXT_SUMMARY] Nicio introspecție găsită pentru context.");
+            }
+        } catch (e) {
+            console.error("[CONTEXT_SUMMARY] Eroare încărcare context introspecții:", e);
+            contextSummary += "Eroare la încărcarea contextului introspecțiilor.\n";
+        }
+        return contextSummary;
+    }
+
+    async function initializeAndStartChatSession(userId, isInitialPageLoad = false) {
+        console.log(`[CHAT_INIT] Inițializare sesiune chat. User ID: ${userId}, Este încărcare UI inițială: ${isInitialPageLoad}`);
+        const chatStatus = document.getElementById("chatStatus");
+        const sendButton = document.getElementById("sendChatMessageButton");
+
+        if (sendButton) sendButton.disabled = true;
+        if (chatStatus) chatStatus.textContent = "Inițializare chat AI...";
+
+        if (!geminiModelChat) {
+            console.error("[CHAT_INIT] Modelul AI Chat (geminiModelChat) nu este disponibil!");
+            if (chatStatus) chatStatus.textContent = "EROARE: Model AI Chat indisponibil.";
+            displayChatMessage("Serviciul de chat AI nu este disponibil (model neinițializat).", "AI-error", null);
+            return null;
+        }
+
+        isChatInitialized = false;
+        chatSession = null;
+
+        const dynamicContextSummary = await getInitialContextSummary(userId);
+        const systemInstructionForSession = FULL_SYSTEM_INSTRUCTION_TEXT_TEMPLATE.replace(
+            "{{INITIAL_CONTEXT_SUMMARY_PLACEHOLDER}}",
+            dynamicContextSummary
+        );
+        console.log("[CHAT_INIT] Prompt sistem COMPLET generat pentru această sesiune de inițializare.");
+
+        let historyForGeminiAPI = [];
+        if (messagesDivGlobalRef && isInitialPageLoad) {
+            messagesDivGlobalRef.innerHTML = '';
+            console.log("[CHAT_INIT] UI-ul mesajelor a fost golit pentru încărcare proaspătă.");
+        }
+
+        let fullLoadedHistoryFromDB = await loadChatHistory(userId);
+
+        if (isInitialPageLoad) {
+            const displayHistory = fullLoadedHistoryFromDB.slice(-MAX_MESSAGES_TO_DISPLAY_ON_LOAD);
+            displayHistory.forEach(msg => {
+                const roleForDisplay = (msg.role === "AI" || msg.role === "model") ? "model" : "user";
+                displayChatMessage(msg.content, roleForDisplay, msg.thoughts);
+            });
+            console.log(`[CHAT_INIT] Afișat în UI ${displayHistory.length} din ${fullLoadedHistoryFromDB.length} mesaje.`);
+        }
+
+        const apiHistoryStartIndex = Math.max(0, fullLoadedHistoryFromDB.length - MAX_CHAT_HISTORY_FOR_API);
+        const truncatedApiHistory = fullLoadedHistoryFromDB.slice(apiHistoryStartIndex);
+
+        truncatedApiHistory.forEach(msg => {
+            if (msg.content && msg.content.trim() !== "") {
+                 historyForGeminiAPI.push({
+                    role: (msg.role === "AI" || msg.role === "model") ? "model" : "user",
+                    parts: [{ text: msg.content }]
+                });
+            }
+        });
+        console.log("[CHAT_INIT] Istoric formatat pentru API la inițializare (după system prompt):", historyForGeminiAPI.length, "mesaje.");
+
+        try {
+            const chatConfig = {
+                history: [
+                    { role: "user", parts: [{ text: systemInstructionForSession }] },
+                    ...historyForGeminiAPI
+                ],
+                generationConfig: {
+                    temperature: 0.75,
+                    thinking_config: { include_thoughts: true }
+                }
+            };
+            chatSession = geminiModelChat.startChat(chatConfig);
+            console.log("[CHAT_INIT] Sesiune chat Gemini inițializată CU prompt sistem COMPLET și istoric DB trunchiat. Model:", GEMINI_MODEL_NAME_CHAT);
+
+            if (chatStatus) chatStatus.textContent = "Janet - Psihoterapeut Cognitiv-Comportamental Integrativ";
+
+            if (fullLoadedHistoryFromDB.length === 0) {
+                console.log("[CHAT_INIT_GREETING] Niciun istoric în DB, se trimite salutul AI.");
+                const aiGreeting = "Salut! Eu sunt PsihoGPT. Bine ai venit! Cum te simți astăzi? ✨";
+                const firstAiResponseResult = await chatSession.sendMessageStream(aiGreeting);
+                const firstAiResponseStream = firstAiResponseResult.stream;
+                let firstAiText = ""; let firstAiThoughts = "";
+
+                const firstAiMessageElement = document.createElement("div");
+                firstAiMessageElement.classList.add("chat-message", "ai-message");
+                firstAiMessageElement.style.whiteSpace = "pre-wrap";
+
+                const mainGreetingSpan = document.createElement('span');
+                mainGreetingSpan.className = 'main-answer-text';
+                // Nu adăugăm mainGreetingSpan aici încă, ci după ce avem thoughts.
+
+                if (messagesDivGlobalRef) messagesDivGlobalRef.appendChild(firstAiMessageElement);
+
+                for await (const chunk of firstAiResponseStream) {
+                    const candidate = chunk.candidates?.[0];
+                    if (candidate?.content?.parts) {
+                        for (const part of candidate.content.parts) {
+                            if (part && typeof part.text === 'string') {
+                                if (part.thought === true) {
+                                    firstAiThoughts += part.text + "\n";
+                                } else {
+                                    firstAiText += part.text;
+                                }
+                            }
+                        }
+                    }
+                    // Afișare simplă, fără typewriter pentru salut, se face la final
+                    if (messagesDivGlobalRef) messagesDivGlobalRef.scrollTop = messagesDivGlobalRef.scrollHeight;
+                    if (candidate?.finishReason) {
+                        console.log("[CHAT_INIT_GREETING] FinishReason salut:", candidate.finishReason);
+                        break;
+                    }
+                }
+
+                if (firstAiText.trim() === "") firstAiText = aiGreeting.split("✨")[0].trim();
+
+                if (firstAiThoughts.trim() !== "") {
+                    console.log("[CHAT_INIT_GREETING] Adăugare thoughts la salut în UI.");
+                    const thoughtsDetails = document.createElement("details");
+                    thoughtsDetails.className = "ai-thoughts-details";
+                    thoughtsDetails.innerHTML = `
+                        <summary>Proces de gândire (Salut)</summary>
+                        <pre class="ai-thoughts-content">${firstAiThoughts.trim().replace(/</g,"<").replace(/>/g,">")}</pre>
+                    `;
+                    firstAiMessageElement.appendChild(thoughtsDetails);
+                }
+                mainGreetingSpan.innerHTML = formatStreamingMessage(firstAiText);
+                firstAiMessageElement.appendChild(mainGreetingSpan); // Adaugă textul principal după thoughts
+
+                if (messagesDivGlobalRef) messagesDivGlobalRef.scrollTop = messagesDivGlobalRef.scrollHeight;
+
+                await saveChatMessage(userId, { role: "model", content: firstAiText, thoughts: firstAiThoughts.trim() || null, error: false, timestamp: new Date().toISOString() });
+                console.log("[CHAT_INIT_GREETING] Salut AI salvat.");
+            }
+            isChatInitialized = true;
+            if (sendButton) sendButton.disabled = false;
+            console.log("[CHAT_INIT] Sesiune chat AI inițializată și gata.");
+
+        } catch (initError) {
+            console.error("[CHAT_INIT] Eroare MAJORĂ la inițializarea sesiunii de chat Gemini:", initError, initError.stack);
+            if (chatStatus) chatStatus.textContent = "Eroare critică AI Chat.";
+            displayChatMessage(`Problemă tehnică gravă la pornirea chat-ului: ${initError.message}. Verificați consola.`, "AI-error", null);
+            isChatInitialized = false; chatSession = null;
+            if (sendButton) sendButton.disabled = true;
+            return null;
+        }
+        return chatSession;
+    }
+
+    async function handleSendChatMessage() {
+        console.log("handleSendChatMessage: Funcție apelată.");
+        const chatInput = document.getElementById("chatInput");
+        const sendButton = document.getElementById("sendChatMessageButton");
+        const chatStatus = document.getElementById("chatStatus");
+        const messagesDiv = messagesDivGlobalRef;
+
+        if (!chatInput || !sendButton || !chatStatus || !messagesDiv) {
+            console.error("[HANDLE_SEND] Eroare critică - Elemente HTML esențiale lipsesc.");
+            return;
+        }
+
+        const messageText = chatInput.value.trim();
+        console.log("→ [USER_MSG_SEND] Mesaj utilizator pentru trimitere:", JSON.stringify(messageText));
+        if (!messageText) {
+            console.log("→ [USER_MSG_SEND] Mesaj utilizator gol, nu se procesează.");
+            return;
+        }
+
+        displayChatMessage(messageText, "user", null);
+
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            console.error("‼️ [AUTH_ERROR] Utilizatorul nu este autentificat în handleSendChatMessage.");
+            if (chatStatus) chatStatus.textContent = "Eroare: utilizator neautentificat.";
+            return;
+        }
+
+        try {
+            await saveChatMessage(currentUser.uid, { role: "user", content: messageText, timestamp: new Date().toISOString() });
+            console.log("→ [DB_SAVE_USER] Mesajul utilizatorului a fost salvat în Firestore.");
+        } catch (firestoreErr) {
+            console.error("‼️ [DB_ERROR] Eroare la salvarea mesajului utilizatorului în Firestore:", firestoreErr);
+            if (chatStatus) chatStatus.textContent = "Eroare salvare mesaj utilizator.";
+        }
+
+        chatInput.value = "";
+        sendButton.disabled = true;
+        if (chatStatus) chatStatus.textContent = "PsihoGPT analizează și tastează...";
+
+        const aiMessageElement = document.createElement("div");
+        aiMessageElement.classList.add("chat-message", "ai-message");
+        aiMessageElement.style.whiteSpace = "pre-wrap";
+        messagesDiv.appendChild(aiMessageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        let fullAiResponseText = "";
+        let collectedThoughtsThisTurn = "";
+        let anErrorOccurredInStream = false;
+        let apiErrorMessageFromStream = "";
+
+        const TYPING_CHUNK_SIZE = IS_MOBILE_DEVICE ? 50 : 30;
+        const TYPING_CHUNK_DELAY_MS = IS_MOBILE_DEVICE ? 30 : 20;
+        console.log(`[TYPEWRITER_CONFIG] Mobil: ${IS_MOBILE_DEVICE}, ChunkSize: ${TYPING_CHUNK_SIZE}, Delay: ${TYPING_CHUNK_DELAY_MS}`);
+
+        try {
+            console.log("[CHAT_SESSION_REINIT_HSM] Se pregătește re-inițializarea sesiunii (cu prompt condensat).");
+
+            let currentFullHistoryFromDB = await loadChatHistory(currentUser.uid);
+            let historyForNewApiSession = [];
+            if (currentFullHistoryFromDB.length > 0) {
+                const historyToConsider = currentFullHistoryFromDB.slice(0, -1); // Exclude ultimul mesaj (cel trimis acum de user)
+                const startIndex = Math.max(0, historyToConsider.length - MAX_CHAT_HISTORY_FOR_API);
+                const truncatedHistory = historyToConsider.slice(startIndex);
+                truncatedHistory.forEach(msg => {
+                    if (msg.content && msg.content.trim() !== "") {
+                        historyForNewApiSession.push({
+                            role: (msg.role === "AI" || msg.role === "model") ? "model" : "user",
+                            parts: [{ text: msg.content }]
+                        });
+                    }
+                });
+            }
+            console.log(`[CHAT_SESSION_REINIT_HSM] Istoric trunchiat pentru API: ${historyForNewApiSession.length} mesaje.`);
+
+            const systemPromptObject = { role: "user", parts: [{ text: CONDENSED_SYSTEM_INSTRUCTION_TEXT }] };
+
+            const newChatConfig = {
+                history: [systemPromptObject, ...historyForNewApiSession],
+                generationConfig: {
+                    temperature: 0.75,
+                    thinking_config: { include_thoughts: true }
+                }
+            };
+
+            if (!geminiModelChat) throw new Error("geminiModelChat nu este definit pentru re-inițializare în handleSendChatMessage.");
+            chatSession = geminiModelChat.startChat(newChatConfig);
+            isChatInitialized = true;
+            console.log("[CHAT_SESSION_REINIT_HSM] Sesiune chat re-inițializată cu prompt CONDENSAT și istoric trunchiat.");
+
+            console.log("→ [AI_STREAM_HSM] Trimitere la sendMessageStream:", JSON.stringify(messageText));
+            const result = await chatSession.sendMessageStream(messageText);
+            const stream = result.stream;
+            console.log("→ [AI_STREAM_HSM] Stream primit. Începe procesarea chunk-urilor.");
+
+            for await (const chunk of stream) {
+                console.log("╔══════════ CHUNK (handleSend) ══════════╗");
+                console.log(JSON.stringify(chunk, null, 2).substring(0, 500) + "...");
+                console.log("╚══════════════════════════════════════╝");
+
+                if (chunk.promptFeedback?.blockReason) {
+                    apiErrorMessageFromStream = `Mesaj/Răspuns blocat (Motiv Prompt: ${chunk.promptFeedback.blockReason}). Detalii: ${JSON.stringify(chunk.promptFeedback.blockReasonDetail || 'N/A')}`;
+                    anErrorOccurredInStream = true;
+                    console.warn("[AI_STREAM] Stream blocat (promptFeedback):", apiErrorMessageFromStream);
+                    break;
+                }
+                const candidate = chunk.candidates?.[0];
+                if (!candidate) {
+                    console.warn("  [AI_STREAM_CHUNK] Candidate inexistent.");
+                    continue;
+                }
+
+                if (candidate.content?.parts && Array.isArray(candidate.content.parts)) {
+                    for (const part of candidate.content.parts) {
+                        if (part && typeof part.text === "string") {
+                            if (part.thought === true) {
+                                console.log("      THOUGHT Part:", JSON.stringify(part.text.substring(0, 50) + "..."));
+                                collectedThoughtsThisTurn += part.text + "\n";
+                            } else {
+                                console.log("      MAIN ANSWER Part:", JSON.stringify(part.text.substring(0, 50) + "..."));
+                                fullAiResponseText += part.text;
+                            }
+                        }
+                    }
+                }
+                if (candidate.finishReason) {
+                    console.log("  [AI_STREAM_CHUNK] finishReason:", candidate.finishReason);
+                    const errorReasons = ["SAFETY", "RECITATION", "OTHER"];
+                    if (errorReasons.includes(candidate.finishReason)) {
+                        apiErrorMessageFromStream = `Generare oprită (API Motiv: ${candidate.finishReason}). Detalii: ${JSON.stringify(candidate.safetyRatings || 'N/A')}`;
+                        anErrorOccurredInStream = true;
+                    }
+                    break;
+                }
+                if (anErrorOccurredInStream) break;
+            }
+            console.log("[AI_STREAM] Bucla principală a stream-ului s-a încheiat.");
+
+            aiMessageElement.innerHTML = '';
+            let mainAnswerSpan = document.createElement('span');
+            mainAnswerSpan.className = 'main-answer-text';
+
+            if (anErrorOccurredInStream) {
+                const finalErrorMessage = apiErrorMessageFromStream || "Eroare generare răspuns.";
+                aiMessageElement.innerHTML = formatStreamingMessage(finalErrorMessage);
+                aiMessageElement.classList.add("ai-error");
+                fullAiResponseText = finalErrorMessage;
+                console.warn("[AI_DISPLAY] Eroare din stream afișată:", finalErrorMessage);
+            } else {
+                if (collectedThoughtsThisTurn.trim() !== "") {
+                    const thoughtsDetails = document.createElement("details");
+                    thoughtsDetails.className = "ai-thoughts-details";
+                    thoughtsDetails.innerHTML = `<summary>Procesul de gândire al PsihoGPT</summary><pre class="ai-thoughts-content">${collectedThoughtsThisTurn.trim().replace(/</g, "<").replace(/>/g, ">")}</pre>`;
+                    aiMessageElement.appendChild(thoughtsDetails);
+                    console.log("[AI_DISPLAY] Gândurile AI adăugate în DOM.");
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    await new Promise(resolve => setTimeout(resolve, IS_MOBILE_DEVICE ? 50 : 20));
+                }
+                aiMessageElement.appendChild(mainAnswerSpan);
+
+                if (fullAiResponseText.trim() !== "") {
+                    console.log("[AI_DISPLAY] Începe efectul typewriter pentru răspunsul principal...");
+                    let formattedHTML = formatStreamingMessage(fullAiResponseText);
+                    let currentIndex = 0;
+                    console.log("[AI_DISPLAY] Text principal pre-formatat pentru typewriter (primele 100 char):", formattedHTML.substring(0,100));
+                    while (currentIndex < formattedHTML.length) {
+                        const nextChunkEnd = Math.min(currentIndex + TYPING_CHUNK_SIZE, formattedHTML.length);
+                        mainAnswerSpan.innerHTML = formattedHTML.substring(0, nextChunkEnd);
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        await new Promise(resolve => setTimeout(resolve, TYPING_CHUNK_DELAY_MS));
+                        currentIndex = nextChunkEnd;
+                    }
+                    mainAnswerSpan.innerHTML = formattedHTML;
+                    console.log("[AI_DISPLAY] Efectul typewriter pentru răspuns finalizat.");
+                } else if (!collectedThoughtsThisTurn.trim()) {
+                    const fallbackMsg = "Nu am putut genera un răspuns sau răspunsul a fost gol.";
+                    mainAnswerSpan.innerHTML = formatStreamingMessage(fallbackMsg);
+                    fullAiResponseText = fallbackMsg;
+                    console.log("[AI_DISPLAY] AFIȘAT FALLBACK (text principal gol, fără gânduri).");
+                } else {
+                     console.log("[AI_DISPLAY] Text principal gol, dar există gânduri. Nu se afișează fallback pentru textul principal.");
+                }
+            }
+        } catch (err) {
+            const criticalErrorMsg = `Eroare CRITICĂ în handleSendChatMessage: ${err.message}`;
+            console.error("‼️ [CRITICAL_ERROR_HSM] Catch principal:", err, criticalErrorMsg);
+            aiMessageElement.innerHTML = formatStreamingMessage(criticalErrorMsg);
+            aiMessageElement.classList.add("ai-error");
+            fullAiResponseText = criticalErrorMsg;
+            anErrorOccurredInStream = true;
+        } finally {
+            console.log("------------------------------------------------------");
+            console.log("[FINALLY_HSM] Bloc finally atins.");
+            console.log("  Final fullAiResponseText:", JSON.stringify(fullAiResponseText.substring(0,100) + "..."));
+            console.log("  Final collectedThoughtsThisTurn:", JSON.stringify(collectedThoughtsThisTurn.substring(0,100) + "..."));
+            console.log("  Final anErrorOccurredInStream:", anErrorOccurredInStream);
+
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            if (currentUser) {
+                try {
+                    await saveChatMessage(currentUser.uid, {
+                        role: "model",
+                        content: fullAiResponseText.trim(),
+                        thoughts: collectedThoughtsThisTurn.trim() || null,
+                        error: anErrorOccurredInStream || (fullAiResponseText.toLowerCase().includes("eroare") && !apiErrorMessageFromStream && !collectedThoughtsThisTurn.trim()),
+                        timestamp: new Date().toISOString()
+                    });
+                    console.log("→ [DB_SAVE_MODEL_HSM] Răspuns/Eroare AI (cu thoughts) salvat(ă).");
+                } catch (firestoreSaveErr) {
+                     console.error("‼️ [DB_ERROR_HSM] Salvare răspuns model eșuată:", firestoreSaveErr);
+                    if (chatStatus) chatStatus.textContent = "Eroare salvare răspuns AI.";
+                }
+            }
+
+            if (chatStatus) {
+                 if (anErrorOccurredInStream || fullAiResponseText.toLowerCase().includes("eroare critică")) {
+                    chatStatus.textContent = "Eroare comunicare AI.";
+                } else if (fullAiResponseText.trim() === "" && collectedThoughtsThisTurn.trim() === "") {
+                    chatStatus.textContent = "Problemă generare răspuns.";
+                } else {
+                    chatStatus.textContent = "Janet - Psihoterapeut Cognitiv-Comportamental Integrativ";
+                }
+            }
+
+            if (geminiModelChat && isChatInitialized && sendButton) {
+                sendButton.disabled = false;
+            } else if (sendButton) {
+                sendButton.disabled = true;
+                if (chatStatus && (!isChatInitialized || !geminiModelChat)) {
+                     chatStatus.textContent = "Chat AI indisponibil.";
+                }
+            }
+            if (chatInput) chatInput.focus();
+            console.log("[FINALLY_HSM] Execuție handleSendChatMessage completă.");
+        }
+    }
 
     async function handleToggleChat() {
         console.log("[UI_CHAT_TOGGLE] Apel handleToggleChat.");
@@ -769,41 +1748,30 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
         }
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     async function discussFisaWithChat(fisaData) {
-        console.log("[DISCUSS_FISA] Se încearcă discutarea fișei:", fisaData?.continut?.situatie?.substring(0,30) + "...");
         const user = auth.currentUser;
         if (!user) { alert("Autentificare necesară."); window.location.href = "login.html"; return; }
-
         const chatContainer = document.getElementById("chatContainer");
-        if (!chatContainer) {
-            console.error("[DISCUSS_FISA] Containerul de chat nu a fost găsit.");
-            return;
-        }
-        // Deschide și inițializează chat-ul dacă nu e deja activ
-        if (chatContainer.style.display === "none" || chatContainer.style.display === "" || !isChatInitialized || !chatSession) {
-            console.log("[DISCUSS_FISA] Chat-ul nu este activ/inițializat, se deschide și se inițializează...");
-            // Asigură-te că handleToggleChat va apela initializeAndStartChatSession corect
-            // Forțăm o stare care să ducă la inițializare dacă e nevoie
-            if (chatContainer.style.display === "none" || chatContainer.style.display === "") {
-                // Simulează că e închis pentru ca handleToggleChat să-l deschidă și inițializeze
-                 chatContainer.style.display = "none"; // Asigură că isChatCurrentlyOpen e false în toggle
-            }
-            isChatInitialized = false; // Forțează re-inițializarea în handleToggleChat
-            chatSession = null;
+        if (chatContainer.style.display === "none" || chatContainer.style.display === "") {
             await handleToggleChat();
         }
-
-        if (!chatSession || !isChatInitialized) { // Verifică din nou după posibilul await
-            console.log("[DISCUSS_FISA] Așteptare scurtă pentru inițializarea chat-ului post-toggle...");
-            await new Promise(resolve => setTimeout(resolve, 700)); // Mărit puțin delay-ul
-        }
-
         if (!chatSession || !isChatInitialized) {
-            console.error("[DISCUSS_FISA] EROARE: Sesiunea de chat nu este pregătită nici după așteptare pentru a discuta fișa.");
-            displayChatMessage("Eroare: Sesiunea de chat nu e pregătită. Reîncearcă deschiderea chat-ului manual.", "AI-error", null);
-            return;
+            displayChatMessage("Eroare: Sesiunea de chat nu e pregătită.", "AI-error"); return;
         }
-
         const c = fisaData.continut;
         let message = `Salut PsihoGPT,\n\nAș dori să discutăm despre următoarea fișă de monitorizare (datată ${fisaData.dateAfisare || 'N/A'}):\n\n`;
         message += `**Situația:** ${c.situatie || 'N/A'}\n**Gânduri automate:** ${c.ganduri || 'N/A'}\n**Emoții:** ${c.emotii || 'N/A'}\n`;
@@ -822,88 +1790,62 @@ Răspunde doar cu textul cerut conform structurii, fără introduceri ("Iată fe
         message += `  *Focus pe slăbiciuni?:* ${c.slabiciuni || 'N/A'}\n  *Cum ar trebui?:* ${c.cum_ar_trebui || 'N/A'}\n`;
         message += `  *Perfecționism?:* ${c.perfectiune || 'N/A'}\n\n`;
         message += "Ce întrebări sau reflecții ai pentru mine pe baza acestei fișe?";
-
         const chatInput = document.getElementById("chatInput");
-        if (chatInput) {
+        if(chatInput) {
             chatInput.value = message;
-            console.log("[DISCUSS_FISA] Se trimite fișa la chat...");
-            await handleSendChatMessage(); // Asigură-te că acesta așteaptă dacă e async
-        } else {
-            console.error("[DISCUSS_FISA] Elementul chatInput nu a fost găsit.");
+            handleSendChatMessage();
         }
     }
 
-
     // --- FUNCȚIA PRINCIPALĂ DE INTRARE (ONLOAD) ---
-    window.onload = function () {
-        console.log("DOM complet încărcat. Se inițializează aplicația...");
-        messagesDivGlobalRef = document.getElementById("chatMessages");
-        if (!messagesDivGlobalRef) {
-            console.error("CRITICAL_ONLOAD: Elementul #chatMessages nu a fost găsit!");
-        } else {
-            console.log("[ONLOAD] messagesDivGlobalRef setat cu succes.");
-        }
+    // Este definită mai jos, după ce toate funcțiile pe care le apelează sunt definite.
+    // Acest lucru asigură că nu vor exista ReferenceError pentru funcțiile apelate din onload.
 
-        document.getElementById('tabButtonJurnal')?.addEventListener('click', () => showTab('jurnal'));
-        document.getElementById('tabButtonFisa')?.addEventListener('click', () => showTab('fisa'));
+    window.onload = function () {
+        // Inițializare tab-uri
+        document.getElementById('tabButtonJurnal').addEventListener('click', () => showTab('jurnal'));
+        document.getElementById('tabButtonFisa').addEventListener('click', () => showTab('fisa'));
         showTab('jurnal');
 
         onAuthStateChanged(auth, async (user) => {
-            console.log("[AUTH_CHANGE] Starea de autentificare s-a schimbat. User:", user ? user.uid : "NULL");
             currentUserId = user ? user.uid : null;
             const mainContentArea = document.getElementById('mainContentArea');
             const cardsContainerArea = document.getElementById('cardsContainerArea');
             const toggleChatBtn = document.getElementById("toggleChatButton");
             const chatContainer = document.getElementById("chatContainer");
-            const chatStatus = document.getElementById("chatStatus");
 
             if (user) {
-                console.log(`[AUTH_CHANGE] Utilizator AUTENTIFICAT: ${user.uid}.`);
                 if (mainContentArea) mainContentArea.style.display = '';
                 if (cardsContainerArea) cardsContainerArea.style.display = '';
                 if (toggleChatBtn) toggleChatBtn.style.display = 'flex';
-
+                
+                console.log("Utilizator autentificat:", user.uid);
                 initializeFisaFormFunctionality();
                 initializeJurnalFormFunctionality();
 
                 if (!dataAlreadyLoaded) {
-                    console.log("[AUTH_CHANGE] Se încarcă datele inițiale (introspecții) pentru prima dată.");
-                    await incarcaToateIntrospectiile(user.uid);
+                    incarcaToateIntrospectiile(user.uid);
                     dataAlreadyLoaded = true;
                 }
             } else {
-                console.log("[AUTH_CHANGE] Utilizator NEAUTENTIFICAT. Redirecționare către login.html...");
+                console.log("Utilizator neautentificat, redirecționare...");
                 if (mainContentArea) mainContentArea.style.display = 'none';
                 if (cardsContainerArea) cardsContainerArea.style.display = 'none';
                 if (toggleChatBtn) toggleChatBtn.style.display = 'none';
                 if (chatContainer) chatContainer.style.display = 'none';
-                if (chatStatus) chatStatus.textContent = "Chatul AI nu este activ.";
-
                 isChatInitialized = false;
                 chatSession = null;
-                if (messagesDivGlobalRef) messagesDivGlobalRef.innerHTML = "";
-
-                // Oprește redirecționarea dacă suntem deja pe login.html pentru a evita bucla
-                if (!window.location.pathname.endsWith("login.html") && !window.location.pathname.endsWith("login")) {
-                    window.location.href = "login.html";
-                } else {
-                    console.log("[AUTH_CHANGE] Deja pe pagina de login sau cale similară, nu se redirecționează.");
-                }
+                window.location.href = "login.html";
             }
         });
-
-        document.getElementById("minimizeChatButton")?.addEventListener("click", handleToggleChat);
+       
+        document.getElementById("minimizeChatButton")?.addEventListener("click", handleToggleChat); 
         document.getElementById("toggleChatButton")?.addEventListener("click", handleToggleChat);
-        document.getElementById("sendChatMessageButton")?.addEventListener("click", () => {
-            console.log("[UI_EVENT] Buton Send apăsat.");
-            handleSendChatMessage();
-        });
+        document.getElementById("sendChatMessageButton")?.addEventListener("click", handleSendChatMessage);
         document.getElementById("chatInput")?.addEventListener("keypress", function(event) {
             if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                console.log("[UI_EVENT] Enter apăsat în chatInput, se trimite mesajul.");
                 handleSendChatMessage();
             }
         });
-        console.log("Aplicație inițializată și event listeners atașați.");
     };
