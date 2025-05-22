@@ -1204,7 +1204,7 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
             history: historyForChatSession,
             generationConfig: {
                 temperature: 0.75,
-                // Activează dacă vrei "thoughts" și gestionezi extragerea lor
+              
                 // thinking_config: { include_thoughts: true }
             }
         });
