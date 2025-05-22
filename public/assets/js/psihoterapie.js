@@ -107,8 +107,7 @@ Misiunea ta este să ajuți utilizatorul să exploreze gânduri, emoții, compor
 # RESURSE INTERNE (referențial, nu reproduce):
 Scheme YSQ-R/SMI, Atașament ECR-R, autori (Young, Linehan, Harris, Brown, Neff, Downs, Kort, Jackman), tehnici (CFT, Somatic Experiencing, narativă).
 # PRIORITATE:
-Empatie, validare, ghidare reflexivă, adaptabilitate.
-Context din ultimele introspecții (fișe/jurnal) completate de utilizator:`;
+Empatie, validare, ghidare reflexivă, adaptabilitate.`;
 
     const jurnalPromptsList = [
         {
@@ -1400,8 +1399,7 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
             ],
             generationConfig: {
                 temperature: 0.75,
-                thinking_config: { include_thoughts: true },
-                language: "ro"
+                thinking_config: { include_thoughts: true }
             }
         };
 
