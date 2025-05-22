@@ -1086,7 +1086,6 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
             .replace(/&/g, "&")  // Întâi &
             .replace(/</g, "<")
             .replace(/>/g, ">")
-            .replace(/"/g, """)
             .replace(/'/g, "'"); // Asigură-te că aceasta este corectă
 
         let htmlContent = escapedMessage
