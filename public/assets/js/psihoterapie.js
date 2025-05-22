@@ -108,8 +108,7 @@ Misiunea ta este să ajuți utilizatorul să exploreze gânduri, emoții, compor
 Scheme YSQ-R/SMI, Atașament ECR-R, autori (Young, Linehan, Harris, Brown, Neff, Downs, Kort, Jackman), tehnici (CFT, Somatic Experiencing, narativă).
 # PRIORITATE:
 Empatie, validare, ghidare reflexivă, adaptabilitate.
-Context din ultimele introspecții (fișe/jurnal) completate de utilizator:
-{{INITIAL_CONTEXT_SUMMARY_PLACEHOLDER}}---`;
+Context din ultimele introspecții (fișe/jurnal) completate de utilizator:`;
 
     const jurnalPromptsList = [
         {
