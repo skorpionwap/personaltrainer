@@ -58,6 +58,8 @@
     let selectedJurnalPrompt = null;
      // <<< ADAUGĂ ACEASTĂ LINIE AICI >>>
     const MAX_CHAT_HISTORY_FOR_API = 20; // Setează la valoarea dorită (ex: 20 pentru 10 schimburi user/AI)
+    const IS_MOBILE_DEVICE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    console.log("[DEVICE_CHECK] Este dispozitiv mobil:", IS_MOBILE_DEVICE); // Poți loga o singură dată la încărcare
     const jurnalPromptsList = [ /* ... Lista ta de prompturi ... */
             {
                 label: "🌡️ Explorează o emoție", id: "explorare_emotie",
