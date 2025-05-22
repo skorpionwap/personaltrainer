@@ -51,7 +51,7 @@
     let chatSession = null;
     const CHAT_HISTORY_DOC_ID_PREFIX = "chatHistory_";
     let isChatInitialized = false;
-    let messagesDivGlobalRef; // Va fi setată în window.onload
+    let messagesDivGlobalRef = null; // Inițializează cu null
 
     const IS_MOBILE_DEVICE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     console.log("[DEVICE_CHECK] Este dispozitiv mobil:", IS_MOBILE_DEVICE);
@@ -1818,51 +1818,95 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
     // Este definită mai jos, după ce toate funcțiile pe care le apelează sunt definite.
     // Acest lucru asigură că nu vor exista ReferenceError pentru funcțiile apelate din onload.
 
+       // La sfârșitul scriptului, sau într-un loc adecvat
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log("[DOM_LOADED] DOM complet parsat. Se inițializează referințe UI și event listeners principali...");
+        messagesDivGlobalRef = document.getElementById("chatMessages");
+        if (!messagesDivGlobalRef) {
+            console.error("CRITICAL_DOM_LOAD: Elementul #chatMessages NU a fost găsit!");
+        } else {
+            console.log("[DOM_LOAD] messagesDivGlobalRef setat cu succes din DOMContentLoaded.");
+        }
+
+        // Atașează aici event listener-ii care depind de existența elementelor DOM
+        document.getElementById('tabButtonJurnal')?.addEventListener('click', () => showTab('jurnal'));
+        document.getElementById('tabButtonFisa')?.addEventListener('click', () => showTab('fisa'));
+        // showTab('jurnal'); // Poți apela showTab aici dacă nu depinde de user state încă
+
+        document.getElementById("minimizeChatButton")?.addEventListener("click", handleToggleChat);
+        document.getElementById("toggleChatButton")?.addEventListener("click", handleToggleChat);
+        document.getElementById("sendChatMessageButton")?.addEventListener("click", () => {
+            console.log("[UI_EVENT] Buton Send apăsat.");
+            handleSendChatMessage();
+        });
+        document.getElementById("chatInput")?.addEventListener("keypress", function(event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                console.log("[UI_EVENT] Enter apăsat în chatInput, se trimite mesajul.");
+                handleSendChatMessage();
+            }
+        });
+        console.log("[DOM_LOADED] Event listeners principali atașați.");
+    });
+
     window.onload = function () {
-        // Inițializare tab-uri
-        document.getElementById('tabButtonJurnal').addEventListener('click', () => showTab('jurnal'));
-        document.getElementById('tabButtonFisa').addEventListener('click', () => showTab('fisa'));
-        showTab('jurnal');
+        console.log("[WINDOW_LOAD] Toate resursele paginii încărcate (imagini etc.).");
+        // onAuthStateChanged poate rămâne aici, deoarece se ocupă de starea Firebase
+        // care este independentă de încărcarea completă a *tuturor* resurselor vizuale.
 
         onAuthStateChanged(auth, async (user) => {
+            console.log("[AUTH_CHANGE] Starea de autentificare s-a schimbat. User:", user ? user.uid : "NULL");
             currentUserId = user ? user.uid : null;
             const mainContentArea = document.getElementById('mainContentArea');
             const cardsContainerArea = document.getElementById('cardsContainerArea');
             const toggleChatBtn = document.getElementById("toggleChatButton");
             const chatContainer = document.getElementById("chatContainer");
+            const chatStatus = document.getElementById("chatStatus"); // Pentru a reseta statusul
 
             if (user) {
+                console.log(`[AUTH_CHANGE] Utilizator AUTENTIFICAT: ${user.uid}.`);
                 if (mainContentArea) mainContentArea.style.display = '';
                 if (cardsContainerArea) cardsContainerArea.style.display = '';
                 if (toggleChatBtn) toggleChatBtn.style.display = 'flex';
-                
-                console.log("Utilizator autentificat:", user.uid);
+
+                // Aceste funcții manipulează DOM-ul, deci e bine să fie apelate după ce DOM-ul e gata.
+                // DOMContentLoaded ar trebui să se fi declanșat deja.
                 initializeFisaFormFunctionality();
                 initializeJurnalFormFunctionality();
+                showTab('jurnal'); // Setează tab-ul implicit după ce și DOM-ul e gata și userul e logat
 
                 if (!dataAlreadyLoaded) {
-                    incarcaToateIntrospectiile(user.uid);
+                    console.log("[AUTH_CHANGE] Se încarcă datele inițiale (introspecții) pentru prima dată.");
+                    await incarcaToateIntrospectiile(user.uid); // Aceasta manipulează și ea DOM-ul
                     dataAlreadyLoaded = true;
                 }
             } else {
-                console.log("Utilizator neautentificat, redirecționare...");
+                console.log("[AUTH_CHANGE] Utilizator NEAUTENTIFICAT. Redirecționare...");
                 if (mainContentArea) mainContentArea.style.display = 'none';
                 if (cardsContainerArea) cardsContainerArea.style.display = 'none';
                 if (toggleChatBtn) toggleChatBtn.style.display = 'none';
                 if (chatContainer) chatContainer.style.display = 'none';
+                if (chatStatus) chatStatus.textContent = "Chatul AI nu este activ.";
+
                 isChatInitialized = false;
                 chatSession = null;
-                window.location.href = "login.html";
+                if (messagesDivGlobalRef) { // Verifică dacă messagesDivGlobalRef a fost setat
+                    messagesDivGlobalRef.innerHTML = "";
+                } else {
+                    // Dacă DOMContentLoaded nu a rulat încă, încercăm să-l găsim direct
+                    const messagesDiv = document.getElementById("chatMessages");
+                    if (messagesDiv) messagesDiv.innerHTML = "";
+                }
+
+
+                const loginPath = "login.html";
+                if (!window.location.pathname.endsWith(loginPath) && !window.location.pathname.includes("login")) { // Verificare mai robustă
+                    console.log(`[AUTH_CHANGE] Redirecționare către ${loginPath}`);
+                    window.location.href = loginPath;
+                } else {
+                    console.log("[AUTH_CHANGE] Deja pe pagina de login sau cale similară, nu se redirecționează.");
+                }
             }
         });
-       
-        document.getElementById("minimizeChatButton")?.addEventListener("click", handleToggleChat); 
-        document.getElementById("toggleChatButton")?.addEventListener("click", handleToggleChat);
-        document.getElementById("sendChatMessageButton")?.addEventListener("click", handleSendChatMessage);
-        document.getElementById("chatInput")?.addEventListener("keypress", function(event) {
-            if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                handleSendChatMessage();
-            }
-        });
+        console.log("[WINDOW_LOAD] Listener onAuthStateChanged atașat.");
     };
