@@ -1417,28 +1417,43 @@ function displayChatMessage(messageContent, role, thoughtsContent = null) {
     }
 }
 
-   async function getInitialContextSummary(userIdForContext) {
-    let contextSummary = "\n\n--- REZUMAT DIN INTROSPECȚIILE ANTERIOARE (ULTIMELE 3) ---\n";
+ async function getInitialContextSummary(userIdForContext) {
+    let contextSummary = "\n\n--- REZUMAT COMPLET DIN INTROSPECȚIILE ANTERIOARE (ULTIMELE 3) ---\n"; // Am schimbat titlul
     if (!userIdForContext) {
         contextSummary += "Niciun utilizator specificat pentru context.\n";
         console.warn("[CONTEXT_SUMMARY] User ID lipsă pentru getInitialContextSummary.");
         return contextSummary;
     }
     try {
-        console.log(`[CONTEXT_SUMMARY] Se încarcă introspecțiile pentru context pentru user: ${userIdForContext}`);
+        console.log(`[CONTEXT_SUMMARY] Se încarcă introspecțiile complete pentru context pentru user: ${userIdForContext}`);
         const q = query(collection(db, "introspectii"), where("ownerUid", "==", userIdForContext), orderBy("timestampCreare", "desc"), limit(3));
         const querySnapshot = await getDocs(q);
+
         if (!querySnapshot.empty) {
-            querySnapshot.forEach(docSnap => {
+            querySnapshot.forEach((docSnap, index) => { // Am adăugat index pentru numerotare
                 const data = docSnap.data();
                 const entryDate = data.dateAfisare || (data.timestampCreare ? new Date(data.timestampCreare.toDate()).toLocaleDateString("ro-RO") : 'N/A');
+                
+                contextSummary += `\n**INTROSPECȚIA RECENTĂ #${index + 1} (${data.type.toUpperCase()}) - Data: ${entryDate}**\n`;
+
                 if (data.type === 'fisa') {
-                    contextSummary += ` - Fișă (${entryDate}): Situatia - ${(data.continut.situatie || "N/A").substring(0, 70)}... Ganduri - ${(data.continut.ganduri || "N/A").substring(0,70)}...\n`;
+                    // Iterăm prin toate cheile din continutul fișei
+                    for (const key in data.continut) {
+                        if (Object.hasOwnProperty.call(data.continut, key)) {
+                            const value = data.continut[key] || "N/A";
+                            // O mică formatare pentru lizibilitate (înlocuiește _ cu spațiu și capitalizează prima literă)
+                            const formattedKey = key.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
+                            contextSummary += `  *${formattedKey}:* ${value}\n`;
+                        }
+                    }
                 } else if (data.type === 'jurnal') {
-                    contextSummary += ` - Jurnal (${entryDate}): Titlu - ${(data.continut.titluJurnal || "Fără titlu").substring(0,70)}... Text (primele cuvinte) - ${(data.continut.textJurnal || "N/A").substring(0,70)}...\n`;
+                    contextSummary += `  *Titlu Jurnal:* ${data.continut.titluJurnal || "Fără titlu"}\n`;
+                    contextSummary += `  *Tip Prompt Utilizat:* ${data.continut.promptUtilizatJurnal || "Prompt personalizat/necunoscut"}\n`;
+                    contextSummary += `  *Text Jurnal Complet:*\n${data.continut.textJurnal || "N/A"}\n`;
                 }
+                contextSummary += "---\n"; // Separator între introspecții
             });
-             console.log(`[CONTEXT_SUMMARY] Context introspecții încărcat. Lungime sumar: ${contextSummary.length}`);
+            console.log(`[CONTEXT_SUMMARY] Context introspecții (complet) încărcat. Lungime sumar: ${contextSummary.length}`);
         } else {
             contextSummary += "Nicio introspecție recentă găsită.\n";
             console.log("[CONTEXT_SUMMARY] Nicio introspecție găsită pentru context.");
