@@ -1121,13 +1121,23 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
     const chatStatus = document.getElementById("chatStatus");
     const sendButton = document.getElementById("sendChatMessageButton");
 
+    // Asigură-te că messagesDivGlobalRef este disponibil
+    if (!messagesDivGlobalRef && isInitialPageLoad) {
+        messagesDivGlobalRef = document.getElementById("chatMessages"); // Fallback dacă nu e setat la DOMContentLoaded
+        if (!messagesDivGlobalRef) {
+            console.error("[CHAT_INIT] CRITICAL: messagesDivGlobalRef (chatMessages) nu a fost găsit!");
+            if (chatStatus) chatStatus.textContent = "EROARE: Interfață chat.";
+            return null;
+        }
+    }
+
     if (sendButton) sendButton.disabled = true;
     if (chatStatus) chatStatus.textContent = "Inițializare chat AI...";
 
     if (!genAI) {
         console.error("[CHAT_INIT] SDK Gemini (genAI) neinițializat!");
         if (chatStatus) chatStatus.textContent = "EROARE: SDK AI.";
-        displayChatMessage("Serviciul AI nu este disponibil (SDK).", "AI-error", null);
+        if (messagesDivGlobalRef) displayChatMessage("Serviciul AI nu este disponibil (SDK).", "AI-error", null);
         isChatInitialized = false;
         return null;
     }
@@ -1136,42 +1146,62 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
     chatSession = null;
     chatModelInstance = null;
 
+    // 1. Obține contextul din jurnale (sau ce ai configurat)
     const dynamicContextSummary = await getInitialContextSummary(userId);
     const systemInstructionText = FULL_SYSTEM_INSTRUCTION_TEXT_TEMPLATE.replace(
         "{{INITIAL_CONTEXT_SUMMARY_PLACEHOLDER}}",
         dynamicContextSummary
     );
-    console.log("[CHAT_INIT] SystemInstruction generat.");
+    console.log("[CHAT_INIT] SystemInstruction generat. Lungime: " + systemInstructionText.length);
+    // Pentru depanare, poți decomenta linia de mai jos pentru a vedea întregul systemInstruction
+     console.log("[CONTEXT_DEBUG] Final SystemInstruction (including context) sent to Gemini:\n", systemInstructionText);
 
+
+    // 2. Inițializează instanța modelului cu systemInstruction
     try {
         chatModelInstance = genAI.getGenerativeModel({
             model: GEMINI_MODEL_NAME_CHAT,
-            systemInstruction: { parts: [{ text: systemInstructionText }] }
+            systemInstruction: { parts: [{ text: systemInstructionText }] },
+  
         });
         console.log("[CHAT_INIT] Model chat instanțiat cu SystemInstruction.");
     } catch (modelError) {
         console.error("[CHAT_INIT] Eroare instanțiere model cu SystemInstruction:", modelError);
         if (chatStatus) chatStatus.textContent = "EROARE: Model AI (config).";
-        displayChatMessage(`Eroare configurare AI: ${modelError.message}.`, "AI-error", null);
+        if (messagesDivGlobalRef) displayChatMessage(`Eroare configurare AI: ${modelError.message}.`, "AI-error", null);
         return null;
     }
 
+    // 3. Golește UI-ul mesajelor dacă este o încărcare inițială a paginii/chatului
     if (messagesDivGlobalRef && isInitialPageLoad) {
         messagesDivGlobalRef.innerHTML = '';
         console.log("[CHAT_INIT] UI mesaje golit.");
     }
 
+    // 4. Încarcă istoricul complet din Firestore
     let fullLoadedHistoryFromDB = await loadChatHistory(userId);
 
-    if (isInitialPageLoad) {
+    // 5. Afișează istoricul în UI (doar ultimele N mesaje) și fă SCROLL LA BOTTOM
+    if (isInitialPageLoad && messagesDivGlobalRef) {
         const displayHistory = fullLoadedHistoryFromDB.slice(-MAX_MESSAGES_TO_DISPLAY_ON_LOAD);
-        displayHistory.forEach(msg => {
-            const roleForDisplay = (msg.role === "model" || msg.role === "AI") ? "model" : "user";
-            displayChatMessage(msg.content, roleForDisplay, msg.thoughts);
-        });
-        console.log(`[CHAT_INIT] Afișat în UI ${displayHistory.length} din ${fullLoadedHistoryFromDB.length} mesaje.`);
+        if (displayHistory.length > 0) {
+            displayHistory.forEach(msg => {
+                const roleForDisplay = (msg.role === "model" || msg.role === "AI") ? "model" : "user";
+                // Apelăm displayChatMessage, care are propria logică de scroll "inteligent",
+                // dar scroll-ul final îl facem după buclă.
+                displayChatMessage(msg.content, roleForDisplay, msg.thoughts);
+            });
+            console.log(`[CHAT_INIT] Afișat în UI ${displayHistory.length} din ${fullLoadedHistoryFromDB.length} mesaje.`);
+
+            // !!! SCROLL LA BOTTOM DUPĂ AFIȘAREA ISTORICULUI !!!
+            messagesDivGlobalRef.scrollTop = messagesDivGlobalRef.scrollHeight;
+            console.log("[CHAT_INIT] Scroll la bottom efectuat după încărcarea istoricului.");
+        } else {
+            console.log("[CHAT_INIT] Niciun istoric de afișat în UI la încărcare.");
+        }
     }
 
+    // 6. Pregătește istoricul pentru API-ul Gemini (doar ultimele N mesaje)
     const apiHistoryStartIndex = Math.max(0, fullLoadedHistoryFromDB.length - MAX_CHAT_HISTORY_FOR_API);
     const truncatedApiHistory = fullLoadedHistoryFromDB.slice(apiHistoryStartIndex);
 
@@ -1182,25 +1212,22 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
         } else if (msg.role && (msg.role.toLowerCase() === "model" || msg.role.toLowerCase() === "ai")) {
             finalRole = "model";
         } else {
-            console.warn(`[CHAT_INIT] Rol invalid '${msg.role}' în istoric. Omitere mesaj.`);
+            console.warn(`[CHAT_INIT] Rol invalid '${msg.role}' în istoric. Omitere mesaj:`, msg);
             return null;
         }
         const contentText = (typeof msg.content === 'string' && msg.content.trim() !== "") ? msg.content.trim() : null;
         if (!contentText) {
-            console.warn(`[CHAT_INIT] Conținut gol pentru rol ${finalRole}. Omitere mesaj.`);
+            console.warn(`[CHAT_INIT] Conținut gol pentru rol ${finalRole}. Omitere mesaj:`, msg);
             return null;
         }
         return { role: finalRole, parts: [{ text: contentText }] };
     }).filter(msg => msg !== null);
 
-    // Asigură că istoricul nu începe cu 'model' și alternează corect (simplificat)
+    // Asigură că istoricul nu începe cu 'model' și alternează corect
     let cleanHistory = [];
     if (historyForChatSession.length > 0) {
-        // Găsește indexul primului mesaj 'user'
         const firstUserIndex = historyForChatSession.findIndex(m => m.role === 'user');
-
         if (firstUserIndex !== -1) {
-            // Dacă există cel puțin un mesaj 'user', începe de acolo
             let lastRole = '';
             for (let i = firstUserIndex; i < historyForChatSession.length; i++) {
                 const currentMsg = historyForChatSession[i];
@@ -1212,37 +1239,41 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
                 }
             }
         } else {
-            console.warn("[CHAT_INIT] Niciun mesaj 'user' în istoricul trunchiat. Se trimite istoric gol la startChat.");
+            console.warn("[CHAT_INIT] Niciun mesaj 'user' în istoricul trunchiat pentru API. Se trimite istoric gol la startChat.");
         }
     }
     historyForChatSession = cleanHistory;
 
-
     if (historyForChatSession.length > 0) {
-        console.log("[CHAT_INIT_DEBUG] Primul mesaj din historyForChatSession FINAL:", JSON.stringify(historyForChatSession[0]));
+        console.log("[CHAT_INIT_DEBUG] Primul mesaj din historyForChatSession FINAL pentru API:", JSON.stringify(historyForChatSession[0]));
     } else {
-        console.log("[CHAT_INIT_DEBUG] historyForChatSession este GOL pentru startChat.");
+        console.log("[CHAT_INIT_DEBUG] historyForChatSession este GOL pentru startChat API.");
     }
-    console.log("[CHAT_INIT] Istoric conversațional FINAL pentru startChat:", historyForChatSession.length, "mesaje.");
+    console.log("[CHAT_INIT] Istoric conversațional FINAL pentru API (startChat):", historyForChatSession.length, "mesaje.");
 
-
+    // 7. Pornește sesiunea de chat cu istoricul pregătit
     try {
         chatSession = chatModelInstance.startChat({
             history: historyForChatSession,
             generationConfig: {
-                temperature: 0.75,
-              
-                 thinking_config: { include_thoughts: false }
+                temperature: 0.75, // Sau altă valoare preferată
+                thinking_config: { include_thoughts: true } // Activează dacă vrei să vezi thoughtsTokenCount, chiar dacă nu le extragi separat
             }
+
         });
-        console.log("[CHAT_INIT] Sesiune chat inițializată. Model:", GEMINI_MODEL_NAME_CHAT);
+        console.log("[CHAT_INIT] Sesiune chat inițializată cu API-ul Gemini. Model:", GEMINI_MODEL_NAME_CHAT);
 
         if (chatStatus) chatStatus.textContent = "PsihoGPT - Terapeutul tău AI";
 
+        // 8. Trimite un salut AI dacă nu există istoric deloc
         if (fullLoadedHistoryFromDB.length === 0 && historyForChatSession.length === 0) {
             console.log("[CHAT_INIT_GREETING] Niciun istoric, se trimite salut AI.");
             const aiGreetingText = "Salut! Eu sunt PsihoGPT. Bine ai venit! Cum te simți astăzi? ✨";
-            displayChatMessage(aiGreetingText, "model", null);
+            if (messagesDivGlobalRef) {
+                displayChatMessage(aiGreetingText, "model", null);
+                // Forțează scroll și după salutul inițial, dacă e nevoie
+                messagesDivGlobalRef.scrollTop = messagesDivGlobalRef.scrollHeight;
+            }
             await saveChatMessage(userId, {
                 role: "model", content: aiGreetingText, thoughts: null,
                 error: false, timestamp: new Date().toISOString()
@@ -1255,9 +1286,9 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
         console.log("[CHAT_INIT] Sesiune chat gata.");
 
     } catch (initError) {
-        console.error("[CHAT_INIT] Eroare MAJORĂ la startChat:", initError, initError.stack);
+        console.error("[CHAT_INIT] Eroare MAJORĂ la startChat cu API-ul Gemini:", initError, initError.stack);
         if (chatStatus) chatStatus.textContent = "Eroare critică AI Chat.";
-        displayChatMessage(`Problemă pornire chat: ${initError.message}.`, "AI-error", null);
+        if (messagesDivGlobalRef) displayChatMessage(`Problemă majoră la pornirea chat-ului: ${initError.message}.`, "AI-error", null);
         isChatInitialized = false; chatSession = null; chatModelInstance = null;
         if (sendButton) sendButton.disabled = true;
         return null;
@@ -1676,16 +1707,20 @@ async function handleSendChatMessage() {
 
         function performTypewriterStep() {
             if (currentTypedLength < totalLength) {
-                const wasAtBottom = isScrolledToBottom(messagesDiv);
+                const wasAtBottom = isScrolledToBottom(messagesDiv); // Verifică DACĂ ERA la bottom
                 const nextChunkEnd = Math.min(currentTypedLength + CHUNK_SIZE, totalLength);
                 mainAnswerSpan.innerHTML = formattedTargetHTML.substring(0, nextChunkEnd);
                 currentTypedLength = nextChunkEnd;
 
-                if (wasAtBottom) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                if (wasAtBottom) messagesDiv.scrollTop = messagesDiv.scrollHeight; // Face scroll DOAR DACĂ ERA la bottom
                 setTimeout(performTypewriterStep, CHUNK_DELAY);
             } else {
                 mainAnswerSpan.innerHTML = formattedTargetHTML;
-                if (isScrolledToBottom(messagesDiv)) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                // Poți decide dacă vrei un ultim scroll aici, sau nu.
+                // Dacă utilizatorul a derulat sus în timpul typewriter-ului, poate nu vrei să-l forțezi jos.
+                if (isScrolledToBottom(messagesDiv)) { // Sau o condiție mai permisivă
+                     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                }
                 finalizeAndSaveAiResponse();
             }
         }
