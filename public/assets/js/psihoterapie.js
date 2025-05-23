@@ -60,7 +60,7 @@
     console.log("[DEVICE_CHECK] Este dispozitiv mobil:", IS_MOBILE_DEVICE);
 
     const MAX_CHAT_HISTORY_FOR_API = 20; // Numărul de mesaje user/model din istoric de trimis la API
-    const MAX_MESSAGES_TO_DISPLAY_ON_LOAD = 20; // Numărul de mesaje din istoric de afișat în UI la încărcare
+    const MAX_MESSAGES_TO_DISPLAY_ON_LOAD = 30; // Numărul de mesaje din istoric de afișat în UI la încărcare
     // >>> ADAUGĂ SAU VERIFICĂ ACESTE LINII DACĂ LIPESC <<<
     const CHUNK_SIZE = IS_MOBILE_DEVICE ? 50 : 30; // Sau valorile tale preferate
     const CHUNK_DELAY = IS_MOBILE_DEVICE ? 30 : 20; // Sau valorile tale preferate
