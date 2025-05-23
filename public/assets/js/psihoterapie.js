@@ -59,7 +59,7 @@
     const IS_MOBILE_DEVICE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     console.log("[DEVICE_CHECK] Este dispozitiv mobil:", IS_MOBILE_DEVICE);
 
-    const MAX_CHAT_HISTORY_FOR_API = 30; // Numărul de mesaje user/model din istoric de trimis la API
+    const MAX_CHAT_HISTORY_FOR_API = 10; // Numărul de mesaje user/model din istoric de trimis la API
     const MAX_MESSAGES_TO_DISPLAY_ON_LOAD = 50; // Numărul de mesaje din istoric de afișat în UI la încărcare
     const CHUNK_SIZE = IS_MOBILE_DEVICE ? 50 : 30; // Sau valorile tale preferate
     const CHUNK_DELAY = IS_MOBILE_DEVICE ? 30 : 20; // Sau valorile tale preferate
@@ -1430,7 +1430,7 @@ function displayChatMessage(messageContent, role, thoughtsContent = null) {
     }
     try {
         console.log(`[CONTEXT_SUMMARY] Se încarcă introspecțiile complete pentru context pentru user: ${userIdForContext}`);
-        const q = query(collection(db, "introspectii"), where("ownerUid", "==", userIdForContext), orderBy("timestampCreare", "desc"), limit(5));
+        const q = query(collection(db, "introspectii"), where("ownerUid", "==", userIdForContext), orderBy("timestampCreare", "desc"), limit(10));
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
