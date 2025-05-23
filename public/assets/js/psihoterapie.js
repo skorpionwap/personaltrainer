@@ -1421,52 +1421,60 @@ function displayChatMessage(messageContent, role, thoughtsContent = null) {
     }
 }
 
- async function getInitialContextSummary(userIdForContext) {
-    let contextSummary = "\n\n--- REZUMAT COMPLET DIN INTROSPECȚIILE ANTERIOARE ---\n"; // Am schimbat titlul
+async function getInitialContextSummary(userIdForContext) {
+    let contextSummary = "\n\n--- REZUMAT COMPLET DIN JURNALELE ANTERIOARE ---\n"; // Titlu actualizat
     if (!userIdForContext) {
         contextSummary += "Niciun utilizator specificat pentru context.\n";
         console.warn("[CONTEXT_SUMMARY] User ID lipsă pentru getInitialContextSummary.");
         return contextSummary;
     }
     try {
-        console.log(`[CONTEXT_SUMMARY] Se încarcă introspecțiile complete pentru context pentru user: ${userIdForContext}`);
-        const q = query(collection(db, "introspectii"), where("ownerUid", "==", userIdForContext), orderBy("timestampCreare", "desc"), limit(10));
+        console.log(`[CONTEXT_SUMMARY] Se încarcă JURNALELE complete pentru context pentru user: ${userIdForContext}`);
+        
+        // Modificăm query-ul pentru a filtra DOAR jurnalele
+        const q = query(
+            collection(db, "introspectii"),
+            where("ownerUid", "==", userIdForContext),
+            where("type", "==", "jurnal"), // <-- FILTRU NOU: doar documentele de tip 'jurnal'
+            orderBy("timestampCreare", "desc"),
+            limit(5) // Poți ajusta limita aici, ex: 5 jurnale recente sau cât consideri util
+        );
         const querySnapshot = await getDocs(q);
 
-        if (!querySnapshot.empty) {
-            querySnapshot.forEach((docSnap, index) => { // Am adăugat index pentru numerotare
-                const data = docSnap.data();
-                const entryDate = data.dateAfisare || (data.timestampCreare ? new Date(data.timestampCreare.toDate()).toLocaleDateString("ro-RO") : 'N/A');
-                
-                contextSummary += `\n**INTROSPECȚIA RECENTĂ #${index + 1} (${data.type.toUpperCase()}) - Data: ${entryDate}**\n`;
+        let jurnalCounter = 0; // Un contor separat pentru jurnale, dacă vrei să numerotezi doar jurnalele
 
-                if (data.type === 'fisa') {
-                    // Iterăm prin toate cheile din continutul fișei
-                    for (const key in data.continut) {
-                        if (Object.hasOwnProperty.call(data.continut, key)) {
-                            const value = data.continut[key] || "N/A";
-                            // O mică formatare pentru lizibilitate (înlocuiește _ cu spațiu și capitalizează prima literă)
-                            const formattedKey = key.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
-                            contextSummary += `  *${formattedKey}:* ${value}\n`;
-                        }
-                    }
-                } else if (data.type === 'jurnal') {
+        if (!querySnapshot.empty) {
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                // Verificare suplimentară (deși query-ul ar trebui să o facă deja)
+                if (data.type === 'jurnal') {
+                    jurnalCounter++;
+                    const entryDate = data.dateAfisare || (data.timestampCreare ? new Date(data.timestampCreare.toDate()).toLocaleDateString("ro-RO") : 'N/A');
+                    
+                    contextSummary += `\n**JURNALUL RECENT #${jurnalCounter} - Data: ${entryDate}**\n`; // Text actualizat
                     contextSummary += `  *Titlu Jurnal:* ${data.continut.titluJurnal || "Fără titlu"}\n`;
                     contextSummary += `  *Tip Prompt Utilizat:* ${data.continut.promptUtilizatJurnal || "Prompt personalizat/necunoscut"}\n`;
                     contextSummary += `  *Text Jurnal Complet:*\n${data.continut.textJurnal || "N/A"}\n`;
+                    contextSummary += "---\n"; // Separator între jurnale
                 }
-                contextSummary += "---\n"; // Separator între introspecții
             });
-            console.log(`[CONTEXT_SUMMARY] Context introspecții (complet) încărcat. Lungime sumar: ${contextSummary.length}`);
+            if (jurnalCounter > 0) {
+                console.log(`[CONTEXT_SUMMARY] Context din ${jurnalCounter} jurnale (complet) încărcat. Lungime sumar: ${contextSummary.length}`);
+            } else {
+                // Acest caz nu ar trebui să apară dacă querySnapshot nu e gol și filtrăm corect,
+                // dar e o măsură de siguranță.
+                contextSummary += "Niciun jurnal recent găsit (deși au fost găsite alte tipuri de introspecții).\n";
+                console.log("[CONTEXT_SUMMARY] Niciun jurnal găsit, deși query-ul a returnat rezultate (posibil doar fișe).");
+            }
         } else {
-            contextSummary += "Nicio introspecție recentă găsită.\n";
-            console.log("[CONTEXT_SUMMARY] Nicio introspecție găsită pentru context.");
+            contextSummary += "Niciun jurnal recent găsit.\n"; // Mesaj actualizat
+            console.log("[CONTEXT_SUMMARY] Niciun jurnal găsit pentru context.");
         }
     } catch (e) {
-        console.error("[CONTEXT_SUMMARY] Eroare încărcare context introspecții:", e);
-        contextSummary += "Eroare la încărcarea contextului introspecțiilor.\n";
+        console.error("[CONTEXT_SUMMARY] Eroare încărcare context jurnale:", e);
+        contextSummary += "Eroare la încărcarea contextului din jurnale.\n";
     }
-    contextSummary += "--- SFÂRȘIT REZUMAT INTROSPECȚII ---\n";
+    contextSummary += "--- SFÂRȘIT REZUMAT JURNALE ---\n"; // Titlu actualizat
     return contextSummary;
 }
 
