@@ -1154,7 +1154,7 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
     );
     console.log("[CHAT_INIT] SystemInstruction generat. Lungime: " + systemInstructionText.length);
     // Pentru depanare, poți decomenta linia de mai jos pentru a vedea întregul systemInstruction
-     console.log("[CONTEXT_DEBUG] Final SystemInstruction (including context) sent to Gemini:\n", systemInstructionText);
+   //  console.log("[CONTEXT_DEBUG] Final SystemInstruction (including context) sent to Gemini:\n", systemInstructionText);
 
 
     // 2. Inițializează instanța modelului cu systemInstruction
@@ -1257,7 +1257,7 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
             history: historyForChatSession,
             generationConfig: {
                 temperature: 0.75, // Sau altă valoare preferată
-                thinking_config: { include_thoughts: true } // Activează dacă vrei să vezi thoughtsTokenCount, chiar dacă nu le extragi separat
+                thinking_config: { include_thoughts: false } // Activează dacă vrei să vezi thoughtsTokenCount, chiar dacă nu le extragi separat
             }
 
         });
