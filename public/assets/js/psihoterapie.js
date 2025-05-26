@@ -20,8 +20,8 @@
     const auth = getAuth(app);
 
     const GEMINI_API_KEY = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng";
-    const GEMINI_MODEL_NAME_FEEDBACK_FISA = "gemini-2.5-flash-preview-05-20";
-    const GEMINI_MODEL_NAME_FEEDBACK_JURNAL = "gemini-2.5-flash-preview-05-20";
+    const GEMINI_MODEL_NAME_FEEDBACK_FISA = "gemini-2.5-flash";
+    const GEMINI_MODEL_NAME_FEEDBACK_JURNAL = "gemini-2.5-flash";
     const GEMINI_MODEL_NAME_CHAT = "gemini-2.5-flash";
 
     let genAI, geminiModelFisaFeedback, geminiModelJurnalFeedback, geminiModelChat;
