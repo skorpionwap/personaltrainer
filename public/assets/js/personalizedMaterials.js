@@ -50,7 +50,7 @@ async function callGeminiAPIForMaterials(promptText, modelToUse, generationConfi
         // console.log(`[MaterialsJS] Trimitere către Gemini. Lungime prompt: ${promptText.length} chars.`);
         const requestPayload = {
             contents: [{ role: "user", parts: [{ text: promptText }] }],
-            generationConfig: { temperature: 0.5, maxOutputTokens: 4096, ...generationConfigOptions } // maxOutputTokens poate fi ajustat
+            generationConfig: { temperature: 0.5, maxOutputTokens: 80000, ...generationConfigOptions } // maxOutputTokens poate fi ajustat
         };
         const result = await modelToUse.generateContent(requestPayload);
         const response = result.response;
@@ -184,7 +184,7 @@ Pentru fiecare temă, oferă o etichetă scurtă și descriptivă (maxim 5-7 cuv
 Formatare Răspuns: Listează fiecare temă pe o linie nouă, fără numere sau alte prefixe. Nu adăuga introduceri, explicații sau concluzii. Doar lista de teme.
 
 --- TEXT COMBINAT UTILIZATOR (JURNALE, FIȘE, CHAT) ---
-${combinedUserData.substring(0, 150000)}
+${combinedUserData}
 --- SFÂRȘIT TEXT COMBINAT ---
 
 Teme Identificate:
