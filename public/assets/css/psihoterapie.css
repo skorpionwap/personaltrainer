@@ -614,100 +614,48 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     box-shadow: 0 6px 18px rgba(74, 144, 226, 0.3);
 }
 
-/* --- Stiluri pentru Secțiunea de Gânduri AI (Feedback Intern PsihoGPT) --- */
-
+/* Styles for AI Thoughts */
 .ai-thoughts-details {
-    /* Containerul principal al elementului <details> */
-    margin-bottom: 8px; /* Spațiu între blocul de gânduri și răspunsul principal AI */
-    padding: 8px 12px; /* Spațiu interior între bordura containerului și conținut */
-    background-color: rgba(240, 240, 240, 0.85); /* Fundal gri foarte deschis, cu transparență (preluat de la tine) */
-    border: 1px solid #ddd; /* Bordură subtilă */
-    border-radius: var(--border-radius-small); /* Colțuri rotunjite, consistent cu alte elemente UI */
-    font-size: 0.85em; /* Dimensiune text ușor mai mică decât textul principal */
-    color: #555; /* Culoare text implicită pentru întregul bloc de gânduri */
-    transition: all 0.3s ease; /* Animație fluidă pentru orice schimbare de stil (ex. deschidere/închidere) */
-    width: 100%; /* Ocupă lățimea disponibilă a containerului părintelui (.ai-message) */
-    box-sizing: border-box; /* Asigură că padding-ul e inclus în lățime/înălțime */
+    margin-bottom: 8px; /* Spațiu între gânduri și răspunsul principal */
+    background-color: #f0f0f085; /* Fundal ușor diferit, cu transparență */
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius-small);
+    font-size: 0.85em; /* Puțin mai mic */
+    opacity: 0.9;
+    width: 100%; /* Ocupă lățimea containerului .ai-message */
 }
-
 .ai-thoughts-details summary {
-    /* Antetul expandabil (clicabil) */
-    padding: 5px 8px; /* Padding pentru textul din summary */
-    cursor: pointer; /* Indică faptul că este clicabil */
-    font-weight: 500; /* Greutate medie pentru font */
-    color: var(--color-text-medium); /* Culoarea textului, consistentă */
-    background-color: rgba(233, 236, 239, 0.75); /* Fundal pentru antet, cu transparență */
-    border-radius: var(--border-radius-small) var(--border-radius-small) 0 0; /* Colțuri rotunjite doar sus */
-    list-style: none; /* Ascunde săgeata implicită a browserului pentru <details> */
-    outline: none; /* Elimină outline-ul la focus/click */
-    position: relative; /* Necesar pentru poziționarea săgeții custom */
-    padding-left: 25px; /* Spațiu pentru săgeata custom la stânga textului */
-    user-select: none; /* Previne selectarea textului summary la click rapid */
+    padding: 5px 8px;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--color-text-medium);
+    background-color: #e9ecefbd;
+    border-radius: var(--border-radius-small) var(--border-radius-small) 0 0;
+    list-style-position: inside; /* Sau none dacă preferi să stilizezi altfel săgeata */
+    outline: none; /* Elimină outline-ul la focus pe summary */
 }
-
 .ai-thoughts-details summary:hover {
-    background-color: rgba(223, 227, 230, 0.85); /* Culoare de fundal la hover, ușor mai închisă */
+    background-color: #dfe3e6;
 }
-
 .ai-thoughts-details[open] summary {
-    border-bottom: 1px solid #d5d9dc; /* O linie separatoare sub antet când este deschis */
+    border-bottom: 1px solid #d5d9dc;
 }
-
-/* Săgeata personalizată pentru expandare/colapsare */
-.ai-thoughts-details summary::before {
-    content: "▶"; /* Caracter săgeată dreapta (închis) */
-    position: absolute;
-    left: 8px; /* Poziția săgeții față de marginea stângă */
-    top: 50%;
-    transform: translateY(-50%); /* Centrare verticală */
-    transition: transform 0.2s ease; /* Animație pentru rotația săgeții */
-    color: var(--color-text-medium); /* Culoarea săgeții */
-}
-
-.ai-thoughts-details[open] summary::before {
-    content: "▼"; /* Caracter săgeată jos (deschis) */
-    /* Nu e nevoie de 'rotate' aici, deoarece conținutul 'content' se schimbă direct la săgeata în jos */
-}
-
-
 .ai-thoughts-content {
-    /* Conținutul real al gândurilor AI (afisat într-un <pre> sau <div>) */
-    padding: 8px 10px; /* Padding interior pentru text */
-    white-space: pre-wrap; /* Păstrează spațiile albe și liniile noi (esențial pentru formatarea AI) */
-    word-break: break-word; /* Rupe cuvintele lungi pentru a evita overflow-ul orizontal */
-    font-family: 'Menlo', 'Monaco', 'Consolas', monospace; /* Font monospațiu pentru un aspect "cod/jurnal" */
-    font-size: 0.95em; /* Dimensiune text ușor mai mare decât pe containerul principal, dar mai mică decât chatul principal */
-    color: #2c3e50; /* Culoare text mai închisă pentru lizibilitate */
-    max-height: 180px; /* Limită înălțimea maximă a conținutului gândurilor */
-    overflow-y: auto; /* Adaugă scrollbar vertical dacă conținutul depășește max-height */
-    overflow-x: auto; /* Adaugă scrollbar orizontal dacă sunt linii foarte lungi */
-    background-color: rgba(253, 253, 254, 0.9); /* Fundal foarte deschis, aproape alb, cu transparență */
-    border-radius: 0 0 var(--border-radius-small) var(--border-radius-small); /* Colțuri rotunjite doar jos */
+    padding: 8px 10px;
+    white-space: pre-wrap; /* Esențial pentru \n */
+    word-break: break-word; /* Pentru cuvinte lungi */
+    font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+    font-size: 0.95em; /* Relativ la .ai-thoughts-details */
+    color: #2c3e50; /* O culoare mai închisă pentru lizibilitate */
+    max-height: 180px;
+    overflow-y: auto;
+    background-color: #fdfdfee3;
+    border-radius: 0 0 var(--border-radius-small) var(--border-radius-small);
 }
+.ai-thoughts-content::-webkit-scrollbar { width: 5px; }
+.ai-thoughts-content::-webkit-scrollbar-thumb { background: #bababa; border-radius:3px; }
+.ai-thoughts-content::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
 
-/* Stiluri personalizate pentru scrollbar (Webkit browsers: Chrome, Safari, Edge) */
-.ai-thoughts-content::-webkit-scrollbar {
-    width: 5px; /* Lățimea scrollbar-ului */
-}
-
-.ai-thoughts-content::-webkit-scrollbar-thumb {
-    background: #bababa; /* Culoarea "degetului" scrollbar-ului */
-    border-radius: 3px; /* Rotunjirea "degetului" */
-}
-
-.ai-thoughts-content::-webkit-scrollbar-thumb:hover {
-    background: #a1a1a1; /* Culoarea la hover */
-}
-
-/* Stil opțional: pentru gândurile generate "live" (pot fi ușor diferite vizual) */
-.ai-thoughts-details.live-thoughts {
-    background-color: rgba(230, 247, 255, 0.7); /* Un albastru foarte deschis, translucid */
-    border-color: rgba(179, 224, 255, 0.7); /* Bordură translucidă, asortată */
-}
-
-.ai-thoughts-details.live-thoughts summary {
-    background-color: rgba(204, 238, 255, 0.8); /* Un albastru mai intens pentru antet */
-}
 
 .ai-error-inline { /* For errors appearing within a streamed message */
     color: var(--color-error);
