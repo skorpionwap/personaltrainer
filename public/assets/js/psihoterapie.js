@@ -1692,9 +1692,6 @@ async function handleSendChatMessage() {
     if (!messageText) return;
     console.log("→ [USER_MSG_SEND] Utilizator:", JSON.stringify(messageText));
 
-    // Afișează mesajul user (displayChatMessage NU va crea <details> pentru user)
-    displayChatMessage(messageText, "user", null); // thoughts va fi null pentru user
-
     const currentUser = auth.currentUser;
     if (!currentUser) {
         console.error("[AUTH_ERROR] Utilizator neautentificat.");
@@ -1703,23 +1700,31 @@ async function handleSendChatMessage() {
         return;
     }
 
-    // Salvează mesajul utilizatorului
+    chatInput.value = ""; // Golește inputul imediat
+    if (sendButton) sendButton.disabled = true;
+    if (chatStatus) chatStatus.textContent = "PsihoGPT analizează...";
+
+    // --- Pregătire mesaj pentru API ---
+    // Adaugă instrucțiunea de formatare la începutul mesajului utilizatorului.
+    // Aceasta este crucială pentru a "reîmprospăta" cerința la fiecare tură.
+    const userMessageForAPI = `IMPORTANT: Începe răspunsul cu <<<THOUGHTS>>>...<<<END_THOUGHTS>>> urmat de răspunsul public.
+${messageText}`;
+
+    // Afișează mesajul user (original, fără instrucțiunea adăugată)
+    displayChatMessage(messageText, "user", null);
+
+    // Salvează mesajul utilizatorului (original, fără instrucțiunea adăugată)
     await saveChatMessage(currentUser.uid, {
-        role: "user", content: messageText, thoughts: null, // thoughts e null pentru user
+        role: "user", content: messageText, thoughts: null,
         error: false, timestamp: new Date().toISOString()
     });
     console.log("→ [DB_SAVE_USER] Mesaj utilizator salvat.");
 
-    chatInput.value = "";
-    if (sendButton) sendButton.disabled = true;
-    if (chatStatus) chatStatus.textContent = "PsihoGPT analizează...";
-
-    // --- Pregătire container pentru răspunsul AI ---
+    // --- Pregătire container simplificat pentru răspunsul AI ---
     const aiMessageElement = document.createElement("div");
     aiMessageElement.classList.add("chat-message", "ai-message");
     aiMessageElement.style.whiteSpace = "pre-wrap";
 
-    // Containerul principal pentru textul vizibil al AI-ului
     const mainAnswerSpan = document.createElement("span");
     mainAnswerSpan.className = "main-answer-text";
     aiMessageElement.appendChild(mainAnswerSpan);
@@ -1727,42 +1732,36 @@ async function handleSendChatMessage() {
     messagesDiv.appendChild(aiMessageElement);
     if (isScrolledToBottom(messagesDiv)) messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    let fullAiResponseText = ""; // Aici va intra tot textul de la AI, inclusiv gândurile
-    let collectedThoughts = null; // Aici vom stoca gândurile extrase
+    let fullAiResponseText = "";
+    let collectedThoughts = null;
     let anErrorOccurred = false;
     let apiErrorMessage = "A apărut o eroare la comunicarea cu AI.";
 
     try {
         if (!chatSession || !isChatInitialized || !chatModelInstance) {
             console.warn("[CHAT_SESSION] Sesiune invalidă. Re-inițializare...");
+            // Re-inițializează sesiunea (va recrea chatModelInstance și chatSession)
             const newSession = await initializeAndStartChatSession(currentUser.uid, false);
             if (!newSession) throw new Error("Re-inițializare sesiune eșuată.");
         }
 
         console.log("→ [AI_STREAM] Trimitere către sendMessageStream...");
-        const streamResult = await chatSession.sendMessageStream(messageText, {
-            generationConfig: {
-                temperature: 0.75,
-                thinking_config: { include_thoughts: true } // Asigură că thinking_config este activat
-            }
-        });
+        // Trimite mesajul UTILIZATORULUI care include instrucțiunea de formatare.
+        const streamResult = await chatSession.sendMessageStream(userMessageForAPI);
         const stream = streamResult.stream;
 
         for await (const chunk of stream) {
             if (chunk.usageMetadata) {
                 console.log("📊 [USAGE_METADATA]:", JSON.stringify(chunk.usageMetadata));
             }
-
             if (chunk.promptFeedback?.blockReason) {
                 apiErrorMessage = `Mesaj blocat (Motiv: ${chunk.promptFeedback.blockReason}).`;
                 anErrorOccurred = true; console.warn("[AI_STREAM] Stream blocat:", apiErrorMessage);
                 break;
             }
-
             const candidate = chunk.candidates?.[0];
             if (!candidate) continue;
 
-            // Colectează tot textul, inclusiv gândurile, în fullAiResponseText
             if (candidate.content?.parts && Array.isArray(candidate.content.parts)) {
                 for (const part of candidate.content.parts) {
                     if (part.text) {
@@ -1770,7 +1769,6 @@ async function handleSendChatMessage() {
                     }
                 }
             }
-
             if (candidate.finishReason) {
                 console.log("  [AI_STREAM_CHUNK] finishReason:", candidate.finishReason);
                 if (chunk.usageMetadata) console.log("📊 [USAGE_METADATA] Final:", JSON.stringify(chunk.usageMetadata));
@@ -1787,54 +1785,51 @@ async function handleSendChatMessage() {
         console.error("[CRITICAL_ERROR] Eroare în handleSendChatMessage:", err, err.stack);
         apiErrorMessage = `Eroare critică: ${err.message || "Necunoscută"}.`;
         anErrorOccurred = true;
-        fullAiResponseText = fullAiResponseText || ""; // Asigură că nu este undefined
+        fullAiResponseText = fullAiResponseText || "";
     }
 
     // --- Post-stream processing: Separați gândurile de răspunsul principal ---
-    let mainResponseForDisplay = fullAiResponseText; // Presupunem inițial că totul e răspuns principal
-    const thoughtRegex = /<<<THOUGHTS>>>([\s\S]*?)<<<END_THOUGHTS>>>/; // Regex pentru a găsi delimitatorii
+    let mainResponseForDisplay = fullAiResponseText;
+    const thoughtRegex = /<<<THOUGHTS>>>([\s\S]*?)<<<END_THOUGHTS>>>/;
     const match = fullAiResponseText.match(thoughtRegex);
 
     if (match && match[1]) {
-        collectedThoughts = match[1].trim(); // Extrage textul dintre delimitatori
-        // Elimină blocul de gânduri din textul principal al răspunsului
+        collectedThoughts = match[1].trim();
         mainResponseForDisplay = fullAiResponseText.replace(thoughtRegex, '').trim();
         console.log("→ [THOUGHTS_EXTRACTED] Thoughts:", collectedThoughts.substring(0, Math.min(collectedThoughts.length, 100)) + '...');
         console.log("→ [MAIN_RESPONSE] Main response (after thoughts removed):", mainResponseForDisplay.substring(0, Math.min(mainResponseForDisplay.length, 100)) + '...');
     } else {
         console.warn("→ [THOUGHTS_WARNING] Delimitatori de gânduri nu au fost găsiți în răspunsul AI. Verifică prompt-ul.");
-        collectedThoughts = null; // Asigură că este null dacă nu sunt găsite gânduri
+        collectedThoughts = null;
     }
 
     mainAnswerSpan.innerHTML = ''; // Golește înainte de typewriter
 
-    // Adaugă secțiunea de "thoughts" imediat, înainte de a începe typewriter-ul pentru răspunsul principal
     if (collectedThoughts) {
         const thoughtsDetails = document.createElement("details");
-        thoughtsDetails.className = "ai-thoughts-details live-thoughts"; // Clasă specială pentru gânduri live
+        thoughtsDetails.className = "ai-thoughts-details live-thoughts";
         const summary = document.createElement("summary");
         summary.textContent = "Procesul de gândire PsihoGPT (live)";
         thoughtsDetails.appendChild(summary);
         const pre = document.createElement("pre");
         pre.className = "ai-thoughts-content";
-        pre.innerHTML = formatStreamingMessage(collectedThoughts); // Formatează și gândurile cu Markdown
+        pre.innerHTML = formatStreamingMessage(collectedThoughts);
         thoughtsDetails.appendChild(pre);
-        aiMessageElement.insertBefore(thoughtsDetails, mainAnswerSpan); // Inserează înainte de mainAnswerSpan
+        aiMessageElement.insertBefore(thoughtsDetails, mainAnswerSpan);
     }
-
 
     if (anErrorOccurred) {
         mainAnswerSpan.innerHTML = formatStreamingMessage(mainResponseForDisplay + `<br><em class="ai-error-text">(${apiErrorMessage})</em>`);
         aiMessageElement.classList.add("ai-error");
         if (isScrolledToBottom(messagesDiv)) messagesDiv.scrollTop = messagesDiv.scrollHeight;
         await finalizeAndSaveAiResponse(mainResponseForDisplay, collectedThoughts, anErrorOccurred);
-    } else if (!mainResponseForDisplay.trim()) { // Verificăm textul principal PARSAT
+    } else if (!mainResponseForDisplay.trim()) {
         mainResponseForDisplay = "Nu am putut genera un răspuns.";
         mainAnswerSpan.innerHTML = formatStreamingMessage(mainResponseForDisplay);
-        if (isScrolledToBottom(messagesDiv)) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        if (isScrolledToBottom(messagesDiv)) messagesDiv.scrollTop = messagesDiv.CscrollHeight;
         await finalizeAndSaveAiResponse(mainResponseForDisplay, collectedThoughts, anErrorOccurred);
     } else {
-        const formattedTargetHTML = formatStreamingMessage(mainResponseForDisplay); // Typewriter-ul va lucra pe răspunsul PARSAT
+        const formattedTargetHTML = formatStreamingMessage(mainResponseForDisplay);
         let currentTypedLength = 0;
         const totalLength = formattedTargetHTML.length;
 
@@ -1858,11 +1853,11 @@ async function handleSendChatMessage() {
         performTypewriterStep();
     }
 
-    async function finalizeAndSaveAiResponse(finalContent, finalThoughts, hadError) {
+ async function finalizeAndSaveAiResponse(finalContent, finalThoughts, hadError) {
         await saveChatMessage(currentUser.uid, {
             role: "model",
-            content: finalContent.trim(), // Salvează doar conținutul principal
-            thoughts: finalThoughts, // Salvează gândurile extrase
+            content: finalContent.trim(),
+            thoughts: finalThoughts,
             error: hadError,
             timestamp: new Date().toISOString()
         });
@@ -1876,7 +1871,6 @@ async function handleSendChatMessage() {
         console.log("handleSendChatMessage: Finalizat.");
     }
 }
-
 
 async function handleToggleChat() {
     console.log("[UI_CHAT_TOGGLE] Apel handleToggleChat.");
