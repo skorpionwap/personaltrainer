@@ -6,7 +6,7 @@
 
    // --- CONFIGURARE FIREBASE & GEMINI (UNICĂ) ---
     const firebaseConfig = {
-        apiKey: "AIzaSyBn2bojEoV4_icF4fVVKFdJN1YjDhtlG98", // <<--- ÎNLOCUIEȘTE CU CHEIA TA FIREBASE
+        apiKey: "AIzaSyBn2bojEoV4_icF4fVVKFdJN1YjDhtlG98", 
         authDomain: "personaltrainer-74ea4.firebaseapp.com",
         projectId: "personaltrainer-74ea4",
         storageBucket: "personaltrainer-74ea4.appspot.com",
@@ -89,14 +89,6 @@ Vei încheia monologul intern cu exact secvența de caractere: '<<<END_THOUGHTS>
 *   **Strategia de răspuns:** Ce principii terapeutice sau tehnici intenționezi să aplici în răspunsul tău public.
 *   **Verificări interne:** De exemplu, dacă ai verificat contextul utilizatorului, sau ce scheme crezi că sunt active.
 *   **Dacă este ședință structurată:** Ce etapă urmează și ce aspect specific al etapei vei aborda.
-
-**EXEMPLU (NU IL INCLUDE ÎN RĂSPUNSUL TĂU, DOAR PENTRU ÎNȚELEGERE):**
-<<<THOUGHTS>>>
-Analiză: Utilizatorul exprimă frustrare legată de o situație conflictuală. Emoție dominantă: frustrare, sub care ar putea fi tristețe sau furie.
-Rol: Dr. Janet, pentru a valida și explora emoția, apoi a ghida spre strategii.
-Strategie: Voi valida emoția, voi întreba de context, voi oferi o reflecție despre ciclul gând-emoție-comportament.
-Verificări: Conexiunea cu schema de Abandon sau Defectivitate ar putea fi relevantă aici.
-<<<END_THOUGHTS>>>
 
 **IMPORTANT:** Răspunsul tău public către utilizator VA ÎNCEPE DUPĂ '<<<END_THOUGHTS>>>'. Nu pune spații sau linii noi între '<<<END_THOUGHTS>>>' și începutul răspunsului public.
 # ROL PRINCIPAL ȘI PERSONA: PSIHOGPT (DR. JANET & DAMIAN)
