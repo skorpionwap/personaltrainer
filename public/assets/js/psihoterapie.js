@@ -74,7 +74,32 @@ const isScrolledToBottom = el => {
     }
     return el.scrollHeight - el.scrollTop - el.clientHeight < tolerance;
 };
-    const FULL_SYSTEM_INSTRUCTION_TEXT_TEMPLATE = `# ROL PRINCIPAL ȘI PERSONA: PSIHOGPT (DR. JANET & DAMIAN)
+    const FULL_SYSTEM_INSTRUCTION_TEXT_TEMPLATE = `
+# PROCESUL DE GÂNDIRE INTERNĂ (THOUGHTS) ȘI FORMATARE SPECIFICĂ (PENTRU DEZVOLTATOR)
+**FOARTE IMPORTANT:** Înainte de a genera răspunsul tău public către utilizator, vei include un "proces de gândire internă" sau "monolog interior". Acest monolog *nu* este vizibil direct utilizatorului, dar îmi permite mie (dezvoltatorului) să înțeleg mai bine logica și deciziile tale.
+
+**FORMATAREA MONOLOGULUI INTERN:**
+Vei începe monologul intern cu exact secvența de caractere: '<<<THOUGHTS>>>'
+Vei încheia monologul intern cu exact secvența de caractere: '<<<END_THOUGHTS>>>'
+
+**CONȚINUTUL MONOLOGULUI INTERN:**
+În interiorul acestor delimitatori, vei descrie pe scurt:
+*   **Analiza inițială:** Ce ai detectat în mesajul utilizatorului (ex: emoții predominante, cerere specifică, tipar de gândire).
+*   **Decizia rolului:** Dacă vei folosi predominant Dr. Janet sau Damian, și de ce.
+*   **Strategia de răspuns:** Ce principii terapeutice sau tehnici intenționezi să aplici în răspunsul tău public.
+*   **Verificări interne:** De exemplu, dacă ai verificat contextul utilizatorului, sau ce scheme crezi că sunt active.
+*   **Dacă este ședință structurată:** Ce etapă urmează și ce aspect specific al etapei vei aborda.
+
+**EXEMPLU (NU IL INCLUDE ÎN RĂSPUNSUL TĂU, DOAR PENTRU ÎNȚELEGERE):**
+<<<THOUGHTS>>>
+Analiză: Utilizatorul exprimă frustrare legată de o situație conflictuală. Emoție dominantă: frustrare, sub care ar putea fi tristețe sau furie.
+Rol: Dr. Janet, pentru a valida și explora emoția, apoi a ghida spre strategii.
+Strategie: Voi valida emoția, voi întreba de context, voi oferi o reflecție despre ciclul gând-emoție-comportament.
+Verificări: Conexiunea cu schema de Abandon sau Defectivitate ar putea fi relevantă aici.
+<<<END_THOUGHTS>>>
+
+**IMPORTANT:** Răspunsul tău public către utilizator VA ÎNCEPE DUPĂ '<<<END_THOUGHTS>>>'. Nu pune spații sau linii noi între '<<<END_THOUGHTS>>>' și începutul răspunsului public.
+# ROL PRINCIPAL ȘI PERSONA: PSIHOGPT (DR. JANET & DAMIAN)
 Tu ești PsihoGPT, un asistent AI avansat pentru auto-reflecție și explorare psihologică ghidată. Te poți manifesta prin două fațete complementare: Dr. Janet (psihoterapeutul principal) și Damian (coach-ul directiv).
 Ești specializat în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor, Terapie prin Acceptare și Angajament (ACT), principii ale Terapiei Dialectic-Comportamentale (DBT), terapie afirmativă gay, logoterapie, psihologie pozitivă, elemente de terapie focalizată pe traumă, Compassion Focused Therapy, Somatic Experiencing și abordare narativă.
 Te adresezi utilizatorului cu "tu".
@@ -1204,6 +1229,11 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
         chatModelInstance = genAI.getGenerativeModel({
             model: GEMINI_MODEL_NAME_CHAT,
             systemInstruction: { parts: [{ text: systemInstructionText }] },
+            // Adaugă thinking_config aici pentru a sugera modelului să genereze gânduri interne
+            // Deși formatul exact de output e dictat de prompt, acesta întărește intenția.
+            generationConfig: {
+                thinking_config: { include_thoughts: true }
+            }
   
         });
         console.log("[CHAT_INIT] Model chat instanțiat cu SystemInstruction.");
@@ -1299,7 +1329,7 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
             history: historyForChatSession,
             generationConfig: {
                 temperature: 0.75, // Sau altă valoare preferată
-                thinking_config: { include_thoughts: false } // Activează dacă vrei să vezi thoughtsTokenCount, chiar dacă nu le extragi separat
+                thinking_config: { include_thoughts: true } // Activează dacă vrei să vezi thoughtsTokenCount, chiar dacă nu le extragi separat
             }
 
         });
@@ -1444,7 +1474,6 @@ function displayChatMessage(messageContent, role, thoughtsContent = null) {
     
     if (!messagesDivGlobalRef) {
         console.error("[DISPLAY_CHAT] EROARE CRITICA: messagesDivGlobalRef nu este definit!");
-        // Încercare de fallback, dar ideal e să fie deja setat din DOMContentLoaded
         messagesDivGlobalRef = document.getElementById("chatMessages");
         if (!messagesDivGlobalRef) return;
     }
@@ -1463,33 +1492,32 @@ function displayChatMessage(messageContent, role, thoughtsContent = null) {
     }
     messageClass.split(' ').forEach(cls => messageElement.classList.add(cls));
 
-    // Afișează <details> pentru "thoughts" DOAR DACĂ thoughtsContent există din istoric
+    // Afișează <details> pentru "thoughts" DOAR DACĂ thoughtsContent există
     if ((role === "model" || role === "AI") && thoughtsContent && thoughtsContent.trim() !== "") {
-        console.log("[DISPLAY_CHAT] Afișare 'thoughts' din istoric (dacă există).");
+        console.log("[DISPLAY_CHAT] Afișare 'thoughts' din istoric/live.");
         const thoughtsDetails = document.createElement("details");
-        thoughtsDetails.className = "ai-thoughts-details";
+        thoughtsDetails.className = "ai-thoughts-details"; // Rămâne fără "live-thoughts" aici, că e generic
         const summary = document.createElement("summary");
-        summary.textContent = "Procesul de gândire PsihoGPT (istoric)";
+        summary.textContent = "Procesul de gândire PsihoGPT";
         thoughtsDetails.appendChild(summary);
         const pre = document.createElement("pre");
         pre.className = "ai-thoughts-content";
-        pre.textContent = thoughtsContent.trim();
+        pre.innerHTML = formatStreamingMessage(thoughtsContent.trim()); // Formatează conținutul thoughts
         thoughtsDetails.appendChild(pre);
-        messageElement.appendChild(thoughtsDetails); // Adaugă <details> doar dacă e cazul
+        messageElement.appendChild(thoughtsDetails);
     }
 
     const mainContentContainer = document.createElement('div');
     mainContentContainer.className = 'main-answer-text';
     if (role === "user") {
-        mainContentContainer.textContent = messageContent; // Mesajele user nu sunt formatate ca HTML
+        mainContentContainer.textContent = messageContent;
     } else {
         mainContentContainer.innerHTML = formatStreamingMessage(messageContent);
     }
     messageElement.appendChild(mainContentContainer);
 
     messagesDivGlobalRef.appendChild(messageElement);
-    // Scroll inteligent: doar dacă utilizatorul este deja jos sau aproape de jos
-    if (isScrolledToBottom(messagesDivGlobalRef) || messagesDivGlobalRef.children.length <= 2) { // Scroll la primele mesaje
+    if (isScrolledToBottom(messagesDivGlobalRef) || messagesDivGlobalRef.children.length <= 2) {
         messagesDivGlobalRef.scrollTop = messagesDivGlobalRef.scrollHeight;
     }
 }
@@ -1577,7 +1605,7 @@ async function loadChatHistory(userId) {
 }
 
 async function saveChatMessage(userId, messageObject) {
-    console.log(`[SAVE_CHAT] Salvare mesaj. Rol: ${messageObject.role}, Err: ${messageObject.error}, Content: ${messageObject.content?.substring(0,30)}...`);
+    console.log(`[SAVE_CHAT] Salvare mesaj. Rol: ${messageObject.role}, Err: ${messageObject.error}, Content: ${messageObject.content?.substring(0,30)}..., Thoughts: ${messageObject.thoughts ? 'DA' : 'NU'}`); // Adaugă thoughts la log
     if (!userId || !messageObject || !messageObject.role || typeof messageObject.content !== 'string') {
         console.warn("[SAVE_CHAT] Date incomplete pentru salvarea mesajului.", { userId, messageObject });
         return;
@@ -1588,14 +1616,12 @@ async function saveChatMessage(userId, messageObject) {
     const saveData = {
         role: messageObject.role, // 'user' sau 'model'
         content: messageObject.content,
-        thoughts: (messageObject.thoughts && messageObject.thoughts.trim() !== "") ? messageObject.thoughts.trim() : null,
+        thoughts: (messageObject.thoughts && messageObject.thoughts.trim() !== "") ? messageObject.thoughts.trim() : null, // Salvează gândurile
         error: !!messageObject.error, // Asigură boolean
         timestamp: Timestamp.fromDate(new Date(messageObject.timestamp || Date.now())) // Asigură timestamp valid
     };
 
     try {
-        // Folosim updateDoc cu arrayUnion pentru a adăuga la un array existent
-        // sau setDoc dacă documentul nu există încă.
         const docSnap = await getDoc(historyDocRef);
         if (docSnap.exists()) {
             await updateDoc(historyDocRef, {
@@ -1611,7 +1637,6 @@ async function saveChatMessage(userId, messageObject) {
         console.error("[SAVE_CHAT] Eroare salvare mesaj chat în Firestore:", error);
     }
 }
-
 
 async function handleSendChatMessage() {
     console.log("handleSendChatMessage: Apelată.");
@@ -1630,7 +1655,7 @@ async function handleSendChatMessage() {
     console.log("→ [USER_MSG_SEND] Utilizator:", JSON.stringify(messageText));
 
     // Afișează mesajul user (displayChatMessage NU va crea <details> pentru user)
-    displayChatMessage(messageText, "user", null);
+    displayChatMessage(messageText, "user", null); // thoughts va fi null pentru user
 
     const currentUser = auth.currentUser;
     if (!currentUser) {
@@ -1651,13 +1676,12 @@ async function handleSendChatMessage() {
     if (sendButton) sendButton.disabled = true;
     if (chatStatus) chatStatus.textContent = "PsihoGPT analizează...";
 
-    // --- Pregătire container simplificat pentru răspunsul AI ---
-    // NU mai creăm elementul <details> pentru "thoughts" aici.
-    // "Thoughts" (personajele Janet/Damian) vor fi parte din textul principal.
+    // --- Pregătire container pentru răspunsul AI ---
     const aiMessageElement = document.createElement("div");
     aiMessageElement.classList.add("chat-message", "ai-message");
     aiMessageElement.style.whiteSpace = "pre-wrap";
 
+    // Containerul principal pentru textul vizibil al AI-ului
     const mainAnswerSpan = document.createElement("span");
     mainAnswerSpan.className = "main-answer-text";
     aiMessageElement.appendChild(mainAnswerSpan);
@@ -1665,8 +1689,8 @@ async function handleSendChatMessage() {
     messagesDiv.appendChild(aiMessageElement);
     if (isScrolledToBottom(messagesDiv)) messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    let fullAiResponseText = ""; // Aici va intra tot textul de la AI, inclusiv personajele
-    // let collectedThoughts = ""; // Nu mai este necesar pentru Opțiunea 1
+    let fullAiResponseText = ""; // Aici va intra tot textul de la AI, inclusiv gândurile
+    let collectedThoughts = null; // Aici vom stoca gândurile extrase
     let anErrorOccurred = false;
     let apiErrorMessage = "A apărut o eroare la comunicarea cu AI.";
 
@@ -1678,13 +1702,12 @@ async function handleSendChatMessage() {
         }
 
         console.log("→ [AI_STREAM] Trimitere către sendMessageStream...");
-        const streamResult = await chatSession.sendMessageStream(
-            messageText
-            // Asigură-te că thinking_config ESTE DEZACTIVAT aici sau la startChat dacă nu vrei thoughts separate:
-            // , { generationConfig: { temperature: 0.75 /* , thinking_config: { include_thoughts: false } */ } }
-            // Dacă `thinking_config: { include_thoughts: true }` este activat la startChat,
-            // modelul tot poate returna `thoughtsTokenCount`, dar noi vom ignora extragerea separată.
-        );
+        const streamResult = await chatSession.sendMessageStream(messageText, {
+            generationConfig: {
+                temperature: 0.75,
+                thinking_config: { include_thoughts: true } // Asigură că thinking_config este activat
+            }
+        });
         const stream = streamResult.stream;
 
         for await (const chunk of stream) {
@@ -1701,15 +1724,14 @@ async function handleSendChatMessage() {
             const candidate = chunk.candidates?.[0];
             if (!candidate) continue;
 
-            // --- Extragere Text Principal (include acum și "thoughts" intercalate) ---
+            // Colectează tot textul, inclusiv gândurile, în fullAiResponseText
             if (candidate.content?.parts && Array.isArray(candidate.content.parts)) {
                 for (const part of candidate.content.parts) {
                     if (part.text) {
-                        fullAiResponseText += part.text; // Tot textul merge în fullAiResponseText
+                        fullAiResponseText += part.text;
                     }
                 }
             }
-            // NU mai avem logica de extragere separată pentru "thoughts" cu regex.
 
             if (candidate.finishReason) {
                 console.log("  [AI_STREAM_CHUNK] finishReason:", candidate.finishReason);
@@ -1727,63 +1749,89 @@ async function handleSendChatMessage() {
         console.error("[CRITICAL_ERROR] Eroare în handleSendChatMessage:", err, err.stack);
         apiErrorMessage = `Eroare critică: ${err.message || "Necunoscută"}.`;
         anErrorOccurred = true;
-        fullAiResponseText = fullAiResponseText || "";
+        fullAiResponseText = fullAiResponseText || ""; // Asigură că nu este undefined
+    }
+
+    // --- Post-stream processing: Separați gândurile de răspunsul principal ---
+    let mainResponseForDisplay = fullAiResponseText; // Presupunem inițial că totul e răspuns principal
+    const thoughtRegex = /<<<THOUGHTS>>>([\s\S]*?)<<<END_THOUGHTS>>>/; // Regex pentru a găsi delimitatorii
+    const match = fullAiResponseText.match(thoughtRegex);
+
+    if (match && match[1]) {
+        collectedThoughts = match[1].trim(); // Extrage textul dintre delimitatori
+        // Elimină blocul de gânduri din textul principal al răspunsului
+        mainResponseForDisplay = fullAiResponseText.replace(thoughtRegex, '').trim();
+        console.log("→ [THOUGHTS_EXTRACTED] Thoughts:", collectedThoughts.substring(0, Math.min(collectedThoughts.length, 100)) + '...');
+        console.log("→ [MAIN_RESPONSE] Main response (after thoughts removed):", mainResponseForDisplay.substring(0, Math.min(mainResponseForDisplay.length, 100)) + '...');
+    } else {
+        console.warn("→ [THOUGHTS_WARNING] Delimitatori de gânduri nu au fost găsiți în răspunsul AI. Verifică prompt-ul.");
+        collectedThoughts = null; // Asigură că este null dacă nu sunt găsite gânduri
     }
 
     mainAnswerSpan.innerHTML = ''; // Golește înainte de typewriter
 
+    // Adaugă secțiunea de "thoughts" imediat, înainte de a începe typewriter-ul pentru răspunsul principal
+    if (collectedThoughts) {
+        const thoughtsDetails = document.createElement("details");
+        thoughtsDetails.className = "ai-thoughts-details live-thoughts"; // Clasă specială pentru gânduri live
+        const summary = document.createElement("summary");
+        summary.textContent = "Procesul de gândire PsihoGPT (live)";
+        thoughtsDetails.appendChild(summary);
+        const pre = document.createElement("pre");
+        pre.className = "ai-thoughts-content";
+        pre.innerHTML = formatStreamingMessage(collectedThoughts); // Formatează și gândurile cu Markdown
+        thoughtsDetails.appendChild(pre);
+        aiMessageElement.insertBefore(thoughtsDetails, mainAnswerSpan); // Inserează înainte de mainAnswerSpan
+    }
+
+
     if (anErrorOccurred) {
-        mainAnswerSpan.innerHTML = formatStreamingMessage(fullAiResponseText + `<br><em class="ai-error-text">(${apiErrorMessage})</em>`);
+        mainAnswerSpan.innerHTML = formatStreamingMessage(mainResponseForDisplay + `<br><em class="ai-error-text">(${apiErrorMessage})</em>`);
         aiMessageElement.classList.add("ai-error");
         if (isScrolledToBottom(messagesDiv)) messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        await finalizeAndSaveAiResponse();
-    } else if (!fullAiResponseText.trim()) { // Verificăm doar fullAiResponseText
-        fullAiResponseText = "Nu am putut genera un răspuns.";
-        mainAnswerSpan.innerHTML = formatStreamingMessage(fullAiResponseText);
+        await finalizeAndSaveAiResponse(mainResponseForDisplay, collectedThoughts, anErrorOccurred);
+    } else if (!mainResponseForDisplay.trim()) { // Verificăm textul principal PARSAT
+        mainResponseForDisplay = "Nu am putut genera un răspuns.";
+        mainAnswerSpan.innerHTML = formatStreamingMessage(mainResponseForDisplay);
         if (isScrolledToBottom(messagesDiv)) messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        await finalizeAndSaveAiResponse();
+        await finalizeAndSaveAiResponse(mainResponseForDisplay, collectedThoughts, anErrorOccurred);
     } else {
-        const formattedTargetHTML = formatStreamingMessage(fullAiResponseText); // fullAiResponseText conține tot acum
+        const formattedTargetHTML = formatStreamingMessage(mainResponseForDisplay); // Typewriter-ul va lucra pe răspunsul PARSAT
         let currentTypedLength = 0;
         const totalLength = formattedTargetHTML.length;
 
         function performTypewriterStep() {
             if (currentTypedLength < totalLength) {
-                const wasAtBottom = isScrolledToBottom(messagesDiv); // Verifică DACĂ ERA la bottom
+                const wasAtBottom = isScrolledToBottom(messagesDiv);
                 const nextChunkEnd = Math.min(currentTypedLength + CHUNK_SIZE, totalLength);
                 mainAnswerSpan.innerHTML = formattedTargetHTML.substring(0, nextChunkEnd);
                 currentTypedLength = nextChunkEnd;
 
-                if (wasAtBottom) messagesDiv.scrollTop = messagesDiv.scrollHeight; // Face scroll DOAR DACĂ ERA la bottom
+                if (wasAtBottom) messagesDiv.scrollTop = messagesDiv.scrollHeight;
                 setTimeout(performTypewriterStep, CHUNK_DELAY);
             } else {
                 mainAnswerSpan.innerHTML = formattedTargetHTML;
-                // Poți decide dacă vrei un ultim scroll aici, sau nu.
-                // Dacă utilizatorul a derulat sus în timpul typewriter-ului, poate nu vrei să-l forțezi jos.
-                if (isScrolledToBottom(messagesDiv)) { // Sau o condiție mai permisivă
+                if (isScrolledToBottom(messagesDiv)) {
                      messagesDiv.scrollTop = messagesDiv.scrollHeight;
                 }
-                finalizeAndSaveAiResponse();
+                finalizeAndSaveAiResponse(mainResponseForDisplay, collectedThoughts, anErrorOccurred);
             }
         }
         performTypewriterStep();
     }
 
-    // NU mai avem secțiunea de actualizare finală pentru "Thoughts" separate aici,
-    // deoarece ele sunt acum parte din fullAiResponseText și gestionate de typewriter.
-
-    async function finalizeAndSaveAiResponse() {
+    async function finalizeAndSaveAiResponse(finalContent, finalThoughts, hadError) {
         await saveChatMessage(currentUser.uid, {
             role: "model",
-            content: fullAiResponseText.trim() || (anErrorOccurred ? apiErrorMessage : "Răspuns AI gol."),
-            thoughts: null, // Pentru mesajele noi, "thoughts" nu mai sunt extrase separat
-            error: anErrorOccurred,
+            content: finalContent.trim(), // Salvează doar conținutul principal
+            thoughts: finalThoughts, // Salvează gândurile extrase
+            error: hadError,
             timestamp: new Date().toISOString()
         });
         console.log("→ [DB_SAVE_MODEL] Răspuns/Eroare AI salvat.");
 
         if (chatStatus) {
-            chatStatus.textContent = anErrorOccurred ? "Eroare AI." : "PsihoGPT - Terapeutul tău AI";
+            chatStatus.textContent = hadError ? "Eroare AI." : "PsihoGPT - Terapeutul tău AI";
         }
         if (sendButton) sendButton.disabled = !(chatSession && isChatInitialized);
         if (chatInput) chatInput.focus();
