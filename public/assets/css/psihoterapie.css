@@ -798,20 +798,73 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     margin-left: var(--spacing-unit); /* Space it from the edge or title */
 }
 
-.theme-selection-container, .material-type-selection-container {
-    margin-top: 15px;
-    margin-bottom: 20px;
-    padding: 15px;
-    background-color: #f9f9f9;
-    border: 1px solid #eee;
-    border-radius: 8px;
+/* psihoterapie.css - ADĂUGIRI/MODIFICĂRI PENTRU MATERIALE */
+
+/* Asigură-te că containerul principal al tab-ului de materiale
+   (ex: #materialeFormContainer) respectă lățimea standard a paginii.
+   Dacă #materialeFormContainer are deja clasa .form-section-container
+   sau stiluri echivalente, atunci e perfect.
+   Dacă nu, adaugă-i:
+*/
+#materialeFormContainer.tab-content { /* Exemplu dacă acesta e containerul principal */
+    /* max-width: 760px; */ /* Aceasta ar trebui să vină dintr-o clasă globală gen .page-content-width */
+    /* margin: 0 auto calc(var(--spacing-unit) * 5) auto; */
+    /* background: var(--color-bg-content); */
+    /* padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 4.5); */
+    /* box-shadow: var(--shadow-medium); */
+    /* border-radius: var(--border-radius-large); */
+    /* border: 1px solid #e0e0e0; */
+    /* Următoarele sunt specifice dacă #materialeFormContainer este EL containerul principal */
+}
+
+/* Container pentru managementul temelor și controalele de generare
+   Acestea sunt ACUM secțiuni INTERNE, nu containere de pagină complete.
+*/
+#themeManagementContainer,
+#materialGenerationControlsContainer {
+    margin-top: calc(var(--spacing-unit) * 2.5);    /* 20px */
+    margin-bottom: calc(var(--spacing-unit) * 3); /* 24px */
+    padding: calc(var(--spacing-unit) * 2.5);   /* 20px, padding intern */
+    background-color: #FDFDFD; /* Un fundal ușor diferit pentru a le delimita DACA e necesar, altfel transparent */
+    border: 1px solid #e7edf3; /* O bordură subtilă */
+    border-radius: var(--border-radius-medium); /* Raze mai mici, fiind interne */
+    /* NU mai au nevoie de max-width, margin auto, box-shadow mare */
+}
+
+#themeManagementContainer h4, /* Titlurile din aceste secțiuni interne */
+#materialGenerationControlsContainer h4 {
+    margin-top: 0;
+    margin-bottom: calc(var(--spacing-unit) * 2); /* 16px */
+    color: var(--color-text-dark); /* Asigură-te că e lizibil */
+    font-size: 1.25em; /* Mărime adecvată pentru subtitlu de secțiune */
+    font-weight: 600;
+    padding-bottom: calc(var(--spacing-unit) * 1); /* 8px */
+    border-bottom: 1px solid #e0e6ed; /* Separator subtil */
+}
+
+/* Timestamp pentru actualizarea temelor */
+.themes-timestamp {
+    font-size: 0.85em;
+    color: var(--color-text-light);
+    margin-bottom: calc(var(--spacing-unit) * 2); /* 16px */
+    text-align: left; /* Sau center, după preferință */
+}
+
+/* Container pentru grupurile de butoane (teme, tipuri de material) */
+.theme-buttons-container,
+.material-type-buttons-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
+    gap: var(--spacing-unit); /* 8px */
+    justify-content: flex-start; /* Aliniere la stânga e mai comună în interiorul unui form */
+    margin-top: calc(var(--spacing-unit) * 1.5); /* 12px */
 }
-.theme-select-button, .material-type-button {
-    padding: 8px 15px;
+
+/* Butoanele de selecție temă (păstrează mult din ce ai, ajustează culori/borduri dacă e nevoie) */
+.theme-select-button {
+    padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 1.75); /* 8px 14px */
+    font-size: 0.9em; /* Puțin mai mici dacă sunt multe */
+    /* Restul stilurilor pot rămâne ca în fișierul tău original: */
     border-radius: 20px;
     cursor: pointer;
     font-weight: 500;
@@ -819,26 +872,160 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     border: 1px solid var(--color-primary);
     background-color: white;
     color: var(--color-primary);
+    text-align: center;
 }
-.theme-select-button:hover, .material-type-button:hover {
+.theme-select-button:hover {
     background-color: var(--color-primary-light);
-    transform: translateY(-1px);
+    /* transform: translateY(-1px); */ /* Poate fi opțional */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
 }
-.material-type-button.button-primary { 
+.theme-select-button.selected {
     background-color: var(--color-primary);
     color: white;
+    font-weight: 600; /* Mai bold când e selectat */
+    border-color: var(--color-primary-dark, var(--color-primary));
 }
-.material-type-button.button-primary:hover {
-    background-color: var(--color-primary-dark);
+.theme-select-button.selected:hover {
+    background-color: var(--color-primary-dark, #0056b3);
 }
-.button-cancel, .theme-select-button.button-cancel, .material-type-button.button-cancel {
-    border-color: var(--color-text-light);
-    color: var(--color-text-light);
-}
-.button-cancel:hover {
-    background-color: #f0f0f0;
-    border-color: #ccc;
-}
-.material-content-display pre { white-space: pre-wrap; background-color: #f4f4f4; padding: 10px; border-radius: 4px; font-family: monospace; }
 
+
+/* Butonul de Refresh/Actualizare teme */
+#refreshThemesButton {
+    /* Preia stilurile din .button-primary (probabil definite în fișierul tău) */
+    /* Poți adăuga margini specifice dacă e nevoie */
+    margin-top: calc(var(--spacing-unit) * 2.5); /* 20px */
+    display: inline-block; /* Sau block dacă vrei să ocupe toată lățimea */
+    padding: calc(var(--spacing-unit) * 1.25) calc(var(--spacing-unit) * 2.5); /* 10px 20px */
+}
+
+/* Butoanele de tip material (la fel, preiau din .material-type-button și .button-primary) */
+.material-type-button {
+    /* Stilurile de bază pot rămâne cele din fișierul tău */
+    padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 1.75); /* 8px 14px */
+    font-size: 0.9em;
+}
+/* .material-type-button.button-primary - deja stilat */
+/* .material-type-button.button-cancel - deja stilat */
+
+/* Mesajul informativ specific pentru materiale */
+#materialeInfoMessage.info-message { /* Specificitate mai mare pentru a suprascrie dacă e nevoie */
+    /* Poate moșteni din .confirmation-message dacă au aspect similar */
+    padding: calc(var(--spacing-unit) * 1.5); /* 12px */
+    border-radius: var(--border-radius-medium);
+    margin-top: 0; /* Ajustează dacă e primul element */
+    margin-bottom: calc(var(--spacing-unit) * 2.5); /* 20px */
+    text-align: center;
+    font-size: 0.95em;
+    /* Clasele .success, .error, .warning sunt deja definite și ar trebui să funcționeze */
+}
+#materialeInfoMessage.info-message.info { /* Stil specific pentru tipul "info" implicit */
+    background-color: var(--color-primary-light);
+    color: var(--color-primary-dark);
+    border: 1px solid #B9D7F8;
+}
+
+
+/* Containerul pentru lista de materiale generate (unde sunt cardurile) */
+#materialeListContainer {
+    margin-top: calc(var(--spacing-unit) * 3); /* 24px */
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 2.5); /* 20px, spațiu între carduri */
+}
+#materialeListContainer h3 { /* Titlul "Materiale Generate Anterior" */
+    color: var(--color-text-dark);
+    text-align: left; /* Sau center */
+    margin-bottom: calc(var(--spacing-unit) * 2); /* 16px */
+    font-weight: 600;
+    font-size: 1.4em; /* Mărime potrivită pentru un subtitlu de secțiune mai mare */
+    padding-bottom: calc(var(--spacing-unit) * 1);
+    border-bottom: 1px solid #e0e6ed;
+}
+
+/* Cardurile de material (.material-card) pot moșteni mult de la .response-card */
+.material-card {
+    /* Moștenește de la .response-card */
+    /* Poți adăuga stiluri specifice dacă vrei să le diferențiezi */
+}
+.material-card .card-header {
+    /* Moștenește de la .response-card .card-header */
+}
+.material-card .card-content {
+    /* Moștenește de la .response-card .card-content */
+}
+.material-content-display {
+    /* Aici vine conținutul parsat din Markdown */
+    font-size: 1em;
+    line-height: 1.7;
+    color: var(--color-text-medium);
+}
+.material-content-display h1, /* etc., preiau din .content-ai */
+.material-content-display h2,
+.material-content-display h3,
+.material-content-display h4 {
+    font-weight: 600;
+    color: var(--color-secondary-dark); /* Sau o altă culoare pentru consistență */
+    margin-top: 1.2em;
+    margin-bottom: 0.6em;
+    padding-bottom: calc(var(--spacing-unit)*0.25);
+    border-bottom: 1px solid #e7f3f0; /* O bordură mai subtilă pentru titlurile interne */
+}
+.material-content-display h1:first-child, /* etc. */
+.material-content-display h2:first-child,
+.material-content-display h3:first-child,
+.material-content-display h4:first-child {
+    margin-top: 0.2em;
+}
+.material-content-display p { margin-bottom: 0.8em; }
+.material-content-display ul, .material-content-display ol {
+    margin-left: calc(var(--spacing-unit)*0.5);
+    padding-left: calc(var(--spacing-unit)*2.5);
+    margin-bottom: 0.8em;
+}
+.material-content-display li { margin-bottom: 0.5em; }
+.material-content-display pre { /* Stilul tău existent e bun */
+    white-space: pre-wrap;
+    background-color: #f4f4f4;
+    padding: 10px;
+    border-radius: 4px;
+    font-family: monospace;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+}
+.material-card .card-actions {
+    /* Moștenește de la .response-card .card-actions */
+    /* Butoanele specifice .delete-material-button și .add-worksheet-button */
+}
+.delete-material-button { /* Preia din .delete-introspectie-button */
+    color: var(--color-error);
+    border-color: var(--color-error-bg);
+}
+.delete-material-button:hover {
+    background-color: var(--color-error);
+    color: white;
+}
+.add-worksheet-button {
+    color: var(--color-success); /* Sau .color-secondary pentru consistență cu feedback */
+    border-color: var(--color-success-bg); /* Sau .color-secondary-light */
+}
+.add-worksheet-button:hover {
+    background-color: var(--color-success); /* Sau .color-secondary */
+    color: white;
+}
+
+/* Stare disabled pentru butoanele noi/specifice (dacă nu sunt acoperite global) */
+.theme-select-button:disabled,
+.material-type-button:disabled,
+#refreshThemesButton:disabled,
+.delete-material-button:disabled,
+.add-worksheet-button:disabled {
+    background-color: #e9ecef !important;
+    border-color: #dee2e6 !important;
+    color: #adb5bd !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
  /* --- MODERN FRESH STYLES END --- */
