@@ -269,33 +269,48 @@ Empatie profundă, validare constantă, ghidare reflexivă personalizată și fu
     // -----------------------------------------------------------------
 
 function showTab(tabName) {
+    console.log("[psihoterapie.js] showTab a fost apelat cu tabName:", tabName); // LOG DE VERIFICARE
+
     document.getElementById('jurnalFormContainer').style.display = (tabName === 'jurnal' ? 'block' : 'none');
     document.getElementById('fisaFormContainer').style.display = (tabName === 'fisa' ? 'block' : 'none');
-    // NOU: Gestionează vizibilitatea containerului din HTML
+
+    // LOGICA PENTRU NOUL TAB
     const materialeContainer = document.getElementById('materialeFormContainer');
     if (materialeContainer) {
+        console.log("[psihoterapie.js] Container #materialeFormContainer găsit:", materialeContainer); // LOG
         materialeContainer.style.display = (tabName === 'materiale' ? 'block' : 'none');
+         console.log("[psihoterapie.js] Display pentru #materialeFormContainer setat la:", materialeContainer.style.display); // LOG
+    } else {
+        console.error("[psihoterapie.js] EROARE: Containerul #materialeFormContainer NU a fost găsit!"); // LOG
     }
-
 
     document.getElementById('tabButtonJurnal').classList.toggle('active', tabName === 'jurnal');
     document.getElementById('tabButtonFisa').classList.toggle('active', tabName === 'fisa');
-    document.getElementById('tabButtonMateriale').classList.toggle('active', tabName === 'materiale');
-
-    // ... ascunde mesajele de confirmare existente ...
-    const materialeInfoMsg = document.getElementById('materialeInfoMessage');
-    if (materialeInfoMsg && tabName !== 'materiale') { // Ascunde mesajul dacă nu suntem pe tab-ul de materiale
-        materialeInfoMsg.style.display = 'none';
+    // LOGICA PENTRU CLASA 'active' A NOULUI BUTON
+    const btnMaterialeTab = document.getElementById('tabButtonMateriale');
+    if (btnMaterialeTab) {
+        btnMaterialeTab.classList.toggle('active', tabName === 'materiale');
+         console.log("[psihoterapie.js] Clasa 'active' pentru #tabButtonMateriale setată la:", btnMaterialeTab.classList.contains('active')); // LOG
+    } else {
+        console.error("[psihoterapie.js] EROARE: Butonul #tabButtonMateriale NU a fost găsit pentru toggle class!"); // LOG
     }
 
 
+    // Ascunde mesajele de confirmare existente
+    document.getElementById('jurnalConfirmationMessage').style.display = 'none';
+    document.getElementById('fisaConfirmationMessage').style.display = 'none';
+    const materialeInfoMsg = document.getElementById('materialeInfoMessage');
+    if (materialeInfoMsg && tabName !== 'materiale') {
+        materialeInfoMsg.style.display = 'none';
+    }
+
+    // APELUL CĂTRE FUNCȚIA DIN `personalizedMaterials.js`
     if (tabName === 'materiale' && currentUserId) {
-        // Apelează funcția expusă de personalizedMaterials.js
         if (typeof window.handleMaterialeTabActivated === 'function') {
+            console.log("[psihoterapie.js] Se va apela window.handleMaterialeTabActivated cu userId:", currentUserId); // LOG
             window.handleMaterialeTabActivated(currentUserId);
         } else {
-            console.warn("[psihoterapie.js] Funcția handleMaterialeTabActivated nu a fost găsită pe window.");
-            // Poți afișa un mesaj de eroare/fallback în UI dacă e critic
+            console.warn("[psihoterapie.js] ATENȚIE: Funcția window.handleMaterialeTabActivated NU este (încă) definită. Acest lucru este normal dacă `personalizedMaterials.js` nu s-a încărcat/executat complet."); // LOG
         }
     }
 }
@@ -1999,6 +2014,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById("minimizeChatButton")?.addEventListener("click", handleToggleChat);
     document.getElementById("toggleChatButton")?.addEventListener("click", handleToggleChat);
     
+     // ADAUGĂ ACEST BLOC PENTRU NOUL BUTON
+    const btnMateriale = document.getElementById('tabButtonMateriale');
+    console.log("[psihoterapie.js] Elementul #tabButtonMateriale căutat în DOM:", btnMateriale); // LOG DE VERIFICARE
+
+    if (btnMateriale) {
+        btnMateriale.addEventListener('click', () => {
+            console.log("[psihoterapie.js] CLICK detectat pe #tabButtonMateriale!"); // ACESTA TREBUIE SĂ APARĂ
+            showTab('materiale');
+        });
+    } else {
+        console.error("[psihoterapie.js] EROARE CRITICĂ: Butonul #tabButtonMateriale NU a fost găsit în DOM!");
+    }
+
     const sendBtn = document.getElementById("sendChatMessageButton");
     if (sendBtn) {
         sendBtn.addEventListener("click", () => {
