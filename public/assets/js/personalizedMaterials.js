@@ -331,7 +331,7 @@ async function generatePersonalizedMaterialContentInternal(materialType, theme, 
         materialPrompt = `
 Rol: Ești PsihoGPT, un terapeut AI avansat, cu expertiză profundă în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor (TS), Terapia Acceptării și Angajamentului (ACT), și psihologie clinică generală.
 Sarcină: Generează un articol teoretic detaliat, explicativ și empatic pe tema centrală "${theme}".
-Context Utilizator: Acest articol este pentru un utilizator care explorează activ această temă. ${userContextSummary.substring(0,1000)} Articolul trebuie să fie profund, dar accesibil, oferind atât înțelegere teoretică, cât și perspective practice validate.
+Context Utilizator: Acest articol este pentru un utilizator care explorează activ această temă. ${userContextSummary} Articolul trebuie să fie profund, dar accesibil, oferind atât înțelegere teoretică, cât și perspective practice validate.
 
 Articolul trebuie să:
 1.  **Definiție Nuanțată și Contextualizare:**
