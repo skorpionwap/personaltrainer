@@ -268,14 +268,37 @@ Empatie profundă, validare constantă, ghidare reflexivă personalizată și fu
     // DEFINIȚIILE FUNCȚIILOR
     // -----------------------------------------------------------------
 
-    function showTab(tabName) {
-        document.getElementById('jurnalFormContainer').style.display = (tabName === 'jurnal' ? 'block' : 'none');
-        document.getElementById('fisaFormContainer').style.display = (tabName === 'fisa' ? 'block' : 'none');
-        document.getElementById('tabButtonJurnal').classList.toggle('active', tabName === 'jurnal');
-        document.getElementById('tabButtonFisa').classList.toggle('active', tabName === 'fisa');
-        document.getElementById('jurnalConfirmationMessage').style.display = 'none';
-        document.getElementById('fisaConfirmationMessage').style.display = 'none';
+function showTab(tabName) {
+    document.getElementById('jurnalFormContainer').style.display = (tabName === 'jurnal' ? 'block' : 'none');
+    document.getElementById('fisaFormContainer').style.display = (tabName === 'fisa' ? 'block' : 'none');
+    // NOU: Gestionează vizibilitatea containerului din HTML
+    const materialeContainer = document.getElementById('materialeFormContainer');
+    if (materialeContainer) {
+        materialeContainer.style.display = (tabName === 'materiale' ? 'block' : 'none');
     }
+
+
+    document.getElementById('tabButtonJurnal').classList.toggle('active', tabName === 'jurnal');
+    document.getElementById('tabButtonFisa').classList.toggle('active', tabName === 'fisa');
+    document.getElementById('tabButtonMateriale').classList.toggle('active', tabName === 'materiale');
+
+    // ... ascunde mesajele de confirmare existente ...
+    const materialeInfoMsg = document.getElementById('materialeInfoMessage');
+    if (materialeInfoMsg && tabName !== 'materiale') { // Ascunde mesajul dacă nu suntem pe tab-ul de materiale
+        materialeInfoMsg.style.display = 'none';
+    }
+
+
+    if (tabName === 'materiale' && currentUserId) {
+        // Apelează funcția expusă de personalizedMaterials.js
+        if (typeof window.handleMaterialeTabActivated === 'function') {
+            window.handleMaterialeTabActivated(currentUserId);
+        } else {
+            console.warn("[psihoterapie.js] Funcția handleMaterialeTabActivated nu a fost găsită pe window.");
+            // Poți afișa un mesaj de eroare/fallback în UI dacă e critic
+        }
+    }
+}
 
     function updateFisaProgressBar() {
         const progress = document.getElementById('fisaProgress');

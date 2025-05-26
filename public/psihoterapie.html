@@ -18,6 +18,7 @@
     <nav class="tab-navigation">
         <button id="tabButtonJurnal" class="tab-button active" type="button">Jurnal Ghidat</button>
         <button id="tabButtonFisa" class="tab-button" type="button">Fișă Terapeutică</button>
+        <button id="tabButtonMateriale" class="tab-button" type="button">Resurse Personale</button>
     </nav>
 
     <main id="mainContentArea">
@@ -223,6 +224,29 @@
                 <div id="fisaConfirmationMessage" class="confirmation-message"></div>
             </section>
         </div>
+
+         <!-- Conținutul Tab-ului de Resurse Personale (controlat de noul fisier JS) -->
+    <div id="materialeFormContainer" class="tab-content" style="display: none;"> <!-- Important: inițial ascuns -->
+        <section class="form-section-container">
+            <h2>Resurse Terapeutice Personale</h2>
+            <p>Aici vei găsi articole teoretice și fișe de lucru practice generate de PsihoGPT, special pentru tine.</p>
+
+            <div id="materialeInfoMessage" class="info-message" style="display: none; margin-bottom: 20px;">
+                <!-- Mesaje informative -->
+            </div>
+
+            <div class="actions-container" style="margin-bottom: 25px; text-align: center;">
+                <button id="generateNewMaterialButton" class="action-button" type="button" title="Solicită PsihoGPT...">
+                    🚀 Generează Material Nou
+                </button>
+            </div>
+
+            <div id="materialeListContainer" class="card-view-unified">
+                <!-- Cardurile cu materialele generate vor fi adăugate aici -->
+            </div>
+        </section>
+    </div>
+
     </main>
 
     <section id="cardsContainerArea">
@@ -249,5 +273,7 @@
 
 
     <script type="module" src="assets/js/psihoterapie.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script type="module" src="assets/js/personalizedMaterials.js"></script> 
 </body>
 </html>
