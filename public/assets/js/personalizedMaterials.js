@@ -21,7 +21,7 @@ const dbMaterials = getFirestore(appMaterials);
 const authMaterials = getAuth(appMaterials);
 
 const GEMINI_API_KEY_MATERIALS = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // Înlocuiește cu cheia ta reală
-const GEMINI_MODEL_ANALIZA_TEME_MATERIALS = "gemini-2.0-flash"; // Model capabil de context mare
+const GEMINI_MODEL_ANALIZA_TEME_MATERIALS = "gemini-2.5-flash-preview-05-20"; // Model capabil de context mare
 const GEMINI_MODEL_GENERARE_MATERIAL_MATERIALS = "gemini-2.5-flash-preview-05-20"; // Model capabil de generare
 
 let genAIMaterials, geminiModelAnalizaTemeMaterials, geminiModelGenerareMaterialMaterials;
@@ -185,7 +185,7 @@ async function identifyAndSaveKeyThemes(userId, forceRefresh = false) {
 
     const themeAnalysisPrompt = `
 Rol: Ești un psihoterapeut AI experimentat, capabil să analizezi texte diverse (jurnale, fișe de reflecție, conversații de chat) pentru a identifica teme psihologice centrale, tipare de gândire sau probleme recurente.
-Sarcină: Analizează textul combinat de mai jos, care provine din activitatea recentă a unui utilizator. Identifică aproximativ 10 teme principale sau probleme cheie (minim 7, maxim 12).
+Sarcină: Analizează textul combinat de mai jos, care provine din activitatea recentă a unui utilizator. Identifică aproximativ 20 teme principale sau probleme cheie (minim 7, maxim 12).
 Pentru fiecare temă, oferă o etichetă scurtă și descriptivă (maxim 5-7 cuvinte). Asigură-te că temele sunt distincte.
 Formatare Răspuns: Listează fiecare temă pe o linie nouă, fără numere sau alte prefixe. Nu adăuga introduceri, explicații sau concluzii. Doar lista de teme.
 
@@ -329,35 +329,122 @@ async function generatePersonalizedMaterialContentInternal(materialType, theme, 
     let materialPrompt = "";
     if (materialType === 'articol') {
         materialPrompt = `
-Rol: Ești PsihoGPT, un terapeut AI avansat, specializat în TCC, Terapia Schemelor și ACT.
+Rol: Ești PsihoGPT, un terapeut AI avansat, cu expertiză profundă în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor (TS), Terapia Acceptării și Angajamentului (ACT), și psihologie clinică generală.
 Sarcină: Generează un articol teoretic detaliat, explicativ și empatic pe tema centrală "${theme}".
-Context Utilizator: Acest articol este pentru un utilizator care explorează activ această temă. ${userContextSummary.substring(0,1000)}
+Context Utilizator: Acest articol este pentru un utilizator care explorează activ această temă. ${userContextSummary.substring(0,1000)} Articolul trebuie să fie profund, dar accesibil, oferind atât înțelegere teoretică, cât și perspective practice validate.
+
 Articolul trebuie să:
-1.  Definească clar conceptul "${theme}" într-un mod accesibil și nuanțat.
-2.  Explice posibilele origini sau factori care contribuie la "${theme}" (ex. experiențe timpurii, tipare de gândire).
-3.  Descrie cum se poate manifesta "${theme}" în diferite arii ale vieții (relații, muncă, imagine de sine), oferind exemple ilustrative generale.
-4.  Prezinte 3-4 strategii concrete sau perspective de abordare/înțelegere/gestionare a temei "${theme}", bazate pe principii TCC, Schema Therapy, ACT sau alte abordări validate. Include exemple practice pentru fiecare strategie.
-5.  Să se încheie cu o notă de încurajare, auto-compasiune și speranță, subliniind că schimbarea este posibilă.
-Formatare: Folosește Markdown (titluri principale cu ##, subtitluri cu ###, liste cu *, text **bold** sau *italic*). Structurează bine conținutul.
+1.  **Definiție Nuanțată și Contextualizare:**
+    *   Definească clar conceptul "${theme}" într-un mod accesibil.
+    *   Explice relevanța sa în contextul bunăstării psihologice și al provocărilor comune de viață.
+    *   Atinge, dacă este cazul, legături cu concepte psihologice mai largi (ex: atașament, mecanisme de coping, etc.).
+2.  **Origini și Factori Contributivi:**
+    *   Exploreze posibilele origini (ex. experiențe timpurii, modele învățate, factori biologici/temperamentali, influențe socio-culturale).
+    *   Descrie tipare de gândire, emoționale și comportamentale care mențin sau exacerbează "${theme}".
+    *   Integreze perspective din TCC (ex: gânduri automate, distorsiuni cognitive) și Terapia Schemelor (ex: scheme dezadaptative timpurii, moduri schematice relevante), dacă este pertinent pentru temă.
+3.  **Manifestări și Impact:**
+    *   Descrie cum se poate manifesta "${theme}" în diferite arii ale vieții (relații, muncă, imagine de sine, sănătate fizică), oferind exemple ilustrative generale, dar relevante.
+    *   Sublinieze impactul pe termen scurt și lung asupra funcționării și calității vieții.
+4.  **Perspective Terapeutice și Strategii de Gestionare (bazate pe dovezi):**
+    *   Prezinte 3-5 strategii concrete, tehnici sau perspective de abordare/înțelegere/gestionare a temei "${theme}".
+    *   Pentru fiecare strategie:
+        *   Explică principiul din spatele ei, ancorând-o în abordări terapeutice validate (TCC, TS, ACT, DBT, mindfulness etc.).
+        *   Oferă un exemplu practic clar despre cum ar putea fi aplicată de utilizator.
+        *   Subliniază potențialele beneficii.
+5.  **Încurajare, Auto-compasiune și Pași Următori:**
+    *   Să se încheie cu o notă de încurajare autentică, validare și auto-compasiune.
+    *   Sublinieze că înțelegerea și schimbarea sunt procese graduale și că solicitarea de sprijin (inclusiv profesional) este un semn de putere.
+    *   Poate sugera reflecții suplimentare sau direcții de explorare pentru utilizator.
+
+Formatare: Folosește Markdown (titluri principale cu ##, subtitluri cu ###, liste cu *, text **bold** sau *italic*). Structurează logic și clar conținutul. Folosește un limbaj care echilibrează profunzimea profesională cu accesibilitatea.
 Restricții: Răspunde DOAR cu conținutul articolului. Nu adăuga introduceri de genul "Iată articolul:" sau concluzii suplimentare în afara celor specificate.
-Lungime: Aproximativ 600-1000 cuvinte.
-Ton: Empatic, suportiv, profund informativ, dar ușor de înțeles.`;
+Lungime: Aproximativ 7000-12000 cuvinte (permite o explorare mai detaliată).
+Ton: Empatic, suportiv, profund informativ, validant, non-judicativ și încurajator.`;
     } else if (materialType === 'fisa_lucru') {
         materialPrompt = `
-Rol: Ești PsihoGPT, un terapeut AI avansat.
-Sarcină: Generează o fișă de lucru practică, detaliată și interactivă pe tema centrală "${theme}".
-Context Utilizator: Această fișă este pentru un utilizator care explorează activ această temă. ${userContextSummary.substring(0,1000)}
-Fișa de lucru trebuie să includă URMĂTOARELE SECȚIUNI, în această ordine:
-1.  **Titlu Clar:** Ex: "Fișă de Lucru: Explorarea și Gestionarea [${theme}]".
-2.  **Introducere Scurtă (2-3 propoziții):** Scopul fișei și cum poate ajuta.
-3.  **Secțiunea 1: Conștientizarea Manifestărilor (minim 3 întrebări de reflecție):** Întrebări care ajută utilizatorul să identifice cum se manifestă "${theme}" specific în viața sa. (Ex: "În ce situații recente ai observat că [aspect al temei] a fost cel mai intens? Descrie pe scurt.") Lasă spațiu pentru răspuns (ex: "Răspuns: ____________________").
-4.  **Secțiunea 2: Explorarea Gândurilor și Emoțiilor Asociate (minim 3 întrebări):** Întrebări despre gândurile automate, emoțiile și senzațiile fizice legate de "${theme}".
-5.  **Secțiunea 3: Identificarea Nevoilor Neîmplinite (minim 2 întrebări):** Ce nevoi ar putea fi în spatele manifestărilor "${theme}"?
-6.  **Secțiunea 4: Strategii și Acțiuni Practice (minim 2-3 sugestii concrete și acționabile):** Propune exerciții specifice, tehnici de coping sau pași mici pe care utilizatorul îi poate face pentru a aborda "${theme}". Include exemple clare.
-7.  **Secțiunea 5: Reflecții Finale și Angajament (1-2 întrebări):** Pentru consolidarea învățării și planificarea pașilor următori.
-Formatare: Folosește Markdown. Titluri de secțiune cu ###.
-Restricții: Răspunde DOAR cu conținutul fișei.
-Ton: Ghidant, practic, încurajator, structurat.`;
+Rol: Ești PsihoGPT, un terapeut AI experimentat, specializat în crearea de materiale terapeutice practice. Ai cunoștințe solide despre tehnici validate din Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor (TS), Terapia Acceptării și Angajamentului (ACT), Terapia Dialectic-Comportamentală (DBT), tehnici de mindfulness și reglare emoțională.
+Sarcină: Generează o fișă de lucru practică, detaliată, interactivă și orientată spre acțiune pe tema centrală "${theme}".
+Context Utilizator: Această fișă este pentru un utilizator care explorează activ această temă și este pregătit să lucreze practic cu ea. ${userContextSummary}. Fișa trebuie să ofere instrumente concrete pe care utilizatorul le poate aplica.
+
+Fișa de lucru trebuie să includă URMĂTOARELE SECȚIUNI, în această ordine și cu conținutul specificat:
+
+1.  **Titlu Clar și Atractiv:**
+    *   Ex: "Fișă de Lucru Interactivă: Navigând și Transformând [${theme}] cu Tehnici Practice".
+    *   Include tema centrală.
+
+2.  **Introducere Scurtă și Motivantă (3-4 propoziții):**
+    *   Scopul fișei: cum îl va ajuta pe utilizator să înțeleagă și să gestioneze "${theme}".
+    *   Menționează pe scurt că fișa va include tehnici practice inspirate din abordări terapeutice validate.
+    *   O notă de încurajare pentru implicare.
+
+3.  **Secțiunea 1: Explorarea Personală a Temei "${theme}"**
+    *   **1.1. Conștientizarea Manifestărilor (minim 3 întrebări de reflecție detaliate):**
+        *   Ajută utilizatorul să identifice cum se manifestă "${theme}" *specific* în viața sa (situații, frecvență, intensitate).
+        *   Ex: "Amintește-ți o situație recentă (sau recurentă) în care "${theme}" a fost prezent(ă) sau intens(ă). Descrie situația în detaliu: ce s-a întâmplat, cine a fost implicat, unde erai?"
+        *   Lasă spațiu amplu pentru răspuns (ex: "Situația: ____________________________________________________").
+    *   **1.2. Gânduri Automate și Convingeri Asociate (minim 3 întrebări specifice):**
+        *   Întrebări pentru a identifica gândurile care apar în legătură cu "${theme}".
+        *   Ex: "Ce gânduri îți trec prin minte chiar înainte, în timpul și după ce te confrunți cu "${theme}" sau cu situațiile asociate? Notează-le cât mai exact."
+        *   Ex: "Există anumite 'reguli' sau convingeri personale pe care le ai despre tine, despre alții sau despre lume, care par să fie activate de "${theme}"? (ex. 'Trebuie să...', 'Nu ar trebui să...', 'Dacă X, atunci Y')."
+    *   **1.3. Emoții și Senzații Fizice (minim 2-3 întrebări):**
+        *   Identificarea paletei emoționale și a reacțiilor corporale.
+        *   Ex: "Ce emoții (ex: anxietate, tristețe, furie, rușine, vinovăție, gol interior) simți cel mai des în legătură cu "${theme}"? Evaluează intensitatea lor pe o scală de la 0 la 10."
+        *   Ex: "Observi vreo senzație fizică specifică în corpul tău când "${theme}" este activ(ă)? (ex: tensiune musculară, nod în gât, palpitații, greutate în piept). Unde o simți?"
+
+4.  **Secțiunea 2: Înțelegerea Rădăcinilor și Nevoilor (Opțional, dacă tema se pretează)**
+    *   **2.1. Posibile Origini și Influențe (1-2 întrebări reflective, cu blândețe):**
+        *   Ex: "Reflectând la experiențele tale de viață (copilărie, adolescență, relații importante), crezi că există evenimente sau tipare care ar fi putut contribui la dezvoltarea "${theme}"?" (Fără a forța auto-analiza excesivă).
+    *   **2.2. Nevoi Emoționale Neîmplinite (minim 2 întrebări):**
+        *   Ce nevoi fundamentale (ex: siguranță, conectare, validare, autonomie, competență) ar putea fi nesatisfăcute și semnalate prin "${theme}"?
+        *   Ex: "Când "${theme}" este prezent(ă), ce nevoie profundă simți că nu este îndeplinită în acel moment sau în viața ta în general?"
+
+5.  **Secțiunea 3: TEHNICI PRACTICE DE LUCRU ȘI STRATEGII DE SCHIMBARE (MINIM 2-3 TEHNICI DISTINCTE):**
+    *   Pentru fiecare tehnică propusă:
+        *   **Numele Tehnicii:** Clar și sugestiv (ex: "Restructurare Cognitivă ABCDE", "Exercițiu de Defuziune Cognitivă: Frunze pe Râu", "Tehnica Respirației Diafragmatice", "Activare Comportamentală: Pași Mici").
+        *   **Scurtă Descriere și Scop:** Explică pe scurt în ce constă tehnica și ce urmărește să realizeze în raport cu "${theme}". Menționează abordarea terapeutică din care provine (ex: TCC, ACT, DBT).
+        *   **Instrucțiuni Pas cu Pas:** Ghid detaliat, clar și acționabil despre cum să aplice utilizatorul tehnica. Folosește un limbaj simplu.
+            *   *Pentru tehnici TCC (ex: restructurare cognitivă):* poate include identificarea gândului disfuncțional, dovezile pro/contra, generarea unui gând alternativ echilibrat.
+            *   *Pentru tehnici ACT (ex: defuziune):* instrucțiuni pentru a observa gândurile fără a fuziona cu ele, metafore.
+            *   *Pentru tehnici de mindfulness/relaxare:* ghidaj pentru respirație, scanare corporală simplă.
+            *   *Pentru tehnici comportamentale:* planificarea unor pași mici, graduali.
+        *   **Exemplu Concret (dacă este posibil):** Un scurt exemplu despre cum ar arăta aplicarea tehnicii pentru o situație legată de "${theme}".
+        *   **Spațiu de Practică/Reflecție:** Lasă spațiu utilizatorului să noteze experiența sa cu tehnica sau să completeze pașii (ex: "Gândul meu automat: _________", "Gândul alternativ: _________").
+    *   **Exemplu de structură pentru o tehnică:**
+        
+        ### Tehnica X: [Numele Tehnicii] (inspirată din [TCC/ACT/etc.])
+        **Scop:** Această tehnică te ajută să [scopul specific legat de tema].
+        **Instrucțiuni:**
+        1. Pasul 1...
+        2. Pasul 2...
+           * Detaliu pentru pasul 2...
+        3. Pasul 3...
+        **Exemplu:** [Scurt exemplu]
+        **Practica Ta:**
+        * [Întrebare/Spațiu pentru pasul 1] __________________
+        * [Întrebare/Spațiu pentru pasul 2] __________________
+        * Cum te-ai simțit după ce ai aplicat această tehnică? ______________
+        
+
+6.  **Secțiunea 4: Plan de Acțiune Personalizat și Angajament**
+    *   **4.1. Alegerea Strategiilor (1 întrebare):**
+        *   Ex: "Din tehnicile prezentate mai sus, care 1-2 par cele mai potrivite sau rezonabile pentru tine să le încerci în perioada următoare în legătură cu "${theme}"?"
+    *   **4.2. Primul Pas Concret (1-2 întrebări):**
+        *   Ex: "Care este cel mai mic și mai realizabil pas pe care îl poți face săptămâna aceasta pentru a începe să aplici una dintre tehnicile alese sau pentru a aborda "${theme}"?"
+        *   Ex: "Când și cum anume vei face acest prim pas?"
+    *   **4.3. Anticiparea Obstacolelor și Resurse (Opțional, 1 întrebare):**
+        *   Ex: "Ce obstacole ai putea întâmpina și cum le-ai putea depăși? Ce resurse interne sau externe te-ar putea sprijini?"
+    *   **4.4. Angajament și Auto-Încurajare:**
+        *   O scurtă notă despre importanța practicii regulate și a răbdării cu sine.
+        *   Ex: "Felicitări pentru că ai parcurs această fișă! Amintește-ți că fiecare pas mic contează."
+
+7.  **Resurse Suplimentare (Opțional, dar recomandat):**
+    *   Sugestii scurte de unde ar putea afla mai multe, dacă este cazul (ex: "Pentru mai multe despre mindfulness, poți explora aplicații precum Headspace sau Calm." - Fii neutru și general).
+    *   Recomandarea de a discuta dificultățile cu un terapeut, dacă este cazul.
+
+Formatare: Folosește Markdown extensiv. Titluri de secțiune principale cu ##, sub-secțiuni cu ###, sub-sub-secțiuni (ex: pentru fiecare tehnică) cu ####. Folosește liste numerotate pentru pași, bullet points pentru idei. Lasă spații generoase pentru răspunsuri (folosind multiple linii de '__________________' sau indicând clar "Răspunsul tău aici:").
+Restricții: Răspunde DOAR cu conținutul fișei. Fără introduceri sau concluzii externe fișei.
+Ton: Ghidant, practic, încurajator, structurat, empatic și validant. Limbajul să fie clar și direct.
+Lungime: Fișa trebuie să fie suficient de detaliată pentru a fi utilă, dar nu copleșitoare. Calitatea și caracterul acționabil primează.`;
     } else { return "EROARE: Tip de material necunoscut."; }
 
     const materialContent = await callGeminiAPIForMaterials(materialPrompt, geminiModelGenerareMaterialMaterials, { temperature: 0.6 });
