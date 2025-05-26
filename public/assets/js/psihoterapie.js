@@ -31,12 +31,7 @@
             genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
             geminiModelFisaFeedback = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_FEEDBACK_FISA });
             geminiModelJurnalFeedback = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_FEEDBACK_JURNAL });
-            geminiModelChat = genAI.getGenerativeModel({
-                model: GEMINI_MODEL_NAME_CHAT,
-                generationConfig: {
-                temperature: 0.75, // Sau altă valoare preferată
-                thinking_config: { include_thoughts: true } // Setat implicit pentru orice interacțiune cu acest model
-                }});
+            geminiModelChat = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME_CHAT });
             console.log("SDK Gemini inițializat. Modele: Fișă Feedback:", GEMINI_MODEL_NAME_FEEDBACK_FISA, "Jurnal Feedback:", GEMINI_MODEL_NAME_FEEDBACK_JURNAL, "Chat:", GEMINI_MODEL_NAME_CHAT);
         } catch (e) {
             console.error("Eroare critică la inițializarea SDK Gemini:", e);
@@ -1230,9 +1225,18 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
 
 
     // 2. Inițializează instanța modelului cu systemInstruction
-   try {
-        chatModelInstance = geminiModelChat.withSystemInstruction({ parts: [{ text: systemInstructionText }] });
-        console.log("[CHAT_INIT] Model chat instanțiat cu SystemInstruction dinamic.");
+    try {
+        chatModelInstance = genAI.getGenerativeModel({
+            model: GEMINI_MODEL_NAME_CHAT,
+            systemInstruction: { parts: [{ text: systemInstructionText }] },
+            // Adaugă thinking_config aici pentru a sugera modelului să genereze gânduri interne
+            // Deși formatul exact de output e dictat de prompt, acesta întărește intenția.
+            generationConfig: {
+                thinking_config: { include_thoughts: true }
+            }
+  
+        });
+        console.log("[CHAT_INIT] Model chat instanțiat cu SystemInstruction.");
     } catch (modelError) {
         console.error("[CHAT_INIT] Eroare instanțiere model cu SystemInstruction:", modelError);
         if (chatStatus) chatStatus.textContent = "EROARE: Model AI (config).";
@@ -1322,7 +1326,12 @@ Te rog să generezi un feedback AI detaliat, empatic și structurat conform inst
     // 7. Pornește sesiunea de chat cu istoricul pregătit
     try {
         chatSession = chatModelInstance.startChat({
-            history: historyForChatSession
+            history: historyForChatSession,
+            generationConfig: {
+                temperature: 0.75, // Sau altă valoare preferată
+                thinking_config: { include_thoughts: true } // Activează dacă vrei să vezi thoughtsTokenCount, chiar dacă nu le extragi separat
+            }
+
         });
         console.log("[CHAT_INIT] Sesiune chat inițializată cu API-ul Gemini. Model:", GEMINI_MODEL_NAME_CHAT);
 
@@ -1693,7 +1702,12 @@ async function handleSendChatMessage() {
         }
 
         console.log("→ [AI_STREAM] Trimitere către sendMessageStream...");
-        const streamResult = await chatSession.sendMessageStream(messageText);
+        const streamResult = await chatSession.sendMessageStream(messageText, {
+            generationConfig: {
+                temperature: 0.75,
+                thinking_config: { include_thoughts: true } // Asigură că thinking_config este activat
+            }
+        });
         const stream = streamResult.stream;
 
         for await (const chunk of stream) {
