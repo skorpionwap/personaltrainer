@@ -318,15 +318,51 @@ function displayMaterialTypeSelectionUI(theme) {
 
 // --- LOGICA PENTRU GENERARE ȘI SALVARE MATERIALE ---
 async function generatePersonalizedMaterialContentInternal(materialType, theme, userId) {
-    if (!geminiModelGenerareMaterialMaterials) return "EROARE: [MaterialsJS] Serviciu AI generare indisponibil.";
+    if (!geminiModelGenerareMaterialMaterials) {
+        console.error("[MaterialsJS] Serviciu AI generare indisponibil (model neinițializat).");
+        return "EROARE: [MaterialsJS] Serviciu AI generare indisponibil. Verifică consola.";
+    }
+    if (!theme || theme.trim() === "") {
+        console.error("[MaterialsJS] Temă invalidă pentru generare:", theme);
+        return "EROARE: Temă invalidă furnizată pentru generarea materialului.";
+    }
+    if (!userId) {
+        console.error("[MaterialsJS] ID utilizator lipsă pentru generarea materialului.");
+        return "EROARE: Utilizator neidentificat pentru personalizare.";
+    }
 
-    const specificContextForMaterial = await gatherUserDataForThemeAnalysis(userId); // Reutilizăm funcția
-    let userContextSummary = "Datele recente ale utilizatorului indică o preocupare sau explorare a temei: " + theme + ".";
-    if (specificContextForMaterial) {
-        userContextSummary += "\nExtrase relevante din activitatea sa (jurnale, fișe, chat) arată diverse fațete ale acestei teme.";
+    // 1. Adună contextul complet al utilizatorului
+    const fullRawUserContext = await gatherUserDataForThemeAnalysis(userId);
+
+    // 2. Construiește userContextForPrompt cu o limită superioară absolută
+    let userContextForPrompt = "";
+    // Setează o limită maximă absolută de caractere pentru contextul inclus în prompt.
+    // Aceasta este o măsură de siguranță. Modelele au limite de tokeni, nu de caractere,
+    // dar caracterele oferă o estimare. 150.000 caractere ~ 30.000-50.000 cuvinte.
+    // Ajustează în funcție de teste și de limitele specifice ale modelului (ex: gemini-1.5-flash are 1M tokens,
+    // dar promptul întreg, incluzând instrucțiunile, trebuie să încapă).
+    const ABSOLUTE_MAX_CONTEXT_CHARS = 150000; // Limită generoasă, dar prudentă
+
+    if (fullRawUserContext && fullRawUserContext.trim() !== "") {
+        userContextForPrompt = `Context general: Utilizatorul explorează activ tema "${theme}".\n\n`;
+        userContextForPrompt += "--- INCEPUT CONTEXT EXTINS DIN ACTIVITATEA RECENTĂ A UTILIZATORULUI (JURNALE, FIȘE, CONVERSAȚII) ---\n";
+
+        if (fullRawUserContext.length <= ABSOLUTE_MAX_CONTEXT_CHARS) {
+            userContextForPrompt += fullRawUserContext;
+        } else {
+            userContextForPrompt += fullRawUserContext.substring(0, ABSOLUTE_MAX_CONTEXT_CHARS);
+            userContextForPrompt += "\n... (Contextul utilizatorului a fost trunchiat la " + ABSOLUTE_MAX_CONTEXT_CHARS + " caractere din cauza lungimii excesive. Au fost incluse cele mai recente date.)";
+            console.warn(`[MaterialsJS] Contextul utilizatorului pentru tema "${theme}" a fost trunchiat la ${ABSOLUTE_MAX_CONTEXT_CHARS} caractere.`);
+        }
+        userContextForPrompt += "\n--- SFÂRȘIT CONTEXT EXTINS DIN ACTIVITATEA UTILIZATORULUI ---\n";
+    } else {
+        userContextForPrompt = `Context general: Utilizatorul explorează activ tema "${theme}". (Notă: Nu a fost găsită activitate recentă detaliată (jurnale, fișe, chat) pentru a oferi un context specific suplimentar pentru personalizare în acest moment).`;
+        console.log(`[MaterialsJS] Nu a fost găsit context detaliat pentru tema "${theme}" și utilizatorul ${userId}.`);
     }
 
     let materialPrompt = "";
+
+    // 3. Construiește promptul specific pentru tipul de material
     if (materialType === 'articol') {
         materialPrompt = `
 Rol: Ești PsihoGPT, un terapeut AI avansat, cu expertiză profundă în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor (TS), Terapia Acceptării și Angajamentului (ACT), și psihologie clinică generală.
@@ -445,12 +481,23 @@ Formatare: Folosește Markdown extensiv. Titluri de secțiune principale cu ##, 
 Restricții: Răspunde DOAR cu conținutul fișei. Fără introduceri sau concluzii externe fișei.
 Ton: Ghidant, practic, încurajator, structurat, empatic și validant. Limbajul să fie clar și direct.
 Lungime: Fișa trebuie să fie suficient de detaliată pentru a fi utilă, dar nu copleșitoare. Calitatea și caracterul acționabil primează.`;
-    } else { return "EROARE: Tip de material necunoscut."; }
 
-    const materialContent = await callGeminiAPIForMaterials(materialPrompt, geminiModelGenerareMaterialMaterials, { temperature: 0.6 });
+    } else {
+        console.error("[MaterialsJS] Tip de material necunoscut:", materialType);
+        return `EROARE: Tip de material necunoscut: ${materialType}.`;
+    }
+
+    // Log pentru depanare - poate fi util să vezi lungimile
+    // console.log(`[MaterialsJS] Prompt pentru ${materialType} despre "${theme}". Lungime userContextForPrompt: ${userContextForPrompt.length} caractere.`);
+    // console.log(`[MaterialsJS] Lungime totală aproximativă a promptului trimis (fără instrucțiunile fixe ale promptului): ${userContextForPrompt.length + materialPrompt.length - "${userContextForPrompt}".length} caractere.`);
+
+    // 4. Apelează API-ul Gemini
+    const materialContent = await callGeminiAPIForMaterials(materialPrompt, geminiModelGenerareMaterialMaterials, {
+        temperature: 0.6, // Poate ușor mai mare pentru creativitate în personalizare
+        // maxOutputTokens: lasă default sau ajustează dacă e nevoie pentru răspunsuri lungi
+    });
     return materialContent;
 }
-
 async function handleMaterialTypeSelectedAndGenerate(event) {
     const materialType = event.target.dataset.materialType;
     const themeForGen = decodeURIComponent(event.target.dataset.themeForGen); // Preluăm tema din butonul apăsat
