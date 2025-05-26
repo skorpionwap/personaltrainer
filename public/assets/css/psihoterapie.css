@@ -950,17 +950,6 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     /* Nu mai are nevoie de max-width sau margin auto, fiind în #materialeFormContainer */
 }
 
-/* Cardurile de material (.material-card) moștenesc de la .response-card */
-.material-card {
-    /* Moștenește de la .response-card. Nu sunt necesare modificări aici dacă .response-card e ok. */
-}
-.material-card .card-header {
-    /* Moștenește */
-}
-.material-card .card-content {
-    /* Moștenește */
-}
-
 /* Conținutul materialului generat (Markdown parsat) */
 .material-content-display {
     font-size: 1em; /* Sau 0.95em pentru a se potrivi mai bine în carduri */
@@ -1034,17 +1023,6 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     padding: 0.2em 0.4em;
     border-radius: var(--border-radius-small);
     font-size: 0.85em;
-}
-
-/* Acțiunile din cardurile de material */
-.material-card .card-actions {
-    /* Moștenește de la .card-actions global.
-       Aici doar stilizăm butoanele specifice dacă .card-actions button nu e suficient. */
-}
-.delete-material-button, /* Moștenește din .delete-introspectie-button dacă se potrivește */
-.add-worksheet-button {
-    /* Stilurile de bază pentru .card-actions button sunt ok.
-       Doar culorile specifice dacă e nevoie și nu sunt prin clase dedicate. */
 }
 
 /* Adăugăm culorile specifice aici dacă clasele .delete-introspectie-button etc. nu sunt aplicate */
