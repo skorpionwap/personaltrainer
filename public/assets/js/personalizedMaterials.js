@@ -341,7 +341,7 @@ async function generatePersonalizedMaterialContentInternal(materialType, theme, 
     // dar caracterele oferă o estimare. 150.000 caractere ~ 30.000-50.000 cuvinte.
     // Ajustează în funcție de teste și de limitele specifice ale modelului (ex: gemini-1.5-flash are 1M tokens,
     // dar promptul întreg, incluzând instrucțiunile, trebuie să încapă).
-    const ABSOLUTE_MAX_CONTEXT_CHARS = 150000; // Limită generoasă, dar prudentă
+    const ABSOLUTE_MAX_CONTEXT_CHARS = 3500000; // Limită generoasă, dar prudentă
 
     if (fullRawUserContext && fullRawUserContext.trim() !== "") {
         userContextForPrompt = `Context general: Utilizatorul explorează activ tema "${theme}".\n\n`;
@@ -367,7 +367,7 @@ async function generatePersonalizedMaterialContentInternal(materialType, theme, 
         materialPrompt = `
 Rol: Ești PsihoGPT, un terapeut AI avansat, cu expertiză profundă în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor (TS), Terapia Acceptării și Angajamentului (ACT), și psihologie clinică generală.
 Sarcină: Generează un articol teoretic detaliat, explicativ și empatic pe tema centrală "${theme}".
-Context Utilizator:  ${userContextSummary}. Articolul trebuie să fie profund, dar accesibil, oferind atât înțelegere teoretică, cât și perspective practice validate.
+Context Utilizator:  ${userContextForPrompt}. Articolul trebuie să fie profund, dar accesibil, oferind atât înțelegere teoretică, cât și perspective practice validate.
 **Analiză Contextuală:** Examinează cu atenție "CONTEXTUL EXTINS DIN ACTIVITATEA RECENTĂ A UTILIZATORULUI" furnizat mai sus. Identifică principalele moduri în care tema "${theme}" pare să se manifeste pentru acest utilizator (ex: tipuri de situații, gânduri recurente, emoții predominante, dificultăți specifice menționate).
 Articolul trebuie să:
 1.  **Definiție Nuanțată și Contextualizare:**
@@ -400,7 +400,7 @@ Ton: Empatic, suportiv, profund informativ, validant, non-judicativ și încuraj
         materialPrompt = `
 Rol: Ești PsihoGPT, un terapeut AI experimentat, specializat în crearea de materiale terapeutice practice. Ai cunoștințe solide despre tehnici validate din Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor (TS), Terapia Acceptării și Angajamentului (ACT), Terapia Dialectic-Comportamentală (DBT), tehnici de mindfulness și reglare emoțională.
 Sarcină: Generează o fișă de lucru practică, detaliată, interactivă și orientată spre acțiune pe tema centrală "${theme}".
-Context Utilizator:  ${userContextSummary}. Fișa trebuie să ofere instrumente concrete pe care utilizatorul le poate aplica.
+Context Utilizator:  ${userContextForPrompt}. Fișa trebuie să ofere instrumente concrete pe care utilizatorul le poate aplica.
 INSTRUCȚIUNI ESENȚIALE PENTRU PERSONALIZAREA FIȘEI DE LUCRU CU DATE DIN CONTEXT:
 1.  **Utilizare Activă a Contextului:** Examinează cu atenție "CONTEXTUL EXTINS DIN ACTIVITATEA RECENTĂ A UTILIZATORULUI". Folosește aceste informații ca sursă principală de inspirație pentru:
     *   A formula întrebări de reflecție în Secțiunea 1 care sunt direct relevante pentru experiențele specifice ale utilizatorului cu tema "${theme}".
