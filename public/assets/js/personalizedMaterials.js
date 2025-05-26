@@ -545,7 +545,7 @@ onAuthStateChanged(authMaterials, (user) => {
 
 // Funcție expusă pentru a fi apelată de `psihoterapie.js`
 window.handleMaterialeTabActivated = function(userId) {
-    // console.log("[MaterialsJS] Tab materiale activat prin window func, user:", userId);
+    console.log("[personalizedMaterials.js] Funcția window.handleMaterialeTabActivated a fost apelată cu userId:", userId); // LOG
     if (!materialeInfoMessageDiv || (materialeInfoMessageDiv.style.display === 'block' && materialeInfoMessageDiv.textContent.includes("Se generează"))) {
         // Nu face nimic dacă un proces de generare este deja în curs (indicat de mesaj)
         return;
