@@ -798,4 +798,48 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
     margin-left: var(--spacing-unit); /* Space it from the edge or title */
 }
 
+
+
+.theme-selection-container, .material-type-selection-container {
+    margin-top: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+.theme-select-button, .material-type-button {
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: 1px solid var(--color-primary);
+    background-color: white;
+    color: var(--color-primary);
+}
+.theme-select-button:hover, .material-type-button:hover {
+    background-color: var(--color-primary-light);
+    transform: translateY(-1px);
+}
+.material-type-button.button-primary { 
+    background-color: var(--color-primary);
+    color: white;
+}
+.material-type-button.button-primary:hover {
+    background-color: var(--color-primary-dark);
+}
+.button-cancel, .theme-select-button.button-cancel, .material-type-button.button-cancel {
+    border-color: var(--color-text-light);
+    color: var(--color-text-light);
+}
+.button-cancel:hover {
+    background-color: #f0f0f0;
+    border-color: #ccc;
+}
+.material-content-display pre { white-space: pre-wrap; background-color: #f4f4f4; padding: 10px; border-radius: 4px; font-family: monospace; }
  /* --- MODERN FRESH STYLES END --- */
