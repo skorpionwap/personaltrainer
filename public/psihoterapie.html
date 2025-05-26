@@ -226,24 +226,28 @@
         </div>
 
          <!-- Conținutul Tab-ului de Resurse Personale (controlat de noul fisier JS) -->
-    <div id="materialeFormContainer" class="tab-content" style="display: none;"> <!-- Important: inițial ascuns -->
-        <section class="form-section-container">
-            <h2>Resurse Terapeutice Personale</h2>
-            <p>Aici vei găsi articole teoretice și fișe de lucru practice generate de PsihoGPT, special pentru tine.</p>
+   <div id="materialeFormContainer" class="tab-content" style="display:none;">
+    <h2>Materiale de Suport Personalizate</h2>
+    <p>Aici poți genera materiale teoretice (articole) sau practice (fișe de lucru) bazate pe temele identificate din activitatea ta (jurnale, fișe de reflecție, chat).</p>
 
-            <div id="materialeInfoMessage" class="info-message" style="display: none; margin-bottom: 20px;">
-                <!-- Mesaje informative -->
-            </div>
+    <div id="materialeInfoMessage" class="info-message" style="display:none;"></div>
 
-            <div class="actions-container" style="margin-bottom: 25px; text-align: center;">
-                <button id="generateNewMaterialButton" class="action-button" type="button" title="Solicită PsihoGPT...">
-                    🚀 Generează Material Nou
-                </button>
-            </div>
+    <!-- Container pentru managementul temelor -->
+    <div id="themeManagementContainer" class="section-container">
+        <!-- Aici vor fi afișate temele și butonul de (re)generare teme -->
+    </div>
 
-            <div id="materialeListContainer" class="card-view-unified">
-                <!-- Cardurile cu materialele generate vor fi adăugate aici -->
-            </div>
+    <!-- Container pentru controalele de generare material (selecție tip material) -->
+    <div id="materialGenerationControlsContainer" class="section-container">
+        <!-- Aici vor apărea butoanele pentru Articol/Fișă după selectarea unei teme -->
+    </div>
+
+    <hr>
+    <h3>Materiale Generate Anterior</h3>
+    <div id="materialeListContainer" class="responses-container">
+        <!-- Aici vor fi afișate cardurile cu materialele generate -->
+    </div>
+</div>
         </section>
     </div>
 
