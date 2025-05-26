@@ -22,7 +22,7 @@ const authMaterials = getAuth(appMaterials);
 
 const GEMINI_API_KEY_MATERIALS = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // Înlocuiește cu cheia ta reală
 const GEMINI_MODEL_ANALIZA_TEME_MATERIALS = "gemini-2.0-flash"; // Model capabil de context mare
-const GEMINI_MODEL_GENERARE_MATERIAL_MATERIALS = "gemini-2.5-flash-preview-05-20"; // Model capabil de generare
+const GEMINI_MODEL_GENERARE_MATERIAL_MATERIALS = "gemini-2.0-flash"; // Model capabil de generare
 
 let genAIMaterials, geminiModelAnalizaTemeMaterials, geminiModelGenerareMaterialMaterials;
 
@@ -367,8 +367,8 @@ async function generatePersonalizedMaterialContentInternal(materialType, theme, 
         materialPrompt = `
 Rol: Ești PsihoGPT, un terapeut AI avansat, cu expertiză profundă în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor (TS), Terapia Acceptării și Angajamentului (ACT), și psihologie clinică generală.
 Sarcină: Generează un articol teoretic detaliat, explicativ și empatic pe tema centrală "${theme}".
-Context Utilizator: Acest articol este pentru un utilizator care explorează activ această temă. ${userContextSummary} Articolul trebuie să fie profund, dar accesibil, oferind atât înțelegere teoretică, cât și perspective practice validate.
-
+Context Utilizator:  ${userContextSummary}. Articolul trebuie să fie profund, dar accesibil, oferind atât înțelegere teoretică, cât și perspective practice validate.
+**Analiză Contextuală:** Examinează cu atenție "CONTEXTUL EXTINS DIN ACTIVITATEA RECENTĂ A UTILIZATORULUI" furnizat mai sus. Identifică principalele moduri în care tema "${theme}" pare să se manifeste pentru acest utilizator (ex: tipuri de situații, gânduri recurente, emoții predominante, dificultăți specifice menționate).
 Articolul trebuie să:
 1.  **Definiție Nuanțată și Contextualizare:**
     *   Definească clar conceptul "${theme}" într-un mod accesibil.
@@ -400,8 +400,22 @@ Ton: Empatic, suportiv, profund informativ, validant, non-judicativ și încuraj
         materialPrompt = `
 Rol: Ești PsihoGPT, un terapeut AI experimentat, specializat în crearea de materiale terapeutice practice. Ai cunoștințe solide despre tehnici validate din Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor (TS), Terapia Acceptării și Angajamentului (ACT), Terapia Dialectic-Comportamentală (DBT), tehnici de mindfulness și reglare emoțională.
 Sarcină: Generează o fișă de lucru practică, detaliată, interactivă și orientată spre acțiune pe tema centrală "${theme}".
-Context Utilizator: Această fișă este pentru un utilizator care explorează activ această temă și este pregătit să lucreze practic cu ea. ${userContextSummary}. Fișa trebuie să ofere instrumente concrete pe care utilizatorul le poate aplica.
-
+Context Utilizator:  ${userContextSummary}. Fișa trebuie să ofere instrumente concrete pe care utilizatorul le poate aplica.
+INSTRUCȚIUNI ESENȚIALE PENTRU PERSONALIZAREA FIȘEI DE LUCRU CU DATE DIN CONTEXT:
+1.  **Utilizare Activă a Contextului:** Examinează cu atenție "CONTEXTUL EXTINS DIN ACTIVITATEA RECENTĂ A UTILIZATORULUI". Folosește aceste informații ca sursă principală de inspirație pentru:
+    *   A formula întrebări de reflecție în Secțiunea 1 care sunt direct relevante pentru experiențele specifice ale utilizatorului cu tema "${theme}".
+    *   A crea exemple ilustrative VIVIDE și RELEVANTE pentru tehnicile practice din Secțiunea 3, care să reflecte tipul de situații, gânduri sau emoții menționate de utilizator.
+2.  **Personalizare Echilibrată a Exemplelor:**
+    *   **Obiectiv:** Ca utilizatorul să simtă că fișa "îi vorbește direct" și că exemplele sunt despre "situații ca ale lui".
+    *   **Metodă:** Când oferi exemple (pentru situații, gânduri automate, aplicarea unei tehnici etc.), parafrazează, combină idei sau generalizează ușor informațiile din context pentru a crea scenarii plauzibile și personalizate. De exemplu, dacă utilizatorul a scris despre o ceartă specifică cu un prieten legată de "${theme}", exemplul tău ar putea fi despre "o neînțelegere cu o persoană apropiată" care surprinde esența, fără a copia textul.
+    *   **Confidențialitate CRUCIALĂ:** NU reproduce direct citate, nume proprii (dacă apar accidental), sau detalii extrem de specifice și identificabile din contextul utilizatorului în textul fișei generate. Protejează intimitatea utilizatorului. Contextul este pentru inspirație și adaptare inteligentă, NU pentru copiere directă.
+3.  **Adaptarea Întrebărilor de Reflecție (Secțiunea 1):**
+    *   Pe baza tiparelor identificate în context (ex: un anumit gând negativ recurent, o emoție predominantă, o situație tipică unde "${theme}" apare), formulează întrebări care încurajează utilizatorul să exploreze aceste aspecte specifice în propria viață.
+    *   Exemplu: Dacă contextul arată că utilizatorul evită anumite situații din cauza temei "${theme}", o întrebare ar putea fi: "Ce situații specifice ai observat că tinzi să eviți din cauza modului în care te simți legat de '${theme}'? Descrie una dintre ele."
+4.  **Ancorarea Tehnicilor Practice (Secțiunea 3):**
+    *   Pentru fiecare tehnică, după descrierea pașilor generali, oferă un exemplu de aplicare care este croit (conform punctului 2) pe tipul de provocări ale utilizatorului.
+    *   În spațiile de practică, ghidează utilizatorul să aplice tehnica la propriile sale situații, eventual făcând o referire subtilă la tipurile de experiențe din context (ex: "Acum, aplică acești pași la o situație recentă legată de '${theme}', poate una similară celor pe care le-ai explorat în jurnal.").
+5.  **Validare și Normalizare:** Folosește un ton profund empatic. Validează dificultățile și emoțiile care pot fi deduse din context. Normalizează experiența utilizatorului, arătând că nu este singur în aceste provocări.
 Fișa de lucru trebuie să includă URMĂTOARELE SECȚIUNI, în această ordine și cu conținutul specificat:
 
 1.  **Titlu Clar și Atractiv:**
