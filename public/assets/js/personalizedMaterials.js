@@ -58,7 +58,7 @@ async function callGeminiAPIForMaterials(promptText, modelToUse, generationConfi
             generationConfig: {
                 temperature: 0.5,
                 maxOutputTokens: 1000000, // Valoare default pentru flash, ajustează dacă e necesar
-                // responseMimeType: "application/json", // Adaugă asta aici dacă modelul o suportă consistent
+                responseMimeType: "application/json", // Adaugă asta aici dacă modelul o suportă consistent
                 ...generationConfigOptions
             }
         };
