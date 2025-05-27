@@ -239,7 +239,7 @@ Pentru FIECARE temă identificată, trebuie să îndeplinești URMĂTOARELE:
     *   **Parafrazări Detaliate:** Parafrazează secțiuni relevante din textul utilizatorului pentru a completa citatele și a oferi o imagine mai fluidă, păstrând însă sensul și nuanțele originale.
     *   **Exemple Specifice:** Include exemple concrete de situații, gânduri, emoții sau comportamente descrise de utilizator, care sunt direct legate de temă.
     *   **Substanță și Profunzime:** Acest context relevant trebuie să fie suficient de bogat și detaliat pentru a permite o înțelegere profundă a temei din perspectiva utilizatorului. Scopul este ca pe baza acestui context să se poată elabora un material complex (ex: un studiu de caz succint, un articol personalizat, o fișă de lucru aprofundată).
-    *   **Lungime Țintă:** Încadrează-te într-o lungime de aproximativ 2000-3000 de cuvinte PENTRU FIECARE TEMĂ în parte. Prioritizează calitatea și relevanța informației în detrimentul atingerii exacte a limitei superioare dacă informația pertinentă este mai scurtă, dar asigură-te că este substanțial.
+    *   **Lungime Țintă:** Încadrează-te într-o lungime de aproximativ 2000 de cuvinte PENTRU FIECARE TEMĂ în parte. Prioritizează calitatea și relevanța informației în detrimentul atingerii exacte a limitei superioare dacă informația pertinentă este mai scurtă, dar asigură-te că este substanțial.
 
 Formatare Răspuns OBLIGATORIU: Răspunde cu un array JSON valid. Fiecare element al array-ului trebuie să fie un obiect cu două proprietăți: "title" (string) și "relevantContext" (string).
 Exemplu de format JSON așteptat (cu 'relevantContext' mult mai extins decât în exemplul anterior):
