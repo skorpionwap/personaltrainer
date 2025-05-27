@@ -20,7 +20,7 @@ const dbMaterials = getFirestore(appMaterials);
 const authMaterials = getAuth(appMaterials);
 
 const GEMINI_API_KEY_MATERIALS = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // Înlocuiește cu cheia ta reală
-const GEMINI_MODEL_ANALIZA_TEME_MATERIALS = "gemini-2.0-flash"; // Model capabil de context mare și JSON
+const GEMINI_MODEL_ANALIZA_TEME_MATERIALS = "gemini-2.5-flash-preview-05-20"; // Model capabil de context mare și JSON
 const GEMINI_MODEL_GENERARE_MATERIAL_MATERIALS = "gemini-2.5-flash-preview-05-20"; // Model capabil de generare
 
 let genAIMaterials, geminiModelAnalizaTemeMaterials, geminiModelGenerareMaterialMaterials;
@@ -230,34 +230,38 @@ async function identifyAndSaveKeyThemes(userId, forceRefresh = false) {
     }
 
     const themeAnalysisPrompt = `
-Rol: Ești un psihoterapeut AI experimentat, capabil să analizezi texte diverse (jurnale, fișe de reflecție, conversații de chat) pentru a identifica teme psihologice centrale și contextul relevant pentru fiecare.
-Sarcină: Analizează textul combinat de mai jos, care provine din activitatea recentă a unui utilizator. Identifică aproximativ 10 teme principale sau probleme cheie.
-Pentru fiecare temă identificată:
-1.  Oferă un titlu scurt și descriptiv pentru temă (maxim 5-8 cuvinte). Titlul trebuie să fie concis și relevant psihologic.
-2.  Extrage și furnizează un rezumat concis si citatele cheie din textul utilizatorului care ilustrează cel mai bine sau susțin această temă (incadreaza-te in 3000 cuvinte). Acest context trebuie să fie direct relevant și extras din textul furnizat, oferind substanță pentru înțelegerea temei.
+Rol: Ești un psihoterapeut AI experimentat și un analist de text meticulous, capabil să analizeze în profunzime jurnale, fișe de reflecție și conversații de chat pentru a identifica teme psihologice centrale și a extrage contextul cel mai relevant și ilustrativ pentru fiecare.
+Sarcină: Analizează textul combinat de mai jos, care provine din activitatea recentă a unui utilizator. Identifică un număr de maxim 10 teme psihologice principale, probleme cheie sau tipare recurente.
+Pentru FIECARE temă identificată, trebuie să îndeplinești URMĂTOARELE:
+1.  **Titlu Temă:** Formulează un titlu scurt, clar și descriptiv pentru temă (maxim 5-8 cuvinte). Titlul trebuie să fie concis și să reflecte esența psihologică a temei.
+2.  **Context Relevant Extins:** Extrage și compilează un text detaliat care ilustrează și susține tema identificată. Acest text trebuie să fie format din:
+    *   **Citate Directe Semnificative:** Selectează cele mai puternice și relevante citate din textul original al utilizatorului (jurnale, fișe, chat) care se referă direct la tema respectivă. Include suficiente citate pentru a oferi o imagine clară a modului în care utilizatorul exprimă această temă.
+    *   **Parafrazări Detaliate:** Parafrazează secțiuni relevante din textul utilizatorului pentru a completa citatele și a oferi o imagine mai fluidă, păstrând însă sensul și nuanțele originale.
+    *   **Exemple Specifice:** Include exemple concrete de situații, gânduri, emoții sau comportamente descrise de utilizator, care sunt direct legate de temă.
+    *   **Substanță și Profunzime:** Acest context relevant trebuie să fie suficient de bogat și detaliat pentru a permite o înțelegere profundă a temei din perspectiva utilizatorului. Scopul este ca pe baza acestui context să se poată elabora un material complex (ex: un studiu de caz succint, un articol personalizat, o fișă de lucru aprofundată).
+    *   **Lungime Țintă:** Încadrează-te într-o lungime de aproximativ 2000-3000 de cuvinte PENTRU FIECARE TEMĂ în parte. Prioritizează calitatea și relevanța informației în detrimentul atingerii exacte a limitei superioare dacă informația pertinentă este mai scurtă, dar asigură-te că este substanțial.
 
 Formatare Răspuns OBLIGATORIU: Răspunde cu un array JSON valid. Fiecare element al array-ului trebuie să fie un obiect cu două proprietăți: "title" (string) și "relevantContext" (string).
-Exemplu de format JSON așteptat:
+Exemplu de format JSON așteptat (cu 'relevantContext' mult mai extins decât în exemplul anterior):
 [
   {
     "title": "Anxietate socială și evitare",
-    "relevantContext": "Utilizatorul menționează: 'Am evitat petrecerea pentru că mă simt judecat.' De asemenea, în jurnal apare: 'Gândul că ceilalți mă vor critica mă paralizează. Prefer să stau singur acasă decât să risc.'"
+    "relevantContext": "Utilizatorul descrie frecvent o teamă intensă în contexte sociale. De exemplu, în jurnalul din data X, menționează: 'Am evitat petrecerea de vineri pentru că mă simt judecat și nu știu ce să spun. Prefer să stau singur acasă decât să risc să mă fac de râs.' Această evitare este un tipar, deoarece în conversația cu PsihoGPT din data Y, utilizatorul a relatat o situație similară de la locul de muncă: 'Când a trebuit să prezint proiectul, am simțit că mi se taie respirația și am încercat să găsesc o scuză să nu o fac.' Gândurile automate asociate par a fi legate de critica celorlalți: 'Ceilalți mă vor considera incompetent', 'Nu am nimic interesant de spus'. Emoțiile predominante sunt anxietatea și rușinea. Utilizatorul a completat și o fișă de reflecție pe tema 'Situații dificile', unde a notat la secțiunea 'gânduri': 'Toată lumea se uită la mine și mă analizează. Sigur o să greșesc ceva.' Acest pattern de evitare și auto-monitorizare critică în situații sociale pare să îi afecteze calitatea vieții și oportunitățile de conectare..." // (și așa mai departe, până la ~3000 de cuvinte)
   },
   {
     "title": "Autocritică și perfecționism",
-    "relevantContext": "Din fișă: 'Gând automat: Nu sunt suficient de bun, orice aș face.' Chat: 'Îmi stabilesc standarde imposibile și apoi mă învinovățesc când nu le ating.'"
+    "relevantContext": "Un alt aspect central este autocritica severă. Utilizatorul se descrie adesea ca fiind 'insuficient' sau 'defect'. În fișa de lucru din data Z, la întrebarea despre gânduri automate, a scris: 'Nu sunt suficient de bun, orice aș face. Mereu găsesc ceva greșit la mine.' Această tendință se reflectă și în dialogul cu AI-ul: 'Îmi stabilesc standarde imposibil de atins și apoi mă învinovățesc ore în șir când nu le ating. Simt că nu merit nimic bun.' Perfecționismul pare a fi o strategie de coping, dar una care generează multă suferință. De exemplu, a povestit cum a lucrat zile întregi la un raport minor, 'verificând fiecare virgulă de zeci de ori', de teama unei greșeli. Acest comportament este însoțit de o stare constantă de tensiune și nemulțumire față de propriile realizări..." // (și așa mai departe)
   }
 ]
 
-NU adăuga introduceri, comentarii, explicații sau concluzii în afara array-ului JSON. Răspunsul trebuie să fie DOAR array-ul JSON.
-OBLIGATORIU:
-Ofera maxim 10 teme.
-Asigura-te ca oferi suficient context relevant incat pe baza lui sa poata fi scris un studiu de caz, articol. Citeaza si parafrazeaza utilizatorul. Extinde pana la 3000 cuvinte contextul.
+NU adăuga introduceri, comentarii, explicații suplimentare sau concluzii în afara array-ului JSON. Răspunsul trebuie să fie DOAR array-ul JSON structurat conform cerințelor.
+Asigură-te că fiecare 'relevantContext' este bogat în detalii extrase direct din textul furnizat (citate, parafrazări ale experiențelor utilizatorului, exemple specifice) pentru a oferi o bază solidă pentru materiale personalizate ulterioare.
+
 --- TEXT COMBINAT UTILIZATOR (JURNALE, FIȘE, CHAT) ---
 ${combinedUserData}
 --- SFÂRȘIT TEXT COMBINAT ---
 
-JSON cu Teme și Context Relevant:
+JSON cu Teme și Context Relevant Extins:
 `;
 
     let themesResponseRaw = await callGeminiAPIForMaterials(themeAnalysisPrompt, geminiModelAnalizaTemeMaterials, { temperature: 0.3, responseMimeType: "application/json" });
