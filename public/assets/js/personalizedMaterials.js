@@ -491,20 +491,20 @@ Lungime Articol: Aproximativ 5000-10000 cuvinte.
 Sarcină: Generează o fișă de lucru practică, detaliată, interactivă și orientată spre acțiune pe tema centrală.
 Fișa de lucru trebuie să includă URMĂTOARELE SECȚIUNI, în această ordine și cu conținutul specificat:
 
-1.  **Titlu Clar și Atractiv:**
+ **Titlu Clar și Atractiv:**
     *   Ex: "Fișă de Lucru Interactivă: Navigând și Transformând [${themeTitle}] cu Tehnici Practice".
     *   Include tema centrală.
 
-2.  **Introducere Scurtă și Motivantă (3-4 propoziții):**
+ **Introducere Scurtă și Motivantă (3-4 propoziții):**
     *   Scopul fișei: cum îl va ajuta pe utilizator să înțeleagă și să gestioneze "${themeTitle}".
     *   Menționează pe scurt că fișa va include tehnici practice inspirate din abordări terapeutice validate.
     *   O notă de încurajare pentru implicare.
 
-3.  **Secțiunea 1: Explorarea Personală a Temei "${themeTitle}"**
+ **Secțiunea 1: Explorarea Personală a Temei "${themeTitle}"**
     *   **1.1. Conștientizarea Manifestărilor (minim 3 întrebări de reflecție detaliate):**
         *   Ajută utilizatorul să identifice cum se manifestă "${themeTitle}" *specific* în viața sa (situații, frecvență, intensitate).
         *   Ex: "Amintește-ți o situație recentă (sau recurentă) în care "${themeTitle}" a fost prezent(ă) sau intens(ă). Descrie situația în detaliu: ce s-a întâmplat, cine a fost implicat, unde erai?"
-        *   Lasă spațiu amplu pentru răspuns (ex: "Situația: ____________________________________________________").
+        *   Lasă spațiu pentru răspuns (ex: "Situația: ________________________").
     *   **1.2. Gânduri Automate și Convingeri Asociate (minim 3 întrebări specifice):**
         *   Întrebări pentru a identifica gândurile care apar în legătură cu "${themeTitle}".
         *   Ex: "Ce gânduri îți trec prin minte chiar înainte, în timpul și după ce te confrunți cu "${themeTitle}" sau cu situațiile asociate? Notează-le cât mai exact."
@@ -514,14 +514,14 @@ Fișa de lucru trebuie să includă URMĂTOARELE SECȚIUNI, în această ordine 
         *   Ex: "Ce emoții (ex: anxietate, tristețe, furie, rușine, vinovăție, gol interior) simți cel mai des în legătură cu "${themeTitle}"? Evaluează intensitatea lor pe o scală de la 0 la 10."
         *   Ex: "Observi vreo senzație fizică specifică în corpul tău când "${themeTitle}" este activ(ă)? (ex: tensiune musculară, nod în gât, palpitații, greutate în piept). Unde o simți?"
 
-4.  **Secțiunea 2: Înțelegerea Rădăcinilor și Nevoilor (Opțional, dacă tema se pretează)**
+ **Secțiunea 2: Înțelegerea Rădăcinilor și Nevoilor (Opțional, dacă tema se pretează)**
     *   **2.1. Posibile Origini și Influențe (1-2 întrebări reflective, cu blândețe):**
         *   Ex: "Reflectând la experiențele tale de viață (copilărie, adolescență, relații importante), crezi că există evenimente sau tipare care ar fi putut contribui la dezvoltarea "${themeTitle}"?" (Fără a forța auto-analiza excesivă).
     *   **2.2. Nevoi Emoționale Neîmplinite (minim 2 întrebări):**
         *   Ce nevoi fundamentale (ex: siguranță, conectare, validare, autonomie, competență) ar putea fi nesatisfăcute și semnalate prin "${themeTitle}"?
         *   Ex: "Când "${themeTitle}" este prezent(ă), ce nevoie profundă simți că nu este îndeplinită în acel moment sau în viața ta în general?"
 
-5.  **Secțiunea 3: TEHNICI PRACTICE DE LUCRU ȘI STRATEGII DE SCHIMBARE (MINIM 2-3 TEHNICI DISTINCTE):**
+ **Secțiunea 3: TEHNICI PRACTICE DE LUCRU ȘI STRATEGII DE SCHIMBARE (MINIM 2-3 TEHNICI DISTINCTE):**
     *   Pentru fiecare tehnică propusă:
         *   **Numele Tehnicii:** Clar și sugestiv (ex: "Restructurare Cognitivă ABCDE", "Exercițiu de Defuziune Cognitivă: Frunze pe Râu", "Tehnica Respirației Diafragmatice", "Activare Comportamentală: Pași Mici").
         *   **Scurtă Descriere și Scop:** Explică pe scurt în ce constă tehnica și ce urmărește să realizeze în raport cu "${themeTitle}". Menționează abordarea terapeutică din care provine (ex: TCC, ACT, DBT).
@@ -532,23 +532,8 @@ Fișa de lucru trebuie să includă URMĂTOARELE SECȚIUNI, în această ordine 
             *   *Pentru tehnici comportamentale:* planificarea unor pași mici, graduali.
         *   **Exemplu Concret (dacă este posibil):** Un scurt exemplu despre cum ar arăta aplicarea tehnicii pentru o situație legată de "${themeTitle}".
         *   **Spațiu de Practică/Reflecție:** Lasă spațiu utilizatorului să noteze experiența sa cu tehnica sau să completeze pașii (ex: "Gândul meu automat: _________", "Gândul alternativ: _________").
-    *   **Exemplu de structură pentru o tehnică:**
-        
-        ### Tehnica X: [Numele Tehnicii] (inspirată din [TCC/ACT/etc.])
-        **Scop:** Această tehnică te ajută să [scopul specific legat de tema].
-        **Instrucțiuni:**
-        1. Pasul 1...
-        2. Pasul 2...
-           * Detaliu pentru pasul 2...
-        3. Pasul 3...
-        **Exemplu:** [Scurt exemplu]
-        **Practica Ta:**
-        * [Întrebare/Spațiu pentru pasul 1] __________________
-        * [Întrebare/Spațiu pentru pasul 2] __________________
-        * Cum te-ai simțit după ce ai aplicat această tehnică? ______________
-        
 
-6.  **Secțiunea 4: Plan de Acțiune Personalizat și Angajament**
+ **Secțiunea 4: Plan de Acțiune Personalizat și Angajament**
     *   **4.1. Alegerea Strategiilor (1 întrebare):**
         *   Ex: "Din tehnicile prezentate mai sus, care 1-2 par cele mai potrivite sau rezonabile pentru tine să le încerci în perioada următoare în legătură cu "${themeTitle}"?"
     *   **4.2. Primul Pas Concret (1-2 întrebări):**
@@ -560,7 +545,7 @@ Fișa de lucru trebuie să includă URMĂTOARELE SECȚIUNI, în această ordine 
         *   O scurtă notă despre importanța practicii regulate și a răbdării cu sine.
         *   Ex: "Felicitări pentru că ai parcurs această fișă! Amintește-ți că fiecare pas mic contează."
 
-7.  **Resurse Suplimentare (Opțional, dar recomandat):**
+ **Resurse Suplimentare (Opțional, dar recomandat):**
     *   Sugestii scurte de unde ar putea afla mai multe, dacă este cazul (ex: "Pentru mai multe despre mindfulness, poți explora aplicații precum Headspace sau Calm." - Fii neutru și general).
     *   Recomandarea de a discuta dificultățile cu un terapeut, dacă este cazul.
 
