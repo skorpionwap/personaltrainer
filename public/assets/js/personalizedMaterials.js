@@ -235,7 +235,7 @@ Rol: Ești un psihoterapeut AI experimentat, capabil să analizezi texte diverse
 Sarcină: Analizează textul combinat de mai jos, care provine din activitatea recentă a unui utilizator. Identifică aproximativ 5 teme principale sau probleme cheie.
 Pentru fiecare temă identificată:
 1.  Oferă un titlu scurt și descriptiv pentru temă (maxim 5-8 cuvinte). Titlul trebuie să fie concis și relevant psihologic.
-2.  Extrage și furnizează un rezumat concis si citatele cheie (aproximativ 1500-2500 de cuvinte per temă, maxim 3000) din textul utilizatorului care ilustrează cel mai bine sau susțin această temă. Acest context trebuie să fie direct relevant și extras din textul furnizat, oferind substanță pentru înțelegerea temei.
+2.  Extrage și furnizează un rezumat concis si citatele cheie ( maxim 3000 cuvinte) din textul utilizatorului care ilustrează cel mai bine sau susțin această temă. Acest context trebuie să fie direct relevant și extras din textul furnizat, oferind substanță pentru înțelegerea temei.
 
 Formatare Răspuns OBLIGATORIU: Răspunde cu un array JSON valid. Fiecare element al array-ului trebuie să fie un obiect cu două proprietăți: "title" (string) și "relevantContext" (string).
 Exemplu de format JSON așteptat:
@@ -251,7 +251,7 @@ Exemplu de format JSON așteptat:
 ]
 
 NU adăuga introduceri, comentarii, explicații sau concluzii în afara array-ului JSON. Răspunsul trebuie să fie DOAR array-ul JSON.
-
+Asigura-te ca oferi suficient context relevant incat pe baza lui sa poata fi scris un studiu de caz, articol. Citeaza si parafrazeaza utilizatorul. Extinde pana la 3000 caractere contextul.
 --- TEXT COMBINAT UTILIZATOR (JURNALE, FIȘE, CHAT) ---
 ${combinedUserData}
 --- SFÂRȘIT TEXT COMBINAT ---
