@@ -251,7 +251,7 @@ Exemplu de format JSON așteptat:
 ]
 
 NU adăuga introduceri, comentarii, explicații sau concluzii în afara array-ului JSON. Răspunsul trebuie să fie DOAR array-ul JSON.
-IMPORTANT:Asigura-te ca oferi suficient context relevant incat pe baza lui sa poata fi scris un studiu de caz, articol. Citeaza si parafrazeaza utilizatorul. Extinde pana la 3000 caractere contextul.
+IMPORTANT:Asigura-te ca oferi suficient context relevant incat pe baza lui sa poata fi scris un studiu de caz, articol. Citeaza si parafrazeaza utilizatorul. Extinde pana la 3000 cuvinte contextul.
 --- TEXT COMBINAT UTILIZATOR (JURNALE, FIȘE, CHAT) ---
 ${combinedUserData}
 --- SFÂRȘIT TEXT COMBINAT ---
