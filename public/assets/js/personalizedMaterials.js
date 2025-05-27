@@ -490,7 +490,7 @@ Lungime Articol: Aproximativ 5000-10000 cuvinte.
         materialPrompt = `${commonInstructions}
 Sarcină: Generează o fișă de lucru practică, detaliată, interactivă și orientată spre acțiune pe tema centrală.
 Fișa de lucru trebuie să includă URMĂTOARELE SECȚIUNI, în această ordine și cu conținutul specificat:
-
+SPAȚIILE PE CARE LE INCLUZI SUNT SCURTE, SIMBOLICE.
  **Titlu Clar și Atractiv:**
     *   Ex: "Fișă de Lucru Interactivă: Navigând și Transformând [${themeTitle}] cu Tehnici Practice".
     *   Include tema centrală.
@@ -504,7 +504,7 @@ Fișa de lucru trebuie să includă URMĂTOARELE SECȚIUNI, în această ordine 
     *   **1.1. Conștientizarea Manifestărilor (minim 3 întrebări de reflecție detaliate):**
         *   Ajută utilizatorul să identifice cum se manifestă "${themeTitle}" *specific* în viața sa (situații, frecvență, intensitate).
         *   Ex: "Amintește-ți o situație recentă (sau recurentă) în care "${themeTitle}" a fost prezent(ă) sau intens(ă). Descrie situația în detaliu: ce s-a întâmplat, cine a fost implicat, unde erai?"
-        *   Lasă spațiu pentru răspuns (ex: "Situația: ________________________").
+        *   Lasă spațiu foarte scurt, simbolic pentru răspuns.
     *   **1.2. Gânduri Automate și Convingeri Asociate (minim 3 întrebări specifice):**
         *   Întrebări pentru a identifica gândurile care apar în legătură cu "${themeTitle}".
         *   Ex: "Ce gânduri îți trec prin minte chiar înainte, în timpul și după ce te confrunți cu "${themeTitle}" sau cu situațiile asociate? Notează-le cât mai exact."
@@ -531,7 +531,7 @@ Fișa de lucru trebuie să includă URMĂTOARELE SECȚIUNI, în această ordine 
             *   *Pentru tehnici de mindfulness/relaxare:* ghidaj pentru respirație, scanare corporală simplă.
             *   *Pentru tehnici comportamentale:* planificarea unor pași mici, graduali.
         *   **Exemplu Concret (dacă este posibil):** Un scurt exemplu despre cum ar arăta aplicarea tehnicii pentru o situație legată de "${themeTitle}".
-        *   **Spațiu de Practică/Reflecție:** Lasă spațiu utilizatorului să noteze experiența sa cu tehnica sau să completeze pașii (ex: "Gândul meu automat: _________", "Gândul alternativ: _________").
+        *   **Spațiu de Practică/Reflecție:** Lasă spațiu scurt, simbolic utilizatorului să noteze experiența sa cu tehnica sau să completeze pașii (ex: "Gândul meu automat: _________", "Gândul alternativ: _________").
 
  **Secțiunea 4: Plan de Acțiune Personalizat și Angajament**
     *   **4.1. Alegerea Strategiilor (1 întrebare):**
