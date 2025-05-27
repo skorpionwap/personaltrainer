@@ -231,7 +231,7 @@ async function identifyAndSaveKeyThemes(userId, forceRefresh = false) {
 
     const themeAnalysisPrompt = `
 Rol: Ești un psihoterapeut AI experimentat și un analist de text meticulous, capabil să analizeze în profunzime jurnale, fișe de reflecție și conversații de chat pentru a identifica teme psihologice centrale și a extrage contextul cel mai relevant și ilustrativ pentru fiecare.
-Sarcină: Analizează textul combinat de mai jos, care provine din activitatea recentă a unui utilizator. Identifică un număr de maxim 10 teme psihologice principale, probleme cheie sau tipare recurente.
+Sarcină: Analizează textul combinat de mai jos, care provine din activitatea recentă a unui utilizator. Identifică un număr de maxim 5 teme psihologice principale, probleme cheie sau tipare recurente.
 Pentru FIECARE temă identificată, trebuie să îndeplinești URMĂTOARELE:
 1.  **Titlu Temă:** Formulează un titlu scurt, clar și descriptiv pentru temă (maxim 5-8 cuvinte). Titlul trebuie să fie concis și să reflecte esența psihologică a temei.
 2.  **Context Relevant Extins:** Extrage și compilează un text detaliat care ilustrează și susține tema identificată. Acest text trebuie să fie format din:
