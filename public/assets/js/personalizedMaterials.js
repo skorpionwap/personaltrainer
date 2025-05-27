@@ -20,7 +20,7 @@ const dbMaterials = getFirestore(appMaterials);
 const authMaterials = getAuth(appMaterials);
 
 const GEMINI_API_KEY_MATERIALS = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // Înlocuiește cu cheia ta reală
-const GEMINI_MODEL_ANALIZA_TEME_MATERIALS = "gemini-2.0-flash"; // Model capabil de context mare și JSON
+const GEMINI_MODEL_ANALIZA_TEME_MATERIALS = "gemini-1.5-flash"; // Model capabil de context mare și JSON
 const GEMINI_MODEL_GENERARE_MATERIAL_MATERIALS = "gemini-2.5-flash-preview-05-20"; // Model capabil de generare
 
 let genAIMaterials, geminiModelAnalizaTemeMaterials, geminiModelGenerareMaterialMaterials;
