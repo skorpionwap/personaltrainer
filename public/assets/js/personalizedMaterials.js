@@ -2,10 +2,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getFirestore, collection, addDoc, setDoc, getDocs, getDoc, deleteDoc, doc, query, where, orderBy, Timestamp, limit as firestoreLimit } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "https://esm.run/@google/generative-ai";
 
 // --- CONFIGURARE FIREBASE & GEMINI (replicată aici pentru independență) ---
-// ATENȚIE: Ideal ar fi să imporți dintr-un modul partajat (config.js)
 const firebaseConfigMaterials = {
     apiKey: "AIzaSyBn2bojEoV4_icF4fVVKFdJN1YjDhtlG98", // Înlocuiește cu cheia ta reală
     authDomain: "personaltrainer-74ea4.firebaseapp.com",
@@ -16,12 +15,12 @@ const firebaseConfigMaterials = {
     measurementId: "G-WLWNGNDK5V",
 };
 
-const appMaterials = initializeApp(firebaseConfigMaterials, "appMaterials" + Date.now()); // Nume unic pentru a evita conflicte
+const appMaterials = initializeApp(firebaseConfigMaterials, "appMaterials" + Date.now());
 const dbMaterials = getFirestore(appMaterials);
 const authMaterials = getAuth(appMaterials);
 
 const GEMINI_API_KEY_MATERIALS = "AIzaSyAlm63krfJxBu1QR5ZmvA0rcGUnjm17sng"; // Înlocuiește cu cheia ta reală
-const GEMINI_MODEL_ANALIZA_TEME_MATERIALS = "gemini-2.5-flash-preview-05-20"; // Model capabil de context mare
+const GEMINI_MODEL_ANALIZA_TEME_MATERIALS = "gemini-2.0-flash"; // Model capabil de context mare și JSON
 const GEMINI_MODEL_GENERARE_MATERIAL_MATERIALS = "gemini-2.5-flash-preview-05-20"; // Model capabil de generare
 
 let genAIMaterials, geminiModelAnalizaTemeMaterials, geminiModelGenerareMaterialMaterials;
@@ -29,12 +28,19 @@ let genAIMaterials, geminiModelAnalizaTemeMaterials, geminiModelGenerareMaterial
 if (GEMINI_API_KEY_MATERIALS && GEMINI_API_KEY_MATERIALS.trim() !== "") {
     try {
         genAIMaterials = new GoogleGenerativeAI(GEMINI_API_KEY_MATERIALS);
-        geminiModelAnalizaTemeMaterials = genAIMaterials.getGenerativeModel({ model: GEMINI_MODEL_ANALIZA_TEME_MATERIALS });
-        geminiModelGenerareMaterialMaterials = genAIMaterials.getGenerativeModel({ model: GEMINI_MODEL_GENERARE_MATERIAL_MATERIALS });
+        const safetySettings = [
+            { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        ];
+
+        geminiModelAnalizaTemeMaterials = genAIMaterials.getGenerativeModel({ model: GEMINI_MODEL_ANALIZA_TEME_MATERIALS, safetySettings });
+        geminiModelGenerareMaterialMaterials = genAIMaterials.getGenerativeModel({ model: GEMINI_MODEL_GENERARE_MATERIAL_MATERIALS, safetySettings });
         console.log("[MaterialsJS] SDK Gemini inițializat.");
     } catch (e) {
         console.error("[MaterialsJS] Eroare inițializare Gemini:", e);
-        genAIMaterials = null; // Setează la null pentru a putea verifica ulterior
+        genAIMaterials = null;
     }
 } else {
     console.warn("[MaterialsJS] Cheie API Gemini lipsă. Funcționalitatea AI pentru materiale va fi limitată.");
@@ -49,7 +55,12 @@ async function callGeminiAPIForMaterials(promptText, modelToUse, generationConfi
     try {
         const requestPayload = {
             contents: [{ role: "user", parts: [{ text: promptText }] }],
-            generationConfig: { temperature: 0.5, maxOutputTokens: 800000, ...generationConfigOptions }
+            generationConfig: {
+                temperature: 0.5,
+                maxOutputTokens: 100000, // Valoare default pentru flash, ajustează dacă e necesar
+                // responseMimeType: "application/json", // Adaugă asta aici dacă modelul o suportă consistent
+                ...generationConfigOptions
+            }
         };
         const result = await modelToUse.generateContent(requestPayload);
         const response = result.response;
@@ -71,17 +82,19 @@ async function callGeminiAPIForMaterials(promptText, modelToUse, generationConfi
 
 // --- ELEMENTE DOM ȘI VARIABILE DE STARE ---
 const materialeListContainer = document.getElementById('materialeListContainer');
-const themeManagementContainer = document.getElementById('themeManagementContainer'); // Nou container pentru managementul temelor
-const materialGenerationControlsContainer = document.getElementById('materialGenerationControlsContainer'); // Container pentru butoane de generare material
+const themeManagementContainer = document.getElementById('themeManagementContainer');
+const materialGenerationControlsContainer = document.getElementById('materialGenerationControlsContainer');
 const materialeInfoMessageDiv = document.getElementById('materialeInfoMessage');
 
 const CHAT_HISTORY_DOC_ID_PREFIX_MATERIALS = "chatHistory_";
-const MAX_CHAT_MESSAGES_FOR_CONTEXT = 100;
-const USER_THEMES_DOC_PREFIX = "userThemes_"; // Prefix pentru documentul cu temele utilizatorului
+const MAX_CHAT_MESSAGES_FOR_CONTEXT = 500;
+const USER_THEMES_DOC_PREFIX = "userThemes_";
 
 let currentUserIdMaterials = null;
-let currentUserThemes = { themes: [], timestamp: null }; // Cache pentru temele utilizatorului
-let selectedThemeForGeneration = null;
+let currentUserThemes = { themes: [], timestamp: null }; // themes va fi array de {title, relevantContext}
+let selectedThemeTitleForGeneration = null;
+let selectedThemeContextForGeneration = null;
+
 
 // --- FUNCȚII UTILITARE UI ---
 function showUIMessageMaterials(message, type = "info", autoHide = true) {
@@ -90,7 +103,7 @@ function showUIMessageMaterials(message, type = "info", autoHide = true) {
     materialeInfoMessageDiv.className = `info-message ${type}`;
     materialeInfoMessageDiv.style.display = 'block';
     if (autoHide) {
-        setTimeout(() => { if (materialeInfoMessageDiv) materialeInfoMessageDiv.style.display = 'none'; }, 7000);
+        setTimeout(() => { if (materialeInfoMessageDiv && materialeInfoMessageDiv.style.display === 'block' && materialeInfoMessageDiv.textContent === message) materialeInfoMessageDiv.style.display = 'none'; }, 7000);
     }
 }
 
@@ -101,69 +114,92 @@ function clearMaterialTypeSelectionUI() {
 function clearAllActionUIs() {
     if (themeManagementContainer) themeManagementContainer.innerHTML = '';
     clearMaterialTypeSelectionUI();
-    selectedThemeForGeneration = null;
-    // Nu goli currentUserThemes aici, pentru că vrem să le păstrăm
+    selectedThemeTitleForGeneration = null;
+    selectedThemeContextForGeneration = null;
 }
 
 // --- LOGICA PENTRU TEME ȘI DATE UTILIZATOR ---
 
 async function gatherUserDataForThemeAnalysis(userId) {
     let fullContextText = "";
-    // 1. Preluare Jurnale (ultimele 10)
+    const MAX_CONTENT_LENGTH_PER_SOURCE = 1500000; // Limită de caractere per sursă pentru a nu face contextul prea mare
+
+    // 1. Preluare Jurnale
     try {
         const jurnalQuery = query(
             collection(dbMaterials, "introspectii"),
             where("ownerUid", "==", userId),
             where("type", "==", "jurnal"),
             orderBy("timestampCreare", "desc"),
-            firestoreLimit(5)
+            firestoreLimit(10) // Mai puține jurnale, dar mai detaliate
         );
         const jurnalSnapshot = await getDocs(jurnalQuery);
         if (!jurnalSnapshot.empty) {
-            fullContextText += "\n\n--- EXTRAS DIN JURNALELE RECENTE ---\n";
+            let jurnalText = "\n\n--- EXTRAS DIN JURNALELE RECENTE ---\n";
             jurnalSnapshot.forEach(doc => {
                 const data = doc.data().continut;
-                fullContextText += `Jurnal (Titlu: ${data.titluJurnal || 'N/A'}, Data: ${doc.data().dateAfisare || 'N/A'}):\n${data.textJurnal}\n---\n`;
+                let entry = `Jurnal (Titlu: ${data.titluJurnal || 'N/A'}, Data: ${doc.data().dateAfisare || 'N/A'}):\n${data.textJurnal}\n---\n`;
+                if (jurnalText.length + entry.length < MAX_CONTENT_LENGTH_PER_SOURCE) {
+                    jurnalText += entry;
+                } else {
+                    jurnalText += entry.substring(0, MAX_CONTENT_LENGTH_PER_SOURCE - jurnalText.length) + "... (trunchiat)\n---\n";
+                    return; // Ieșim din forEach dacă am atins limita
+                }
             });
+            fullContextText += jurnalText;
         }
     } catch (e) { console.error("[MaterialsJS] Eroare preluare jurnale:", e); }
 
-    // 2. Preluare Fișe (ultimele 10)
+    // 2. Preluare Fișe
     try {
         const fisaQuery = query(
             collection(dbMaterials, "introspectii"),
             where("ownerUid", "==", userId),
             where("type", "==", "fisa"),
             orderBy("timestampCreare", "desc"),
-            firestoreLimit(3)
+            firestoreLimit(10) // Mai puține fișe
         );
         const fisaSnapshot = await getDocs(fisaQuery);
         if (!fisaSnapshot.empty) {
-            fullContextText += "\n\n--- EXTRAS DIN FIȘELE DE REFLECȚIE RECENTE ---\n";
+            let fisaText = "\n\n--- EXTRAS DIN FIȘELE DE REFLECȚIE RECENTE ---\n";
             fisaSnapshot.forEach(doc => {
                 const c = doc.data().continut;
-                fullContextText += `Fișă (Data: ${doc.data().dateAfisare || 'N/A'}):\nSituație: ${c.situatie || 'N/A'}\nGânduri: ${c.ganduri || 'N/A'}\nEmoții: ${c.emotii || 'N/A'}\nMod activ: ${c.mod_activ || 'N/A'}\nComportament: ${c.comportament || 'N/A'}\nNevoile profunde: ${c.nevoi_profunde || 'N/A'}\nAdultul Sănătos: ${c.adult_sanatos || 'N/A'}\n---\n`;
+                let entry = `Fișă (Data: ${doc.data().dateAfisare || 'N/A'}):\nSituație: ${c.situatie || 'N/A'}\nGânduri: ${c.ganduri || 'N/A'}\nEmoții: ${c.emotii || 'N/A'}\nMod activ: ${c.mod_activ || 'N/A'}\nComportament: ${c.comportament || 'N/A'}\nNevoile profunde: ${c.nevoi_profunde || 'N/A'}\nAdultul Sănătos: ${c.adult_sanatos || 'N/A'}\n---\n`;
+                 if (fisaText.length + entry.length < MAX_CONTENT_LENGTH_PER_SOURCE) {
+                    fisaText += entry;
+                } else {
+                    fisaText += entry.substring(0, MAX_CONTENT_LENGTH_PER_SOURCE - fisaText.length) + "... (trunchiat)\n---\n";
+                    return;
+                }
             });
+             fullContextText += fisaText;
         }
     } catch (e) { console.error("[MaterialsJS] Eroare preluare fișe:", e); }
 
-    // 3. Preluare Chat (ultimele MAX_CHAT_MESSAGES_FOR_CONTEXT mesaje)
+    // 3. Preluare Chat
     try {
         const chatDocRef = doc(dbMaterials, "chatHistories", CHAT_HISTORY_DOC_ID_PREFIX_MATERIALS + userId);
         const chatDocSnap = await getDoc(chatDocRef);
         if (chatDocSnap.exists() && chatDocSnap.data().messages) {
-            fullContextText += "\n\n--- EXTRAS DIN CONVERSAȚIILE DE CHAT RECENTE ---\n";
+            let chatText = "\n\n--- EXTRAS DIN CONVERSAȚIILE DE CHAT RECENTE ---\n";
             const allMessages = chatDocSnap.data().messages;
-            const recentMessages = allMessages.slice(-MAX_CHAT_MESSAGES_FOR_CONTEXT);
+            const recentMessages = allMessages.slice(-MAX_CHAT_MESSAGES_FOR_CONTEXT); // Păstrăm un număr rezonabil de mesaje
             recentMessages.forEach(msg => {
                 const role = msg.role === 'user' ? 'Utilizator' : 'PsihoGPT';
-                fullContextText += `${role}: ${msg.content}\n`;
+                let entry = `${role}: ${msg.content}\n`;
+                if (chatText.length + entry.length < MAX_CONTENT_LENGTH_PER_SOURCE) {
+                    chatText += entry;
+                } else {
+                    chatText += entry.substring(0, MAX_CONTENT_LENGTH_PER_SOURCE - chatText.length) + "... (trunchiat)\n";
+                    return;
+                }
             });
-            fullContextText += "---\n";
+            chatText += "---\n";
+            fullContextText += chatText;
         }
     } catch (e) { console.error("[MaterialsJS] Eroare preluare chat:", e); }
 
-    if (fullContextText.length < 100) {
+    if (fullContextText.trim().length < 100) { // Verificăm dacă există conținut relevant
         return null;
     }
     return fullContextText;
@@ -171,55 +207,95 @@ async function gatherUserDataForThemeAnalysis(userId) {
 
 async function identifyAndSaveKeyThemes(userId, forceRefresh = false) {
     if (!geminiModelAnalizaTemeMaterials) {
-        showUIMessageMaterials("[MaterialsJS] Serviciu AI analiză indisponibil.", "error");
+        showUIMessageMaterials("Serviciu AI analiză indisponibil.", "error");
         return false;
     }
 
-    showUIMessageMaterials("PsihoGPT analizează activitatea ta recentă pentru a identifica teme...", "info", false);
+    showUIMessageMaterials("PsihoGPT analizează activitatea ta recentă pentru a identifica teme și contexte relevante...", "info", false);
     const combinedUserData = await gatherUserDataForThemeAnalysis(userId);
 
     if (!combinedUserData) {
-        showUIMessageMaterials("Nu există suficientă activitate recentă (jurnale, fișe, chat) pentru o analiză relevantă.", "warning", false);
+        showUIMessageMaterials("Nu există suficientă activitate recentă (jurnale, fișe, chat) pentru o analiză relevantă.", "warning", true);
         return false;
     }
 
     const themeAnalysisPrompt = `
-Rol: Ești un psihoterapeut AI experimentat, capabil să analizezi texte diverse (jurnale, fișe de reflecție, conversații de chat) pentru a identifica teme psihologice centrale, tipare de gândire sau probleme recurente.
-Sarcină: Analizează textul combinat de mai jos, care provine din activitatea recentă a unui utilizator. Identifică aproximativ 20 teme principale sau probleme cheie.
-Pentru fiecare temă, oferă o etichetă scurtă și descriptivă (maxim 5-7 cuvinte). Asigură-te că temele sunt distincte.
-Formatare Răspuns: Listează fiecare temă pe o linie nouă, fără numere sau alte prefixe. Nu adăuga introduceri, explicații sau concluzii. Doar lista de teme.
+Rol: Ești un psihoterapeut AI experimentat, capabil să analizezi texte diverse (jurnale, fișe de reflecție, conversații de chat) pentru a identifica teme psihologice centrale și contextul relevant pentru fiecare.
+Sarcină: Analizează textul combinat de mai jos, care provine din activitatea recentă a unui utilizator. Identifică aproximativ 5-8 teme principale sau probleme cheie.
+Pentru fiecare temă identificată:
+1.  Oferă un titlu scurt și descriptiv pentru temă (maxim 5-8 cuvinte). Titlul trebuie să fie concis și relevant psihologic.
+2.  Extrage și furnizează un rezumat concis sau citatele cheie (aproximativ 50-150 de cuvinte per temă, maxim 200) din textul utilizatorului care ilustrează cel mai bine sau susțin această temă. Acest context trebuie să fie direct relevant și extras din textul furnizat, oferind substanță pentru înțelegerea temei.
+
+Formatare Răspuns OBLIGATORIU: Răspunde cu un array JSON valid. Fiecare element al array-ului trebuie să fie un obiect cu două proprietăți: "title" (string) și "relevantContext" (string).
+Exemplu de format JSON așteptat:
+[
+  {
+    "title": "Anxietate socială și evitare",
+    "relevantContext": "Utilizatorul menționează: 'Am evitat petrecerea pentru că mă simt judecat.' De asemenea, în jurnal apare: 'Gândul că ceilalți mă vor critica mă paralizează. Prefer să stau singur acasă decât să risc.'"
+  },
+  {
+    "title": "Autocritică și perfecționism",
+    "relevantContext": "Din fișă: 'Gând automat: Nu sunt suficient de bun, orice aș face.' Chat: 'Îmi stabilesc standarde imposibile și apoi mă învinovățesc când nu le ating.'"
+  }
+]
+
+NU adăuga introduceri, comentarii, explicații sau concluzii în afara array-ului JSON. Răspunsul trebuie să fie DOAR array-ul JSON.
 
 --- TEXT COMBINAT UTILIZATOR (JURNALE, FIȘE, CHAT) ---
 ${combinedUserData}
 --- SFÂRȘIT TEXT COMBINAT ---
 
-Teme Identificate:
+JSON cu Teme și Context Relevant:
 `;
 
-    const themesRaw = await callGeminiAPIForMaterials(themeAnalysisPrompt, geminiModelAnalizaTemeMaterials, { temperature: 0.3 });
+    let themesResponseRaw = await callGeminiAPIForMaterials(themeAnalysisPrompt, geminiModelAnalizaTemeMaterials, { temperature: 0.3, responseMimeType: "application/json" });
 
-    if (themesRaw.toUpperCase().startsWith("EROARE:")) {
-        console.error("[MaterialsJS] Eroare API la identificarea temelor:", themesRaw);
-        showUIMessageMaterials(`Analiza AI a eșuat: ${themesRaw}`, "error", false);
+    let themesWithContext = [];
+    try {
+        const jsonMatch = themesResponseRaw.match(/(\[[\s\S]*\])/);
+        if (jsonMatch && jsonMatch[0]) {
+            themesResponseRaw = jsonMatch[0];
+        }
+        const parsedResponse = JSON.parse(themesResponseRaw);
+        if (Array.isArray(parsedResponse)) {
+            themesWithContext = parsedResponse.filter(item =>
+                item && typeof item.title === 'string' && item.title.trim() !== '' &&
+                typeof item.relevantContext === 'string' && item.relevantContext.trim() !== '' &&
+                item.title.length < 100 && item.relevantContext.length > 10 // Contextul trebuie să aibă o minimă substanță
+            );
+        } else {
+            throw new Error("Răspunsul JSON nu este un array.");
+        }
+    } catch (e) {
+        console.error("[MaterialsJS] Eroare la parsarea JSON-ului cu teme:", e, "Răspuns brut:", themesResponseRaw);
+        // Fallback mai simplu: extrage doar linii care par a fi titluri
+        const fallbackTitles = themesResponseRaw.split('\n')
+            .map(line => line.replace(/- /g, '').replace(/"/g, '').trim())
+            .filter(line => line.length > 3 && line.length < 100 && !line.toLowerCase().includes("relevantcontext") && !line.toLowerCase().startsWith("[") && !line.toLowerCase().startsWith("{"));
+
+        if (fallbackTitles.length > 0) {
+            themesWithContext = fallbackTitles.map(title => ({ title, relevantContext: "Contextul nu a putut fi extras automat din cauza unei erori de formatare a răspunsului AI." }));
+            showUIMessageMaterials(`Atenție: Contextul specific pentru teme nu a putut fi extras complet (${themesWithContext.length} teme fără context detaliat). Se va folosi un context generic. Eroare: ${e.message}`, "warning", false);
+        } else {
+             showUIMessageMaterials(`Analiza AI a eșuat la interpretarea temelor: ${e.message}. Răspuns AI: ${themesResponseRaw.substring(0,100)}...`, "error", false);
+            return false;
+        }
+    }
+
+    if (themesWithContext.length === 0) {
+        showUIMessageMaterials("Nu s-au putut identifica teme clare sau context relevant din activitatea ta.", "warning", true);
         return false;
     }
 
-    const themesList = themesRaw.split('\n').map(theme => theme.trim()).filter(theme => theme.length > 3 && theme.length < 100);
-
-    if (themesList.length === 0) {
-        showUIMessageMaterials("Nu s-au putut identifica teme clare.", "warning", false);
-        return false;
-    }
-
-    currentUserThemes = { themes: themesList, timestamp: Timestamp.now() };
+    currentUserThemes = { themes: themesWithContext, timestamp: Timestamp.now() };
     try {
         await setDoc(doc(dbMaterials, "userThemes", USER_THEMES_DOC_PREFIX + userId), currentUserThemes);
-        showUIMessageMaterials(`Au fost identificate ${themesList.length} teme. Poți selecta una pentru a genera materiale.`, "success");
-        renderThemeManagementUI(userId); // Re-randează UI-ul cu noile teme
+        showUIMessageMaterials(`Au fost identificate ${themesWithContext.length} teme cu context relevant. Poți selecta una pentru a genera materiale.`, "success", true);
+        renderThemeManagementUI(userId);
         return true;
     } catch (error) {
-        console.error("[MaterialsJS] Eroare salvare teme în Firestore:", error);
-        showUIMessageMaterials("Eroare la salvarea temelor identificate.", "error");
+        console.error("[MaterialsJS] Eroare salvare teme (cu context) în Firestore:", error);
+        showUIMessageMaterials("Eroare la salvarea temelor identificate.", "error", true);
         return false;
     }
 }
@@ -229,18 +305,21 @@ async function loadUserThemes(userId) {
         const themesDocRef = doc(dbMaterials, "userThemes", USER_THEMES_DOC_PREFIX + userId);
         const docSnap = await getDoc(themesDocRef);
         if (docSnap.exists()) {
-            currentUserThemes = docSnap.data();
-            // Verificăm dacă themes este array, pentru compatibilitate cu structuri vechi
-            if (!Array.isArray(currentUserThemes.themes)) {
-                 currentUserThemes = { themes: [], timestamp: null }; // Resetăm dacă structura e invalidă
+            const data = docSnap.data();
+            if (data && Array.isArray(data.themes) &&
+                data.themes.every(theme => typeof theme === 'object' && theme !== null && 'title' in theme && 'relevantContext' in theme)) {
+                currentUserThemes = data;
+            } else {
+                console.warn("[MaterialsJS] Structura temelor din Firestore este invalidă sau veche. Se resetează.");
+                currentUserThemes = { themes: [], timestamp: null };
             }
-            console.log("[MaterialsJS] Teme încărcate din Firestore:", currentUserThemes.themes.length);
+            console.log("[MaterialsJS] Teme (cu context) încărcate din Firestore:", currentUserThemes.themes.length);
         } else {
             console.log("[MaterialsJS] Nicio listă de teme preexistentă găsită pentru utilizator.");
             currentUserThemes = { themes: [], timestamp: null };
         }
     } catch (error) {
-        console.error("[MaterialsJS] Eroare la încărcarea temelor din Firestore:", error);
+        console.error("[MaterialsJS] Eroare la încărcarea temelor (cu context) din Firestore:", error);
         currentUserThemes = { themes: [], timestamp: null };
     }
     renderThemeManagementUI(userId);
@@ -248,39 +327,45 @@ async function loadUserThemes(userId) {
 
 function renderThemeManagementUI(userId) {
     if (!themeManagementContainer || !materialGenerationControlsContainer) return;
-    themeManagementContainer.innerHTML = ''; // Golește containerul de teme
-    materialGenerationControlsContainer.innerHTML = ''; // Golește și containerul de controale generare
+    themeManagementContainer.innerHTML = '';
+    materialGenerationControlsContainer.innerHTML = '';
 
     let html = `<h4>Teme Personalizate Identificate</h4>`;
     if (currentUserThemes && currentUserThemes.themes && currentUserThemes.themes.length > 0) {
-        const themesLastUpdated = currentUserThemes.timestamp ? `Ultima actualizare: ${currentUserThemes.timestamp.toDate().toLocaleDateString("ro-RO")}` : "Niciodată actualizate";
+        const themesLastUpdated = currentUserThemes.timestamp ? `Ultima actualizare: ${new Date(currentUserThemes.timestamp.seconds * 1000).toLocaleDateString("ro-RO")}` : "Niciodată actualizate";
         html += `<p class="themes-timestamp">${themesLastUpdated}</p>`;
         html += `<p>Selectează o temă de mai jos pentru a genera materiale de suport sau actualizează lista de teme.</p>`;
         html += `<div class="theme-buttons-container">`;
-        currentUserThemes.themes.forEach((theme, index) => {
-            html += `<button class="theme-select-button button-outline" data-theme="${encodeURIComponent(theme)}">${theme}</button>`;
+        currentUserThemes.themes.forEach((themeObj) => {
+            html += `<button class="theme-select-button button-outline" data-theme-title="${encodeURIComponent(themeObj.title)}">${themeObj.title}</button>`;
         });
         html += `</div>`;
-        selectedThemeForGeneration = null; // Deselectează orice temă anterioară
+        selectedThemeTitleForGeneration = null;
+        selectedThemeContextForGeneration = null;
     } else {
         html += `<p>Nicio temă personalizată identificată încă. Apasă butonul de mai jos pentru a începe analiza.</p>`;
     }
     themeManagementContainer.innerHTML = html;
 
-    // Butonul de actualizare/generare teme
     const refreshThemesButton = document.createElement('button');
     refreshThemesButton.id = 'refreshThemesButton';
-    refreshThemesButton.className = 'button-primary';
-    refreshThemesButton.textContent = (currentUserThemes && currentUserThemes.themes && currentUserThemes.themes.length > 0) ? '🔄 Actualizează Lista de Teme' : '🔍 Analizează și Identifică Teme';
-    refreshThemesButton.disabled = !genAIMaterials;
+    refreshThemesButton.className = 'button-primary'; // Stil principal
+    refreshThemesButton.textContent = (currentUserThemes && currentUserThemes.themes && currentUserThemes.themes.length > 0) ? '🔄 Actualizează Lista de Teme și Context' : '🔍 Analizează și Identifică Teme + Context';
+    refreshThemesButton.disabled = !(genAIMaterials && currentUserIdMaterials);
     refreshThemesButton.addEventListener('click', () => {
-        if (confirm("Aceasta va re-analiza activitatea ta și poate suprascrie lista curentă de teme. Ești sigur?")) {
-            identifyAndSaveKeyThemes(userId, true);
+        if (confirm("Aceasta va re-analiza activitatea ta și poate suprascrie lista curentă de teme și contexte. Ești sigur?")) {
+             document.querySelectorAll('.theme-select-button, #refreshThemesButton, .material-type-button').forEach(btn => btn.disabled = true);
+            identifyAndSaveKeyThemes(userId, true).finally(() => {
+                 document.querySelectorAll('.theme-select-button, #refreshThemesButton, .material-type-button').forEach(btn => btn.disabled = !(genAIMaterials && currentUserIdMaterials));
+                 // Reactivăm corect refresh button
+                 const refreshBtn = document.getElementById('refreshThemesButton');
+                 if(refreshBtn) refreshBtn.disabled = !(genAIMaterials && currentUserIdMaterials);
+
+            });
         }
     });
     themeManagementContainer.appendChild(refreshThemesButton);
 
-    // Adaugă event listeners pentru noile butoane de temă
     document.querySelectorAll('.theme-select-button').forEach(button => {
         button.addEventListener('click', handleThemeSelectedFromList);
     });
@@ -290,21 +375,30 @@ function handleThemeSelectedFromList(event) {
     document.querySelectorAll('.theme-select-button').forEach(btn => btn.classList.remove('selected'));
     event.target.classList.add('selected');
 
-    selectedThemeForGeneration = decodeURIComponent(event.target.dataset.theme);
-    if (selectedThemeForGeneration) {
-        displayMaterialTypeSelectionUI(selectedThemeForGeneration);
-        showUIMessageMaterials(`Tema selectată: "${selectedThemeForGeneration}". Alege tipul de material.`, "info", false);
+    const themeTitle = decodeURIComponent(event.target.dataset.themeTitle);
+    const selectedThemeObject = currentUserThemes.themes.find(t => t.title === themeTitle);
+
+    if (selectedThemeObject) {
+        selectedThemeTitleForGeneration = selectedThemeObject.title;
+        selectedThemeContextForGeneration = selectedThemeObject.relevantContext;
+        displayMaterialTypeSelectionUI(selectedThemeTitleForGeneration);
+        showUIMessageMaterials(`Tema selectată: "${selectedThemeTitleForGeneration}". Context relevant încărcat. Alege tipul de material.`, "info", false);
+    } else {
+        showUIMessageMaterials("Eroare: Tema selectată nu a fost găsită cu context. Încearcă o reîmprospătare a temelor.", "error", true);
+        selectedThemeTitleForGeneration = null;
+        selectedThemeContextForGeneration = null;
+        clearMaterialTypeSelectionUI();
     }
 }
 
-function displayMaterialTypeSelectionUI(theme) {
+function displayMaterialTypeSelectionUI(themeTitle) {
     if (!materialGenerationControlsContainer) return;
-    materialGenerationControlsContainer.innerHTML = ''; // Golește orice controale anterioare
+    materialGenerationControlsContainer.innerHTML = '';
 
-    let materialTypeHTML = `<h4>Generează Material pentru Tema: "${theme}"</h4>`;
+    let materialTypeHTML = `<h4>Generează Material pentru Tema: "${themeTitle}"</h4>`;
     materialTypeHTML += `<div class="material-type-buttons-container">`;
-    materialTypeHTML += `<button class="material-type-button button-primary" data-material-type="articol" data-theme-for-gen="${encodeURIComponent(theme)}">📚 Articol Teoretic</button>`;
-    materialTypeHTML += `<button class="material-type-button button-primary" data-material-type="fisa_lucru" data-theme-for-gen="${encodeURIComponent(theme)}">📝 Fișă de Lucru Practică</button>`;
+    materialTypeHTML += `<button class="material-type-button button-primary" data-material-type="articol" data-theme-for-gen="${encodeURIComponent(themeTitle)}">📚 Articol Teoretic</button>`;
+    materialTypeHTML += `<button class="material-type-button button-primary" data-material-type="fisa_lucru" data-theme-for-gen="${encodeURIComponent(themeTitle)}">📝 Fișă de Lucru Practică</button>`;
     materialTypeHTML += `<button class="material-type-button button-cancel" data-material-type="cancel_type">Anulează Selecția</button>`;
     materialTypeHTML += `</div>`;
 
@@ -312,77 +406,60 @@ function displayMaterialTypeSelectionUI(theme) {
 
     document.querySelectorAll('.material-type-button').forEach(button => {
         button.addEventListener('click', handleMaterialTypeSelectedAndGenerate);
+        button.disabled = !(genAIMaterials && currentUserIdMaterials); // Se activează doar dacă AI e disponibil
     });
 }
 
-
 // --- LOGICA PENTRU GENERARE ȘI SALVARE MATERIALE ---
-async function generatePersonalizedMaterialContentInternal(materialType, theme, userId) {
+async function generatePersonalizedMaterialContentInternal(materialType, themeTitle, userId) {
     if (!geminiModelGenerareMaterialMaterials) {
-        console.error("[MaterialsJS] Serviciu AI generare indisponibil (model neinițializat).");
-        return "EROARE: [MaterialsJS] Serviciu AI generare indisponibil. Verifică consola.";
+        return "EROARE: Serviciu AI generare indisponibil (model neinițializat).";
     }
-    if (!theme || theme.trim() === "") {
-        console.error("[MaterialsJS] Temă invalidă pentru generare:", theme);
-        return "EROARE: Temă invalidă furnizată pentru generarea materialului.";
+    if (!themeTitle || themeTitle.trim() === "") {
+        return "EROARE: Titlu temă invalid furnizat pentru generarea materialului.";
     }
-    if (!userId) {
-        console.error("[MaterialsJS] ID utilizator lipsă pentru generarea materialului.");
-        return "EROARE: Utilizator neidentificat pentru personalizare.";
-    }
+    // userId este încă util pentru a ști CUI aparține materialul.
 
-    // 1. Adună contextul complet al utilizatorului
-    const fullRawUserContext = await gatherUserDataForThemeAnalysis(userId);
-
-    // 2. Construiește userContextForPrompt cu o limită superioară absolută
-    let userContextForPrompt = "";
-    // Setează o limită maximă absolută de caractere pentru contextul inclus în prompt.
-    // Aceasta este o măsură de siguranță. Modelele au limite de tokeni, nu de caractere,
-    // dar caracterele oferă o estimare. 150.000 caractere ~ 30.000-50.000 cuvinte.
-    // Ajustează în funcție de teste și de limitele specifice ale modelului (ex: gemini-1.5-flash are 1M tokens,
-    // dar promptul întreg, incluzând instrucțiunile, trebuie să încapă).
-    const ABSOLUTE_MAX_CONTEXT_CHARS = 3500000; // Limită generoasă, dar prudentă
-
-    if (fullRawUserContext && fullRawUserContext.trim() !== "") {
-        userContextForPrompt = `Context general: Utilizatorul explorează activ tema "${theme}".\n\n`;
-        userContextForPrompt += "--- INCEPUT CONTEXT EXTINS DIN ACTIVITATEA RECENTĂ A UTILIZATORULUI (JURNALE, FIȘE, CONVERSAȚII) ---\n";
-
-        if (fullRawUserContext.length <= ABSOLUTE_MAX_CONTEXT_CHARS) {
-            userContextForPrompt += fullRawUserContext;
-        } else {
-            userContextForPrompt += fullRawUserContext.substring(0, ABSOLUTE_MAX_CONTEXT_CHARS);
-            userContextForPrompt += "\n... (Contextul utilizatorului a fost trunchiat la " + ABSOLUTE_MAX_CONTEXT_CHARS + " caractere din cauza lungimii excesive. Au fost incluse cele mai recente date.)";
-            console.warn(`[MaterialsJS] Contextul utilizatorului pentru tema "${theme}" a fost trunchiat la ${ABSOLUTE_MAX_CONTEXT_CHARS} caractere.`);
-        }
-        userContextForPrompt += "\n--- SFÂRȘIT CONTEXT EXTINS DIN ACTIVITATEA UTILIZATORULUI ---\n";
+    let userContextForPromptSegment = "";
+    if (selectedThemeContextForGeneration && selectedThemeContextForGeneration.trim() !== "") {
+        userContextForPromptSegment = `\n\n--- CONTEXT SPECIFIC EXTRAS ANTERIOR PENTRU TEMA "${themeTitle}" ---\n${selectedThemeContextForGeneration}\n--- SFÂRȘIT CONTEXT SPECIFIC ---\n`;
     } else {
-        userContextForPrompt = `Context general: Utilizatorul explorează activ tema "${theme}". (Notă: Nu a fost găsită activitate recentă detaliată (jurnale, fișe, chat) pentru a oferi un context specific suplimentar pentru personalizare în acest moment).`;
-        console.log(`[MaterialsJS] Nu a fost găsit context detaliat pentru tema "${theme}" și utilizatorul ${userId}.`);
+        userContextForPromptSegment = `\n\n(Notă: Nu a fost găsit un context specific pre-extras detaliat pentru această temă. Generarea se va baza pe înțelegerea generală a temei "${themeTitle}".)\n`;
+        console.warn(`[MaterialsJS] Nu a fost găsit context pre-extras pentru tema "${themeTitle}" și utilizatorul ${userId}. Se va genera material mai general.`);
     }
 
     let materialPrompt = "";
-
-    // 3. Construiește promptul specific pentru tipul de material
-    if (materialType === 'articol') {
-        materialPrompt = `
+    const commonInstructions = `
 Rol: Ești PsihoGPT, un terapeut AI avansat, cu expertiză profundă în Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor (TS), Terapia Acceptării și Angajamentului (ACT), și psihologie clinică generală.
-Sarcină: Generează un articol teoretic detaliat, explicativ și empatic pe tema centrală "${theme}".
-Context Utilizator:  ${userContextForPrompt}. Articolul trebuie să fie profund, dar accesibil, personalizat pe situatia utilizatorului, incluzand date din contextul sau, oferind atât înțelegere teoretică, cât și perspective practice validate.
-**Analiză Contextuală:** Examinează cu atenție "CONTEXTUL EXTINS DIN ACTIVITATEA RECENTĂ A UTILIZATORULUI" furnizat mai sus. Identifică principalele moduri în care tema "${theme}" pare să se manifeste pentru acest utilizator (ex: tipuri de situații, gânduri recurente, emoții predominante, dificultăți specifice menționate).
+Tema Centrală: "${themeTitle}"
+Context Utilizator Specific Temei: ${userContextForPromptSegment}
+Instrucțiuni Generale pentru Răspuns:
+- Folosește Markdown extensiv pentru formatare (## Titluri Mari, ### Subtitluri, *liste*, **bold**, *italic*).
+- Structurează logic și clar conținutul.
+- Limbajul trebuie să echilibreze profunzimea profesională cu accesibilitatea și empatia.
+- Răspunde DOAR cu conținutul materialului solicitat. Nu adăuga introduceri de genul "Iată articolul:" sau concluzii suplimentare în afara celor specificate în structura cerută.
+- Ton: Empatic, suportiv, profund informativ, validant, non-judicativ și încurajator.
+- Personalizare: Integrează subtil și relevant informațiile din "Context Utilizator Specific Temei" în explicații și exemple. FĂRĂ a reproduce direct citate lungi sau detalii prea personale. Scopul este ca utilizatorul să simtă relevanța, nu să-i fie expus textul. Generalizează și parafrazează inteligent.
+`;
+
+    if (materialType === 'articol') {
+        materialPrompt = `${commonInstructions}
+Sarcină: Generează un articol teoretic detaliat, explicativ și empatic pe tema centrală.
+Articolul trebuie să fie profund, dar accesibil, oferind atât înțelegere teoretică, cât și perspective practice validate.
 Articolul trebuie să:
 1.  **Definiție Nuanțată și Contextualizare:**
-    *   Definească clar conceptul "${theme}" într-un mod accesibil.
+    *   Definească clar conceptul "${themeTitle}" într-un mod accesibil.
     *   Explice relevanța sa în contextul bunăstării psihologice și al provocărilor comune de viață.
     *   Atinge, dacă este cazul, legături cu concepte psihologice mai largi (ex: atașament, mecanisme de coping, etc.).
 2.  **Origini și Factori Contributivi:**
     *   Exploreze posibilele origini (ex. experiențe timpurii, modele învățate, factori biologici/temperamentali, influențe socio-culturale).
-    *   Descrie tipare de gândire, emoționale și comportamentale care mențin sau exacerbează "${theme}".
+    *   Descrie tipare de gândire, emoționale și comportamentale care mențin sau exacerbează "${themeTitle}".
     *   Integreze perspective din TCC (ex: gânduri automate, distorsiuni cognitive) și Terapia Schemelor (ex: scheme dezadaptative timpurii, moduri schematice relevante), dacă este pertinent pentru temă.
 3.  **Manifestări și Impact:**
-    *   Descrie cum se poate manifesta "${theme}" în diferite arii ale vieții (relații, muncă, imagine de sine, sănătate fizică), oferind exemple ilustrative generale, dar relevante.
+    *   Descrie cum se poate manifesta "${themeTitle}" în diferite arii ale vieții (relații, muncă, imagine de sine, sănătate fizică), oferind exemple ilustrative generale, dar relevante.
     *   Sublinieze impactul pe termen scurt și lung asupra funcționării și calității vieții.
 4.  **Perspective Terapeutice și Strategii de Gestionare (bazate pe dovezi):**
-    *   Prezinte 3-5 strategii concrete, tehnici sau perspective de abordare/înțelegere/gestionare a temei "${theme}".
+    *   Prezinte 3-5 strategii concrete, tehnici sau perspective de abordare/înțelegere/gestionare a temei "${themeTitle}".
     *   Pentru fiecare strategie:
         *   Explică principiul din spatele ei, ancorând-o în abordări terapeutice validate (TCC, TS, ACT, DBT, mindfulness etc.).
         *   Oferă un exemplu practic clar despre cum ar putea fi aplicată de utilizator.
@@ -391,73 +468,53 @@ Articolul trebuie să:
     *   Să se încheie cu o notă de încurajare autentică, validare și auto-compasiune.
     *   Sublinieze că înțelegerea și schimbarea sunt procese graduale și că solicitarea de sprijin (inclusiv profesional) este un semn de putere.
     *   Poate sugera reflecții suplimentare sau direcții de explorare pentru utilizator.
-
-Formatare: Folosește Markdown (titluri principale cu ##, subtitluri cu ###, liste cu *, text **bold** sau *italic*). Structurează logic și clar conținutul. Folosește un limbaj care echilibrează profunzimea profesională cu accesibilitatea.
-Restricții: Răspunde DOAR cu conținutul articolului. Nu adăuga introduceri de genul "Iată articolul:" sau concluzii suplimentare în afara celor specificate.
-Lungime: Aproximativ 7000-12000 cuvinte (permite o explorare mai detaliată).
-Ton: Empatic, suportiv, profund informativ, validant, non-judicativ și încurajator.`;
+Lungime Articol: Aproximativ 5000-10000 cuvinte.
+`;
     } else if (materialType === 'fisa_lucru') {
-        materialPrompt = `
-Rol: Ești PsihoGPT, un terapeut AI experimentat, specializat în crearea de materiale terapeutice practice. Ai cunoștințe solide despre tehnici validate din Terapie Cognitiv-Comportamentală (TCC), Terapia Schemelor (TS), Terapia Acceptării și Angajamentului (ACT), Terapia Dialectic-Comportamentală (DBT), tehnici de mindfulness și reglare emoțională.
-Sarcină: Generează o fișă de lucru practică, detaliată, interactivă și orientată spre acțiune pe tema centrală "${theme}".
-Context Utilizator:  ${userContextForPrompt}. Fișa trebuie să ofere instrumente concrete pe care utilizatorul le poate aplica. Personalizata pe situatia utilizatorului, incluzand date din contextul sau.
-INSTRUCȚIUNI ESENȚIALE PENTRU PERSONALIZAREA FIȘEI DE LUCRU CU DATE DIN CONTEXT:
-1.  **Utilizare Activă a Contextului:** Examinează cu atenție "CONTEXTUL EXTINS DIN ACTIVITATEA RECENTĂ A UTILIZATORULUI". Folosește aceste informații ca sursă principală de inspirație pentru:
-    *   A formula întrebări de reflecție în Secțiunea 1 care sunt direct relevante pentru experiențele specifice ale utilizatorului cu tema "${theme}".
-    *   A crea exemple ilustrative VIVIDE și RELEVANTE pentru tehnicile practice din Secțiunea 3, care să reflecte tipul de situații, gânduri sau emoții menționate de utilizator.
-2.  **Personalizare Echilibrată a Exemplelor:**
-    *   **Obiectiv:** Ca utilizatorul să simtă că fișa "îi vorbește direct" și că exemplele sunt despre "situații ca ale lui".
-    *   **Metodă:** Când oferi exemple (pentru situații, gânduri automate, aplicarea unei tehnici etc.), parafrazează, combină idei sau generalizează ușor informațiile din context pentru a crea scenarii plauzibile și personalizate. De exemplu, dacă utilizatorul a scris despre o ceartă specifică cu un prieten legată de "${theme}", exemplul tău ar putea fi despre "o neînțelegere cu o persoană apropiată" care surprinde esența, fără a copia textul.
-    *   **Confidențialitate CRUCIALĂ:** NU reproduce direct citate, nume proprii (dacă apar accidental), sau detalii extrem de specifice și identificabile din contextul utilizatorului în textul fișei generate. Protejează intimitatea utilizatorului. Contextul este pentru inspirație și adaptare inteligentă, NU pentru copiere directă.
-3.  **Adaptarea Întrebărilor de Reflecție (Secțiunea 1):**
-    *   Pe baza tiparelor identificate în context (ex: un anumit gând negativ recurent, o emoție predominantă, o situație tipică unde "${theme}" apare), formulează întrebări care încurajează utilizatorul să exploreze aceste aspecte specifice în propria viață.
-    *   Exemplu: Dacă contextul arată că utilizatorul evită anumite situații din cauza temei "${theme}", o întrebare ar putea fi: "Ce situații specifice ai observat că tinzi să eviți din cauza modului în care te simți legat de '${theme}'? Descrie una dintre ele."
-4.  **Ancorarea Tehnicilor Practice (Secțiunea 3):**
-    *   Pentru fiecare tehnică, după descrierea pașilor generali, oferă un exemplu de aplicare care este croit (conform punctului 2) pe tipul de provocări ale utilizatorului.
-    *   În spațiile de practică, ghidează utilizatorul să aplice tehnica la propriile sale situații, eventual făcând o referire subtilă la tipurile de experiențe din context (ex: "Acum, aplică acești pași la o situație recentă legată de '${theme}', poate una similară celor pe care le-ai explorat în jurnal.").
-5.  **Validare și Normalizare:** Folosește un ton profund empatic. Validează dificultățile și emoțiile care pot fi deduse din context. Normalizează experiența utilizatorului, arătând că nu este singur în aceste provocări.
+        materialPrompt = `${commonInstructions}
+Sarcină: Generează o fișă de lucru practică, detaliată, interactivă și orientată spre acțiune pe tema centrală.
 Fișa de lucru trebuie să includă URMĂTOARELE SECȚIUNI, în această ordine și cu conținutul specificat:
 
 1.  **Titlu Clar și Atractiv:**
-    *   Ex: "Fișă de Lucru Interactivă: Navigând și Transformând [${theme}] cu Tehnici Practice".
+    *   Ex: "Fișă de Lucru Interactivă: Navigând și Transformând [${themeTitle}] cu Tehnici Practice".
     *   Include tema centrală.
 
 2.  **Introducere Scurtă și Motivantă (3-4 propoziții):**
-    *   Scopul fișei: cum îl va ajuta pe utilizator să înțeleagă și să gestioneze "${theme}".
+    *   Scopul fișei: cum îl va ajuta pe utilizator să înțeleagă și să gestioneze "${themeTitle}".
     *   Menționează pe scurt că fișa va include tehnici practice inspirate din abordări terapeutice validate.
     *   O notă de încurajare pentru implicare.
 
-3.  **Secțiunea 1: Explorarea Personală a Temei "${theme}"**
+3.  **Secțiunea 1: Explorarea Personală a Temei "${themeTitle}"**
     *   **1.1. Conștientizarea Manifestărilor (minim 3 întrebări de reflecție detaliate):**
-        *   Ajută utilizatorul să identifice cum se manifestă "${theme}" *specific* în viața sa (situații, frecvență, intensitate).
-        *   Ex: "Amintește-ți o situație recentă (sau recurentă) în care "${theme}" a fost prezent(ă) sau intens(ă). Descrie situația în detaliu: ce s-a întâmplat, cine a fost implicat, unde erai?"
+        *   Ajută utilizatorul să identifice cum se manifestă "${themeTitle}" *specific* în viața sa (situații, frecvență, intensitate).
+        *   Ex: "Amintește-ți o situație recentă (sau recurentă) în care "${themeTitle}" a fost prezent(ă) sau intens(ă). Descrie situația în detaliu: ce s-a întâmplat, cine a fost implicat, unde erai?"
         *   Lasă spațiu amplu pentru răspuns (ex: "Situația: ____________________________________________________").
     *   **1.2. Gânduri Automate și Convingeri Asociate (minim 3 întrebări specifice):**
-        *   Întrebări pentru a identifica gândurile care apar în legătură cu "${theme}".
-        *   Ex: "Ce gânduri îți trec prin minte chiar înainte, în timpul și după ce te confrunți cu "${theme}" sau cu situațiile asociate? Notează-le cât mai exact."
-        *   Ex: "Există anumite 'reguli' sau convingeri personale pe care le ai despre tine, despre alții sau despre lume, care par să fie activate de "${theme}"? (ex. 'Trebuie să...', 'Nu ar trebui să...', 'Dacă X, atunci Y')."
+        *   Întrebări pentru a identifica gândurile care apar în legătură cu "${themeTitle}".
+        *   Ex: "Ce gânduri îți trec prin minte chiar înainte, în timpul și după ce te confrunți cu "${themeTitle}" sau cu situațiile asociate? Notează-le cât mai exact."
+        *   Ex: "Există anumite 'reguli' sau convingeri personale pe care le ai despre tine, despre alții sau despre lume, care par să fie activate de "${themeTitle}"? (ex. 'Trebuie să...', 'Nu ar trebui să...', 'Dacă X, atunci Y')."
     *   **1.3. Emoții și Senzații Fizice (minim 2-3 întrebări):**
         *   Identificarea paletei emoționale și a reacțiilor corporale.
-        *   Ex: "Ce emoții (ex: anxietate, tristețe, furie, rușine, vinovăție, gol interior) simți cel mai des în legătură cu "${theme}"? Evaluează intensitatea lor pe o scală de la 0 la 10."
-        *   Ex: "Observi vreo senzație fizică specifică în corpul tău când "${theme}" este activ(ă)? (ex: tensiune musculară, nod în gât, palpitații, greutate în piept). Unde o simți?"
+        *   Ex: "Ce emoții (ex: anxietate, tristețe, furie, rușine, vinovăție, gol interior) simți cel mai des în legătură cu "${themeTitle}"? Evaluează intensitatea lor pe o scală de la 0 la 10."
+        *   Ex: "Observi vreo senzație fizică specifică în corpul tău când "${themeTitle}" este activ(ă)? (ex: tensiune musculară, nod în gât, palpitații, greutate în piept). Unde o simți?"
 
 4.  **Secțiunea 2: Înțelegerea Rădăcinilor și Nevoilor (Opțional, dacă tema se pretează)**
     *   **2.1. Posibile Origini și Influențe (1-2 întrebări reflective, cu blândețe):**
-        *   Ex: "Reflectând la experiențele tale de viață (copilărie, adolescență, relații importante), crezi că există evenimente sau tipare care ar fi putut contribui la dezvoltarea "${theme}"?" (Fără a forța auto-analiza excesivă).
+        *   Ex: "Reflectând la experiențele tale de viață (copilărie, adolescență, relații importante), crezi că există evenimente sau tipare care ar fi putut contribui la dezvoltarea "${themeTitle}"?" (Fără a forța auto-analiza excesivă).
     *   **2.2. Nevoi Emoționale Neîmplinite (minim 2 întrebări):**
-        *   Ce nevoi fundamentale (ex: siguranță, conectare, validare, autonomie, competență) ar putea fi nesatisfăcute și semnalate prin "${theme}"?
-        *   Ex: "Când "${theme}" este prezent(ă), ce nevoie profundă simți că nu este îndeplinită în acel moment sau în viața ta în general?"
+        *   Ce nevoi fundamentale (ex: siguranță, conectare, validare, autonomie, competență) ar putea fi nesatisfăcute și semnalate prin "${themeTitle}"?
+        *   Ex: "Când "${themeTitle}" este prezent(ă), ce nevoie profundă simți că nu este îndeplinită în acel moment sau în viața ta în general?"
 
 5.  **Secțiunea 3: TEHNICI PRACTICE DE LUCRU ȘI STRATEGII DE SCHIMBARE (MINIM 2-3 TEHNICI DISTINCTE):**
     *   Pentru fiecare tehnică propusă:
         *   **Numele Tehnicii:** Clar și sugestiv (ex: "Restructurare Cognitivă ABCDE", "Exercițiu de Defuziune Cognitivă: Frunze pe Râu", "Tehnica Respirației Diafragmatice", "Activare Comportamentală: Pași Mici").
-        *   **Scurtă Descriere și Scop:** Explică pe scurt în ce constă tehnica și ce urmărește să realizeze în raport cu "${theme}". Menționează abordarea terapeutică din care provine (ex: TCC, ACT, DBT).
+        *   **Scurtă Descriere și Scop:** Explică pe scurt în ce constă tehnica și ce urmărește să realizeze în raport cu "${themeTitle}". Menționează abordarea terapeutică din care provine (ex: TCC, ACT, DBT).
         *   **Instrucțiuni Pas cu Pas:** Ghid detaliat, clar și acționabil despre cum să aplice utilizatorul tehnica. Folosește un limbaj simplu.
             *   *Pentru tehnici TCC (ex: restructurare cognitivă):* poate include identificarea gândului disfuncțional, dovezile pro/contra, generarea unui gând alternativ echilibrat.
             *   *Pentru tehnici ACT (ex: defuziune):* instrucțiuni pentru a observa gândurile fără a fuziona cu ele, metafore.
             *   *Pentru tehnici de mindfulness/relaxare:* ghidaj pentru respirație, scanare corporală simplă.
             *   *Pentru tehnici comportamentale:* planificarea unor pași mici, graduali.
-        *   **Exemplu Concret (dacă este posibil):** Un scurt exemplu despre cum ar arăta aplicarea tehnicii pentru o situație legată de "${theme}".
+        *   **Exemplu Concret (dacă este posibil):** Un scurt exemplu despre cum ar arăta aplicarea tehnicii pentru o situație legată de "${themeTitle}".
         *   **Spațiu de Practică/Reflecție:** Lasă spațiu utilizatorului să noteze experiența sa cu tehnica sau să completeze pașii (ex: "Gândul meu automat: _________", "Gândul alternativ: _________").
     *   **Exemplu de structură pentru o tehnică:**
         
@@ -477,9 +534,9 @@ Fișa de lucru trebuie să includă URMĂTOARELE SECȚIUNI, în această ordine 
 
 6.  **Secțiunea 4: Plan de Acțiune Personalizat și Angajament**
     *   **4.1. Alegerea Strategiilor (1 întrebare):**
-        *   Ex: "Din tehnicile prezentate mai sus, care 1-2 par cele mai potrivite sau rezonabile pentru tine să le încerci în perioada următoare în legătură cu "${theme}"?"
+        *   Ex: "Din tehnicile prezentate mai sus, care 1-2 par cele mai potrivite sau rezonabile pentru tine să le încerci în perioada următoare în legătură cu "${themeTitle}"?"
     *   **4.2. Primul Pas Concret (1-2 întrebări):**
-        *   Ex: "Care este cel mai mic și mai realizabil pas pe care îl poți face săptămâna aceasta pentru a începe să aplici una dintre tehnicile alese sau pentru a aborda "${theme}"?"
+        *   Ex: "Care este cel mai mic și mai realizabil pas pe care îl poți face săptămâna aceasta pentru a începe să aplici una dintre tehnicile alese sau pentru a aborda "${themeTitle}"?"
         *   Ex: "Când și cum anume vei face acest prim pas?"
     *   **4.3. Anticiparea Obstacolelor și Resurse (Opțional, 1 întrebare):**
         *   Ex: "Ce obstacole ai putea întâmpina și cum le-ai putea depăși? Ce resurse interne sau externe te-ar putea sprijini?"
@@ -491,86 +548,85 @@ Fișa de lucru trebuie să includă URMĂTOARELE SECȚIUNI, în această ordine 
     *   Sugestii scurte de unde ar putea afla mai multe, dacă este cazul (ex: "Pentru mai multe despre mindfulness, poți explora aplicații precum Headspace sau Calm." - Fii neutru și general).
     *   Recomandarea de a discuta dificultățile cu un terapeut, dacă este cazul.
 
-Formatare: Folosește Markdown extensiv. Titluri de secțiune principale cu ##, sub-secțiuni cu ###, sub-sub-secțiuni (ex: pentru fiecare tehnică) cu ####. Folosește liste numerotate pentru pași, bullet points pentru idei. Lasă spații generoase pentru răspunsuri (folosind multiple linii de '__________________' sau indicând clar "Răspunsul tău aici:").
-Restricții: Răspunde DOAR cu conținutul fișei. Fără introduceri sau concluzii externe fișei.
-Ton: Ghidant, practic, încurajator, structurat, empatic și validant. Limbajul să fie clar și direct.
-Lungime: Fișa trebuie să fie suficient de detaliată pentru a fi utilă, dar nu copleșitoare. Calitatea și caracterul acționabil primează.`;
-
+Lungime Fișă: Suficient de detaliată pentru a fi utilă, dar nu copleșitoare. Calitatea și caracterul acționabil primează.`;
     } else {
-        console.error("[MaterialsJS] Tip de material necunoscut:", materialType);
         return `EROARE: Tip de material necunoscut: ${materialType}.`;
     }
 
-    // Log pentru depanare - poate fi util să vezi lungimile
-    // console.log(`[MaterialsJS] Prompt pentru ${materialType} despre "${theme}". Lungime userContextForPrompt: ${userContextForPrompt.length} caractere.`);
-    // console.log(`[MaterialsJS] Lungime totală aproximativă a promptului trimis (fără instrucțiunile fixe ale promptului): ${userContextForPrompt.length + materialPrompt.length - "${userContextForPrompt}".length} caractere.`);
-
-    // 4. Apelează API-ul Gemini
     const materialContent = await callGeminiAPIForMaterials(materialPrompt, geminiModelGenerareMaterialMaterials, {
-        temperature: 0.6, // Poate ușor mai mare pentru creativitate în personalizare
-        // maxOutputTokens: lasă default sau ajustează dacă e nevoie pentru răspunsuri lungi
+        temperature: 0.65, // Ușor mai creativ pentru personalizare
+        // responseMimeType: "text/plain", // Pentru Markdown
     });
     return materialContent;
 }
+
 async function handleMaterialTypeSelectedAndGenerate(event) {
     const materialType = event.target.dataset.materialType;
-    const themeForGen = decodeURIComponent(event.target.dataset.themeForGen); // Preluăm tema din butonul apăsat
+    const themeTitleForGen = decodeURIComponent(event.target.dataset.themeForGen);
 
     if (materialType === "cancel_type") {
-        showUIMessageMaterials("Selecția tipului de material a fost anulată.", "info");
+        showUIMessageMaterials("Selecția tipului de material a fost anulată.", "info", true);
         clearMaterialTypeSelectionUI();
-        // Nu deselecta tema globală aici, utilizatorul ar putea dori să aleagă alt tip de material pentru aceeași temă
-        // Doar dacă nu mai există `selectedThemeForGeneration` din context global, atunci da.
-        // if (!selectedThemeForGeneration) renderThemeManagementUI(currentUserIdMaterials); // Reafișează temele dacă nu e context specific
+        // Păstrăm tema selectată pentru a putea alege alt tip de material
         return;
     }
 
-    if (!themeForGen || !currentUserIdMaterials) {
-        showUIMessageMaterials("Eroare: Tema sau utilizatorul nu sunt definiți. Reîncearcă.", "error", false);
+    if (!selectedThemeTitleForGeneration || !selectedThemeContextForGeneration || selectedThemeTitleForGeneration !== themeTitleForGen) {
+        showUIMessageMaterials("Eroare: Tema selectată sau contextul asociat lipsesc. Reîncarcă temele sau selectează din nou.", "error", false);
+        // Reactivează butoanele
+        document.querySelectorAll('.material-type-button, .theme-select-button, #refreshThemesButton').forEach(btn => btn.disabled = !(genAIMaterials && currentUserIdMaterials));
+        const refreshBtn = document.getElementById('refreshThemesButton');
+        if (refreshBtn) refreshBtn.disabled = !(genAIMaterials && currentUserIdMaterials);
+        return;
+    }
+    if (!currentUserIdMaterials) {
+        showUIMessageMaterials("Eroare: Utilizatorul nu este definit. Reautentifică-te.", "error", false);
         return;
     }
 
     const typeLabel = materialType === 'articol' ? 'articolului' : 'fișei de lucru';
-    showUIMessageMaterials(`Se generează conținutul pentru ${typeLabel} despre "${themeForGen}"... Acest proces poate dura.`, "info", false);
-    // Blochează butoanele de generare pe durata procesului
+    showUIMessageMaterials(`Se generează conținutul pentru ${typeLabel} despre "${themeTitleForGen}" folosind contextul relevant... Acest proces poate dura.`, "info", false);
     document.querySelectorAll('.material-type-button, .theme-select-button, #refreshThemesButton').forEach(btn => btn.disabled = true);
 
-
-    const content = await generatePersonalizedMaterialContentInternal(materialType, themeForGen, currentUserIdMaterials);
+    const content = await generatePersonalizedMaterialContentInternal(materialType, themeTitleForGen, currentUserIdMaterials);
 
     if (content.toUpperCase().startsWith("EROARE:")) {
-        showUIMessageMaterials(`Eroare la generarea ${typeLabel}: ${content}`, "error", false);
+        showUIMessageMaterials(`Eroare la generarea ${typeLabel}: ${content.substring(0,200)}... Verifică consola.`, "error", false);
     } else {
         try {
             await addDoc(collection(dbMaterials, "materialeGenerate"), {
                 ownerUid: currentUserIdMaterials,
-                tema: themeForGen, // Folosim tema specifică pasată
+                tema: themeTitleForGen,
                 tipMaterial: materialType,
                 continutGenerat: content,
+                // relevantContextUsed: selectedThemeContextForGeneration, // Opțional pentru debug
                 timestampCreare: Timestamp.fromDate(new Date()),
                 dateAfisare: new Date().toLocaleDateString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric' })
             });
-            showUIMessageMaterials(`${materialType === 'articol' ? 'Articolul' : 'Fișa de lucru'} despre "${themeForGen}" a fost generat și salvat cu succes!`, "success");
+            showUIMessageMaterials(`${materialType === 'articol' ? 'Articolul' : 'Fișa de lucru'} despre "${themeTitleForGen}" a fost generat și salvat cu succes!`, "success", true);
             await displayGeneratedMaterialsInternal(currentUserIdMaterials);
-            clearMaterialTypeSelectionUI(); // Curăță selecția de tip după succes
-            // selectedThemeForGeneration = null; // Comentat pentru a permite generarea mai multor materiale pe aceeași temă selectată
+            // Nu curățăm selecția de tip pentru a permite generarea și celuilalt tip de material pentru aceeași temă
+            // clearMaterialTypeSelectionUI(); 
         } catch (dbError) {
             console.error("[MaterialsJS] Eroare salvare material în Firestore:", dbError);
             showUIMessageMaterials(`Eroare la salvarea materialului: ${dbError.message}`, "error", false);
         }
     }
-    // Reactivează butoanele după finalizarea procesului
     document.querySelectorAll('.material-type-button, .theme-select-button, #refreshThemesButton').forEach(btn => btn.disabled = !(genAIMaterials && currentUserIdMaterials));
-    // Asigură-te că refreshThemesButton e corect (dez)activat
-    const refreshBtn = document.getElementById('refreshThemesButton');
-    if (refreshBtn) refreshBtn.disabled = !(genAIMaterials && currentUserIdMaterials);
+     const refreshBtn = document.getElementById('refreshThemesButton');
+     if (refreshBtn) refreshBtn.disabled = !(genAIMaterials && currentUserIdMaterials);
+      // Menține butoanele de tip material active dacă AI-ul e disponibil
+    document.querySelectorAll('.material-type-button').forEach(btn => {
+        if (btn.dataset.materialType !== "cancel_type") {
+            btn.disabled = !(genAIMaterials && currentUserIdMaterials);
+        }
+    });
 }
-
 
 // --- AFIȘARE ȘI ȘTERGERE MATERIALE (EXISTENTE) ---
 async function displayGeneratedMaterialsInternal(userId) {
     if (!materialeListContainer || !userId) return;
-    currentUserIdMaterials = userId;
+    currentUserIdMaterials = userId; // Asigură-te că e setat
     materialeListContainer.innerHTML = '<p class="loading-message">Se încarcă materialele tale personalizate...</p>';
 
     try {
@@ -580,20 +636,22 @@ async function displayGeneratedMaterialsInternal(userId) {
             orderBy("timestampCreare", "desc")
         );
         const querySnapshot = await getDocs(q);
-        materialeListContainer.innerHTML = '';
+        materialeListContainer.innerHTML = ''; // Golește înainte de a adăuga
 
         if (querySnapshot.empty) {
-            if (materialeInfoMessageDiv && materialeInfoMessageDiv.style.display !== 'block') {
-                 showUIMessageMaterials("Niciun material personalizat generat încă. Selectează o temă și un tip de material pentru a crea unul!", "info", false);
-            } else if (!materialeInfoMessageDiv) {
-                 materialeListContainer.innerHTML = '<p class="info-message">Niciun material personalizat generat încă.</p>';
+            // Afișează mesaj doar dacă nu există deja un mesaj informativ de la generarea temelor
+            if (!materialeInfoMessageDiv || materialeInfoMessageDiv.style.display === 'none' || 
+                (materialeInfoMessageDiv.style.display === 'block' && !materialeInfoMessageDiv.textContent.includes("identificate"))) {
+                showUIMessageMaterials("Niciun material personalizat generat încă. Selectează o temă și un tip de material pentru a crea unul!", "info", false);
             }
             return;
         } else {
-             if (materialeInfoMessageDiv && materialeInfoMessageDiv.textContent.includes("Niciun material")) {
+             // Ascunde mesajul "Niciun material" dacă acum avem materiale
+            if (materialeInfoMessageDiv && materialeInfoMessageDiv.textContent.includes("Niciun material personalizat generat încă")) {
                 materialeInfoMessageDiv.style.display = 'none';
             }
         }
+
 
         querySnapshot.forEach(docSnap => {
             const material = { id: docSnap.id, ...docSnap.data() };
@@ -615,20 +673,33 @@ function createMaterialCardElementInternal(material) {
     const title = material.tema || 'Material Fără Titlu';
     const entryDate = material.dateAfisare || (material.timestampCreare?.toDate ? new Date(material.timestampCreare.toDate()).toLocaleDateString("ro-RO") : 'Dată necunoscută');
 
-    let htmlContent = "(Conținut indisponibil)";
+    let htmlContent = "(Conținut indisponibil sau eroare la formatare)";
     if (typeof marked !== 'undefined' && material.continutGenerat) {
-        try { htmlContent = marked.parse(material.continutGenerat); }
+        try {
+            // Pre-procesare pentru a asigura spații corecte înainte de liste neordonate
+            let processedMarkdown = material.continutGenerat.replace(/(\n|^)([ \t]*)([*\-+]) /g, '$1\n$2$3 ');
+            htmlContent = marked.parse(processedMarkdown);
+        }
         catch (e) {
-            console.warn("[MaterialsJS] Eroare parsare Markdown:", e);
-            htmlContent = "<p><em>Eroare la afișarea conținutului formatat.</em></p><pre>" + material.continutGenerat.replace(/</g, "<").replace(/>/g, ">") + "</pre>";
+            console.warn("[MaterialsJS] Eroare parsare Markdown:", e, "Material ID:", material.id);
+            htmlContent = "<p><em>Eroare la afișarea conținutului formatat. Se afișează textul brut.</em></p><pre style='white-space: pre-wrap; word-wrap: break-word;'>" + escapeHtml(material.continutGenerat) + "</pre>";
         }
     } else if (material.continutGenerat) {
-        htmlContent = material.continutGenerat.replace(/\n/g, "<br>");
+        htmlContent = "<pre style='white-space: pre-wrap; word-wrap: break-word;'>" + escapeHtml(material.continutGenerat) + "</pre>";
+    }
+    
+    function escapeHtml(unsafe) {
+        return unsafe
+             .replace(/&/g, "&")
+             .replace(/</g, "<")
+             .replace(/>/g, ">")
+             .replace(/'/g, "'");
     }
 
+
     let actionsHTML = `<button class="delete-material-button button-small" data-id="${material.id}" type="button" title="Șterge acest material">🗑️ Șterge</button>`;
-    if (material.tipMaterial === 'articol') {
-        actionsHTML += `<button class="add-worksheet-button button-small" data-theme-for-worksheet="${encodeURIComponent(material.tema)}" type="button" title="Generează Fișă de Lucru pentru această temă">➕📝 Fișă de Lucru</button>`;
+    if (material.tipMaterial === 'articol') { // Permite generarea unei fișe de lucru din tema unui articol existent
+        actionsHTML += `<button class="add-worksheet-button button-small" data-theme-for-worksheet="${encodeURIComponent(material.tema)}" type="button" title="Generează Fișă de Lucru pentru tema '${material.tema}'">➕📝 Fișă de Lucru</button>`;
     }
 
     card.innerHTML = `
@@ -649,22 +720,39 @@ function createMaterialCardElementInternal(material) {
 
 async function handleAddWorksheetForArticle(themeForWorksheet) {
     if (!currentUserIdMaterials || !themeForWorksheet) {
-        showUIMessageMaterials("Eroare: Informații insuficiente pentru a genera fișa de lucru.", "error");
+        showUIMessageMaterials("Eroare: Informații insuficiente pentru a genera fișa de lucru.", "error", true);
+        return;
+    }
+     if (!genAIMaterials) {
+        showUIMessageMaterials("Serviciul AI nu este disponibil. Nu se poate genera fișa de lucru.", "error", true);
         return;
     }
 
+    // Căutăm tema în currentUserThemes pentru a obține contextul relevant
+    const themeObject = currentUserThemes.themes.find(t => t.title === themeForWorksheet);
+    if (themeObject) {
+        selectedThemeTitleForGeneration = themeObject.title;
+        selectedThemeContextForGeneration = themeObject.relevantContext; // Setăm contextul global
+    } else {
+        // Dacă tema nu e în lista curentă (ex. listă veche de materiale, teme neactualizate)
+        // vom genera fără context specific pre-extras, AI-ul va fi informat
+        selectedThemeTitleForGeneration = themeForWorksheet;
+        selectedThemeContextForGeneration = null; // Semnalăm că nu avem context pre-extras
+        showUIMessageMaterials(`Atenție: Nu s-a găsit context pre-extras pentru tema "${themeForWorksheet}". Fișa de lucru va fi mai generală. Se recomandă actualizarea listei de teme.`, "warning", false);
+    }
+
+
     showUIMessageMaterials(`Se pregătește generarea fișei de lucru pentru tema "${themeForWorksheet}"...`, "info", false);
-    const fakeEvent = {
+    const fakeEvent = { // Simulăm un eveniment ca și cum s-ar fi apăsat pe butonul de tip material
         target: {
             dataset: {
                 materialType: 'fisa_lucru',
-                themeForGen: encodeURIComponent(themeForWorksheet) // Asigură-te că tema e corect encodată
+                themeForGen: encodeURIComponent(themeForWorksheet)
             }
         }
     };
     await handleMaterialTypeSelectedAndGenerate(fakeEvent);
 }
-
 
 async function handleDeleteMaterial(materialId) {
     if (!materialId || !currentUserIdMaterials) return;
@@ -672,7 +760,7 @@ async function handleDeleteMaterial(materialId) {
         showUIMessageMaterials("Se șterge materialul...", "info", false);
         try {
             await deleteDoc(doc(dbMaterials, "materialeGenerate", materialId));
-            showUIMessageMaterials("Materialul a fost șters cu succes.", "success");
+            showUIMessageMaterials("Materialul a fost șters cu succes.", "success", true);
             const cardToRemove = materialeListContainer.querySelector(`.material-card[data-id="${materialId}"]`);
             if (cardToRemove) cardToRemove.remove();
             if (materialeListContainer.children.length === 0) {
@@ -680,77 +768,78 @@ async function handleDeleteMaterial(materialId) {
             }
         } catch (err) {
             console.error("[MaterialsJS] Eroare la ștergerea materialului:", err);
-            showUIMessageMaterials(`Eroare la ștergerea materialului: ${err.message}`, "error");
+            showUIMessageMaterials(`Eroare la ștergerea materialului: ${err.message}`, "error", true);
         }
     }
 }
 
 // --- INIȚIALIZARE ȘI EVENT LISTENERS ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Delegare evenimente pentru butoanele din lista de materiale (ștergere, adaugă fișă)
     if (materialeListContainer) {
         materialeListContainer.addEventListener('click', (event) => {
-            if (event.target.classList.contains('delete-material-button')) {
-                const materialId = event.target.dataset.id;
+            const deleteButton = event.target.closest('.delete-material-button');
+            const addWorksheetButton = event.target.closest('.add-worksheet-button');
+
+            if (deleteButton) {
+                const materialId = deleteButton.dataset.id;
                 handleDeleteMaterial(materialId);
-            } else if (event.target.classList.contains('add-worksheet-button')) {
-                const theme = decodeURIComponent(event.target.dataset.themeForWorksheet);
+            } else if (addWorksheetButton) {
+                const theme = decodeURIComponent(addWorksheetButton.dataset.themeForWorksheet);
                 handleAddWorksheetForArticle(theme);
             }
         });
     }
-    // Event listeners pentru butoanele din themeManagementContainer și materialGenerationControlsContainer
-    // sunt adăugați dinamic în funcțiile renderThemeManagementUI și displayMaterialTypeSelectionUI
 });
 
 onAuthStateChanged(authMaterials, (user) => {
     const materialeTab = document.getElementById('materialeFormContainer');
+    const isMaterialeTabVisible = materialeTab && (materialeTab.style.display === 'block' || materialeTab.classList.contains('active'));
+
 
     if (user) {
         currentUserIdMaterials = user.uid;
-        // Inițializarea Gemini este deja făcută global.
-        // Verificăm dacă tab-ul este activ și încărcăm datele.
-        if (materialeTab && materialeTab.style.display === 'block') {
+        if (isMaterialeTabVisible) {
             clearAllActionUIs();
-            loadUserThemes(currentUserIdMaterials);
+            loadUserThemes(currentUserIdMaterials); // Încarcă și afișează temele și UI-ul asociat
             displayGeneratedMaterialsInternal(currentUserIdMaterials);
-        } else {
-            // Chiar dacă tab-ul nu e activ, putem preîncărca temele în cache, dar nu UI-ul.
-            // Sau lăsăm încărcarea doar la activarea tab-ului.
-            // Pentru simplitate, încărcăm doar la activare.
         }
+         // Activează butoanele dacă AI-ul e disponibil, chiar dacă tab-ul nu e vizibil inițial
+        // Acest lucru va fi gestionat mai specific la afișarea UI-ului.
     } else {
         currentUserIdMaterials = null;
         currentUserThemes = { themes: [], timestamp: null };
         clearAllActionUIs();
         if (materialeListContainer) materialeListContainer.innerHTML = '';
         if (materialeInfoMessageDiv) materialeInfoMessageDiv.style.display = 'none';
-        if (themeManagementContainer) themeManagementContainer.innerHTML = '<p>Autentifică-te pentru a accesa materialele personalizate.</p>';
+        if (themeManagementContainer) themeManagementContainer.innerHTML = '<p class="info-message">Autentifică-te pentru a accesa materialele personalizate.</p>';
         if (materialGenerationControlsContainer) materialGenerationControlsContainer.innerHTML = '';
-
     }
 });
 
-window.handleMaterialeTabActivated = function(userId) {
-    console.log("[personalizedMaterials.js] Funcția window.handleMaterialeTabActivated a fost apelată cu userId:", userId);
+window.handleMaterialeTabActivated = function(userIdFromMainApp) {
+    console.log("[MaterialsJS] Funcția window.handleMaterialeTabActivated a fost apelată cu userId:", userIdFromMainApp);
+    
     if (materialeInfoMessageDiv && materialeInfoMessageDiv.style.display === 'block' && materialeInfoMessageDiv.textContent.includes("Se generează")) {
-        return; // Nu întrerupe un proces de generare în curs
+        console.log("[MaterialsJS] Generare în curs, nu se reîncarcă tab-ul de materiale.");
+        return; 
     }
 
-    if (userId) {
-        currentUserIdMaterials = userId;
+    const userIdToUse = userIdFromMainApp || currentUserIdMaterials; // Folosește ID-ul din aplicația principală sau cel curent dacă e null
+
+    if (userIdToUse) {
+        currentUserIdMaterials = userIdToUse; // Actualizează ID-ul curent
         // Nu este nevoie să reinițializăm Gemini aici
-        clearAllActionUIs(); // Curăță UI-ul anterior
-        loadUserThemes(userId); // Încarcă/afișează temele
-        displayGeneratedMaterialsInternal(userId); // Afișează materialele existente
-    } else if (currentUserIdMaterials) { // Dacă avem un utilizator logat anterior, dar userId e null (improbabil în fluxul normal)
         clearAllActionUIs();
-        loadUserThemes(currentUserIdMaterials);
-        displayGeneratedMaterialsInternal(currentUserIdMaterials);
+        loadUserThemes(userIdToUse);
+        displayGeneratedMaterialsInternal(userIdToUse);
+         // Asigură-te că butoanele sunt în starea corectă
+        document.querySelectorAll('.theme-select-button, #refreshThemesButton, .material-type-button').forEach(btn => btn.disabled = !(genAIMaterials && currentUserIdMaterials));
     } else {
+        clearAllActionUIs();
         if (materialeListContainer) materialeListContainer.innerHTML = '';
-        if (themeManagementContainer) themeManagementContainer.innerHTML = '<p>Pentru a vedea sau genera materiale personalizate, te rugăm să te autentifici.</p>';
+        if (themeManagementContainer) themeManagementContainer.innerHTML = '<p class="info-message">Pentru a vedea sau genera materiale personalizate, te rugăm să te autentifici.</p>';
         if (materialGenerationControlsContainer) materialGenerationControlsContainer.innerHTML = '';
         showUIMessageMaterials("Pentru a vedea sau genera materiale personalizate, te rugăm să te autentifici.", "warning", false);
+         document.querySelectorAll('.theme-select-button, #refreshThemesButton, .material-type-button').forEach(btn => btn.disabled = true);
     }
 }
