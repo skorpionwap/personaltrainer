@@ -131,7 +131,7 @@ async function gatherUserDataForThemeAnalysis(userId) {
             where("ownerUid", "==", userId),
             where("type", "==", "jurnal"),
             orderBy("timestampCreare", "desc"),
-            firestoreLimit(10) // Mai puține jurnale, dar mai detaliate
+            firestoreLimit(5) // Mai puține jurnale, dar mai detaliate
         );
         const jurnalSnapshot = await getDocs(jurnalQuery);
         if (!jurnalSnapshot.empty) {
@@ -157,7 +157,7 @@ async function gatherUserDataForThemeAnalysis(userId) {
             where("ownerUid", "==", userId),
             where("type", "==", "fisa"),
             orderBy("timestampCreare", "desc"),
-            firestoreLimit(10) // Mai puține fișe
+            firestoreLimit(5) // Mai puține fișe
         );
         const fisaSnapshot = await getDocs(fisaQuery);
         if (!fisaSnapshot.empty) {
@@ -216,8 +216,7 @@ async function identifyAndSaveKeyThemes(userId, forceRefresh = false) {
 
      // --- ADAUGĂ CONSOLE.LOG AICI ---
     if (combinedUserData) {
-        console.log("[MaterialsJS - identifyAndSaveKeyThemes] Context combinat trimis către AI pentru analiza temelor:", combinedUserData);
-        // Poți adăuga și lungimea pentru a avea o idee despre dimensiune
+        
         console.log(`[MaterialsJS - identifyAndSaveKeyThemes] Lungimea contextului combinat: ${combinedUserData.length} caractere.`);
     } else {
         console.log("[MaterialsJS - identifyAndSaveKeyThemes] Nu s-a putut genera context combinat pentru analiza temelor (combinedUserData este null sau gol).");
@@ -235,7 +234,7 @@ Rol: Ești un psihoterapeut AI experimentat, capabil să analizezi texte diverse
 Sarcină: Analizează textul combinat de mai jos, care provine din activitatea recentă a unui utilizator. Identifică aproximativ 10 teme principale sau probleme cheie.
 Pentru fiecare temă identificată:
 1.  Oferă un titlu scurt și descriptiv pentru temă (maxim 5-8 cuvinte). Titlul trebuie să fie concis și relevant psihologic.
-2.  Extrage și furnizează un rezumat concis si citatele cheie din textul utilizatorului care ilustrează cel mai bine sau susțin această temă (3000 cuvinte). Acest context trebuie să fie direct relevant și extras din textul furnizat, oferind substanță pentru înțelegerea temei.
+2.  Extrage și furnizează un rezumat concis si citatele cheie din textul utilizatorului care ilustrează cel mai bine sau susțin această temă (incadreaza-te in 3000 cuvinte). Acest context trebuie să fie direct relevant și extras din textul furnizat, oferind substanță pentru înțelegerea temei.
 
 Formatare Răspuns OBLIGATORIU: Răspunde cu un array JSON valid. Fiecare element al array-ului trebuie să fie un obiect cu două proprietăți: "title" (string) și "relevantContext" (string).
 Exemplu de format JSON așteptat:
@@ -251,7 +250,7 @@ Exemplu de format JSON așteptat:
 ]
 
 NU adăuga introduceri, comentarii, explicații sau concluzii în afara array-ului JSON. Răspunsul trebuie să fie DOAR array-ul JSON.
-IMPORTANT:
+OBLIGATORIU:
 Ofera maxim 10 teme.
 Asigura-te ca oferi suficient context relevant incat pe baza lui sa poata fi scris un studiu de caz, articol. Citeaza si parafrazeaza utilizatorul. Extinde pana la 3000 cuvinte contextul.
 --- TEXT COMBINAT UTILIZATOR (JURNALE, FIȘE, CHAT) ---
