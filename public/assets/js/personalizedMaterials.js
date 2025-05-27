@@ -131,7 +131,7 @@ async function gatherUserDataForThemeAnalysis(userId) {
             where("ownerUid", "==", userId),
             where("type", "==", "jurnal"),
             orderBy("timestampCreare", "desc"),
-            firestoreLimit(5) // Mai puține jurnale, dar mai detaliate
+            firestoreLimit(2) 
         );
         const jurnalSnapshot = await getDocs(jurnalQuery);
         if (!jurnalSnapshot.empty) {
@@ -157,7 +157,7 @@ async function gatherUserDataForThemeAnalysis(userId) {
             where("ownerUid", "==", userId),
             where("type", "==", "fisa"),
             orderBy("timestampCreare", "desc"),
-            firestoreLimit(5) // Mai puține fișe
+            firestoreLimit(2) 
         );
         const fisaSnapshot = await getDocs(fisaQuery);
         if (!fisaSnapshot.empty) {
