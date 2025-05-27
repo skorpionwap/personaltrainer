@@ -57,7 +57,7 @@ async function callGeminiAPIForMaterials(promptText, modelToUse, generationConfi
             contents: [{ role: "user", parts: [{ text: promptText }] }],
             generationConfig: {
                 temperature: 0.5,
-                maxOutputTokens: 100000, // Valoare default pentru flash, ajustează dacă e necesar
+                maxOutputTokens: 1000000, // Valoare default pentru flash, ajustează dacă e necesar
                 // responseMimeType: "application/json", // Adaugă asta aici dacă modelul o suportă consistent
                 ...generationConfigOptions
             }
