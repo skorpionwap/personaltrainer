@@ -214,6 +214,17 @@ async function identifyAndSaveKeyThemes(userId, forceRefresh = false) {
     showUIMessageMaterials("PsihoGPT analizează activitatea ta recentă pentru a identifica teme și contexte relevante...", "info", false);
     const combinedUserData = await gatherUserDataForThemeAnalysis(userId);
 
+     // --- ADAUGĂ CONSOLE.LOG AICI ---
+    if (combinedUserData) {
+        console.log("[MaterialsJS - identifyAndSaveKeyThemes] Context combinat trimis către AI pentru analiza temelor:", combinedUserData);
+        // Poți adăuga și lungimea pentru a avea o idee despre dimensiune
+        console.log(`[MaterialsJS - identifyAndSaveKeyThemes] Lungimea contextului combinat: ${combinedUserData.length} caractere.`);
+    } else {
+        console.log("[MaterialsJS - identifyAndSaveKeyThemes] Nu s-a putut genera context combinat pentru analiza temelor (combinedUserData este null sau gol).");
+    }
+    // --- SFÂRȘIT CONSOLE.LOG ---
+
+
     if (!combinedUserData) {
         showUIMessageMaterials("Nu există suficientă activitate recentă (jurnale, fișe, chat) pentru o analiză relevantă.", "warning", true);
         return false;
@@ -221,10 +232,10 @@ async function identifyAndSaveKeyThemes(userId, forceRefresh = false) {
 
     const themeAnalysisPrompt = `
 Rol: Ești un psihoterapeut AI experimentat, capabil să analizezi texte diverse (jurnale, fișe de reflecție, conversații de chat) pentru a identifica teme psihologice centrale și contextul relevant pentru fiecare.
-Sarcină: Analizează textul combinat de mai jos, care provine din activitatea recentă a unui utilizator. Identifică aproximativ 5-8 teme principale sau probleme cheie.
+Sarcină: Analizează textul combinat de mai jos, care provine din activitatea recentă a unui utilizator. Identifică aproximativ 20 teme principale sau probleme cheie.
 Pentru fiecare temă identificată:
 1.  Oferă un titlu scurt și descriptiv pentru temă (maxim 5-8 cuvinte). Titlul trebuie să fie concis și relevant psihologic.
-2.  Extrage și furnizează un rezumat concis sau citatele cheie (aproximativ 50-150 de cuvinte per temă, maxim 200) din textul utilizatorului care ilustrează cel mai bine sau susțin această temă. Acest context trebuie să fie direct relevant și extras din textul furnizat, oferind substanță pentru înțelegerea temei.
+2.  Extrage și furnizează un rezumat concis si citatele cheie (aproximativ 1500-2500 de cuvinte per temă, maxim 3000) din textul utilizatorului care ilustrează cel mai bine sau susțin această temă. Acest context trebuie să fie direct relevant și extras din textul furnizat, oferind substanță pentru înțelegerea temei.
 
 Formatare Răspuns OBLIGATORIU: Răspunde cu un array JSON valid. Fiecare element al array-ului trebuie să fie un obiect cu două proprietăți: "title" (string) și "relevantContext" (string).
 Exemplu de format JSON așteptat:
