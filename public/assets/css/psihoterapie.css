@@ -364,7 +364,37 @@ button#saveJournalEntryButton:hover:not(:disabled) {
 .introspectie-entry-content-text::-webkit-scrollbar { width: 6px; }
 .introspectie-entry-content-text::-webkit-scrollbar-thumb { background: #D1D9E2; border-radius:3px; }
 
-.journal-entry-content-text-unified { white-space: pre-wrap; font-size: 1em; line-height: 1.75; color: var(--color-text-medium); }
+.journal-entry-content-text-unified {
+    white-space: pre-wrap;
+    font-size: 1em;
+    line-height: 1.75;
+    color: var(--color-text-medium);
+    max-height: 60vh; /* Sau altă valoare, ex: 500px, similar cu .introspectie-entry-content-text */
+    overflow-y: auto;
+    padding-right: calc(var(--spacing-unit) * 0.75); /* Spațiu pentru scrollbar, opțional dar recomandat */
+}
+
+/* Adăugați și stiluri pentru scrollbar pentru consistență (opțional) */
+.journal-entry-content-text-unified::-webkit-scrollbar {
+    width: 8px;
+}
+.journal-entry-content-text-unified::-webkit-scrollbar-track {
+    background: var(--color-bg-alt);
+    border-radius: 4px;
+}
+.journal-entry-content-text-unified::-webkit-scrollbar-thumb {
+    background-color: var(--color-text-light);
+    border-radius: 4px;
+    border: 2px solid var(--color-bg-alt);
+}
+.journal-entry-content-text-unified::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-text-medium);
+}
+/* Pentru Firefox, dacă doriți */
+.journal-entry-content-text-unified {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-text-light) var(--color-bg-alt);
+}
 
 .response-card > .card-content > h4.ai-feedback-title {
     color: var(--color-secondary-dark); font-weight: 600; margin-top: 0;
@@ -997,11 +1027,11 @@ button.delete-all-feedback-button:hover { background-color: #AB240C; color: whit
 
 /* CARDURILE DE MATERIAL (moștenesc de la .response-card) */
 
-.response-card.open .card-content {
+#materialeListContainer .response-card.open .card-content { /* Selector specificat pentru Materiale */
     /* Asigură că permite scroll-ului intern din .material-content-display */
-    max-height: 85vh; /* Sau o valoare fixă mare */
+    max-height: 85vh;
     padding: calc(var(--spacing-unit) * 2.5) calc(var(--spacing-unit) * 2.5);
-    overflow-y: visible; /* Permite copilului să gestioneze overflow */
+    overflow-y: visible; /* Permite copilului (.material-content-display) să gestioneze overflow */
 }
 
 /* Conținutul materialului generat (Markdown parsat) - SCROLL INTERN */
