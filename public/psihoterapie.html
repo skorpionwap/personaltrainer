@@ -243,20 +243,12 @@
         <!-- Aici vor apărea butoanele pentru Articol/Fișă după selectarea unei teme -->
     </div>
 
-   <hr class="section-divider">
-
-        <!-- SECȚIUNE PENTRU JOC TERAPEUTIC -->
-        <section id="interactiveGameSection" class="section-container">
-            <h3>Joc Terapeutic: Snake – Călătoria Interioară</h3>
-            <p>O modalitate interactivă de a explora emoții și resurse interioare. Apasă butonul de mai jos pentru a începe aventura!</p>
-            <!-- Butonul care va lansa modalul jocului -->
-            <button id="launchGameModalButton" class="button-primary button-large" type="button">
-                🚀 Începe Călătoria Interioară
-            </button>
-        </section>
-        <!-- SFÂRȘIT SECȚIUNE PENTRU JOC TERAPEUTIC -->
-
-        <hr class="section-divider">
+ <!-- Inside <div id="materialeFormContainer" ...> in psihoterapie.html -->
+<hr class="section-divider"> <!-- Optional separator -->
+<div id="snakeGamePageContainer" class="mt-4">
+    <!-- The Snake game will be injected here -->
+</div>
+<hr class="section-divider"> <!-- Optional separator -->
 
     <hr>
     <h3>Materiale Generate Anterior</h3>
@@ -291,11 +283,6 @@
        <p id="chatStatus">Chatul AI nu este activ.</p>
    </div>
    <button id="toggleChatButton" style="display: none;">💬</button>
-
- <!-- Containerul pentru modalul jocului Snake -->
-   <div id="snakeGameModalContainer" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-40 p-4" style="display: none;">
-       <!-- Conținutul modalului (gameModalHTMLStructure) va fi injectat aici de JavaScript -->
-   </div>
 
    
     <script type="module" src="assets/js/psihoterapie.js"></script>
