@@ -1,6 +1,6 @@
 
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, getDoc, updateDoc, arrayUnion, query, where, setDoc, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"; // Am scos deleteField că nu era folosit
+    import {  getFirestore, collection, addDoc, getDocs, deleteDoc, doc, getDoc, updateDoc, query, where, setDoc, orderBy, limit, Timestamp, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"; 
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
     import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "https://esm.run/@google/generative-ai";
 
