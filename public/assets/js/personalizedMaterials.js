@@ -58,7 +58,7 @@ async function callGeminiAPIForMaterials(promptText, modelToUse, generationConfi
             contents: [{ role: "user", parts: [{ text: promptText }] }],
             generationConfig: {
                 temperature: 0.5,
-                maxOutputTokens: 8192,
+                maxOutputTokens: 1000000,
                 ...generationConfigOptions
             }
         };
