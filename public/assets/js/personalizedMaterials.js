@@ -176,34 +176,63 @@ async function gatherUserDataForThemeAnalysis(userId) {
         }
     } catch (e) { console.error("[MaterialsJS] Eroare preluare fișe:", e); }
 
-    // 3. Preluare Chat
+ // 3. Preluare Chat (MODIFICAT PENTRU SUBCOLECȚII)
     try {
-        const chatDocRef = doc(dbMaterials, "chatHistories", CHAT_HISTORY_DOC_ID_PREFIX_MATERIALS + userId);
-        const chatDocSnap = await getDoc(chatDocRef);
-        if (chatDocSnap.exists() && chatDocSnap.data().messages) {
+        const chatHistoryId = CHAT_HISTORY_DOC_ID_PREFIX_MATERIALS + userId;
+        // Referință la subcolecția 'messages'
+        const messagesSubcollectionRef = collection(dbMaterials, "chatHistories", chatHistoryId, "messages");
+
+        // Preluăm un număr rezonabil de mesaje recente pentru contextul temelor.
+        // Ordonăm descrescător după timestamp pentru a lua cele mai recente, apoi le vom inversa pentru afișare cronologică.
+        const chatQuery = query(
+            messagesSubcollectionRef,
+            orderBy("timestamp", "desc"),
+            firestoreLimit(MAX_CHAT_MESSAGES_FOR_CONTEXT) // MAX_CHAT_MESSAGES_FOR_CONTEXT este definit de tine (ex: 250)
+        );
+        const chatSnapshot = await getDocs(chatQuery);
+
+        if (!chatSnapshot.empty) {
             let chatText = "\n\n--- EXTRAS DIN CONVERSAȚIILE DE CHAT RECENTE ---\n";
-            const allMessages = chatDocSnap.data().messages;
-            const recentMessages = allMessages.slice(-MAX_CHAT_MESSAGES_FOR_CONTEXT); // Păstrăm un număr rezonabil de mesaje
-            recentMessages.forEach(msg => {
-                const role = msg.role === 'user' ? 'Utilizator' : 'PsihoGPT';
-                let entry = `${role}: ${msg.content}\n`;
+            const recentMessagesData = [];
+            chatSnapshot.forEach(docSnap => {
+                // Adăugăm mesajul cu ID (opțional) și datele sale
+                recentMessagesData.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            // Mesajele sunt în ordine invers cronologică (cele mai noi primele)
+            // Le inversăm pentru a le procesa în ordine cronologică (cele mai vechi primele din setul recent)
+            recentMessagesData.reverse();
+
+            recentMessagesData.forEach(msg => {
+                // Asigură-te că msg.role și msg.content există și sunt string-uri
+                const role = (msg.role && (msg.role.toLowerCase() === 'user')) ? 'Utilizator' : 'PsihoGPT';
+                const content = (typeof msg.content === 'string') ? msg.content : '(conținut indisponibil)';
+                let entry = `${role}: ${content}\n`;
+
                 if (chatText.length + entry.length < MAX_CONTENT_LENGTH_PER_SOURCE) {
                     chatText += entry;
                 } else {
                     chatText += entry.substring(0, MAX_CONTENT_LENGTH_PER_SOURCE - chatText.length) + "... (trunchiat)\n";
-                    return;
+                    return; // Ieșim din forEach dacă am atins limita de caractere pentru această sursă
                 }
             });
             chatText += "---\n";
             fullContextText += chatText;
+            console.log(`[MaterialsJS] Preluat ${recentMessagesData.length} mesaje de chat pentru context.`);
+        } else {
+            console.log(`[MaterialsJS] Niciun mesaj de chat găsit în subcolecție pentru utilizatorul ${userId}.`);
         }
-    } catch (e) { console.error("[MaterialsJS] Eroare preluare chat:", e); }
+    } catch (e) {
+        console.error("[MaterialsJS] Eroare la preluarea chat-ului din subcolecție pentru analiza temelor:", e);
+    }
 
-    if (fullContextText.trim().length < 100) { // Verificăm dacă există conținut relevant
+    if (fullContextText.trim().length < 100) { // Verificăm dacă există conținut relevant adunat
+        console.log("[MaterialsJS] Nu s-a putut aduna suficient conținut (jurnale, fișe, chat) pentru analiza temelor.");
         return null;
     }
     return fullContextText;
 }
+
 
 async function identifyAndSaveKeyThemes(userId, forceRefresh = false) {
     if (!geminiModelAnalizaTemeMaterials) {
