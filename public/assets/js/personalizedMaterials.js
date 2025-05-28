@@ -87,7 +87,7 @@ const materialGenerationControlsContainer = document.getElementById('materialGen
 const materialeInfoMessageDiv = document.getElementById('materialeInfoMessage');
 
 const CHAT_HISTORY_DOC_ID_PREFIX_MATERIALS = "chatHistory_";
-const MAX_CHAT_MESSAGES_FOR_CONTEXT = 250;
+const MAX_CHAT_MESSAGES_FOR_CONTEXT = 500;
 const USER_THEMES_DOC_PREFIX = "userThemes_";
 
 let currentUserIdMaterials = null;
