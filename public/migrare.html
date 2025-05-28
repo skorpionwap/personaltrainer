@@ -3,36 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Migrare Chat Firestore</title>
+    <title>Migrare Chat Firestore (Client-Side)</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        #log { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-top: 10px; white-space: pre-wrap; }
-        .error { color: red; }
-        .success { color: green; }
-        .info { color: blue; }
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; padding: 20px; line-height: 1.6; }
+        h1, h3 { margin-bottom: 0.5em; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: calc(100% - 20px); max-width: 400px; margin-bottom: 15px; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; font-size: 1em; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #log { border: 1px solid #ddd; background-color: #f9f9f9; padding: 15px; height: 350px; overflow-y: scroll; margin-top: 15px; white-space: pre-wrap; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; border-radius: 4px;}
+        #log p { margin: 5px 0; padding: 3px; border-bottom: 1px dotted #eee; }
+        #log p:last-child { border-bottom: none; }
+        .error { color: #d9534f; font-weight: bold; }
+        .success { color: #5cb85c; font-weight: bold; }
+        .info { color: #5bc0de; }
+        .warning { color: #f0ad4e; }
     </style>
 </head>
 <body>
     <h1>Migrare Istoric Chat Firestore (Client-Side)</h1>
-    <p><strong>Atenție:</strong> Acest script este pentru migrarea datelor din client. Este recomandat să folosiți Firebase Admin SDK pentru migrări complexe. Asigurați-vă că aveți un backup al datelor!</p>
+    <p><strong>Atenție:</strong> Acest script este pentru migrarea datelor folosind SDK-ul client Firebase. Este recomandat să folosiți Firebase Admin SDK într-un mediu server (Node.js) pentru migrări complexe sau de volum mare. <strong>Asigurați-vă că aveți un backup al datelor înainte de a rula!</strong></p>
 
     <div>
-        <label for="chatId">Chat Document ID (ex: chatHistory_xxxx):</label>
+        <label for="chatIdInput">Chat Document ID (ex: chatHistory_xxxx):</label>
         <input type="text" id="chatIdInput" value="chatHistory_U75LwhsnQ4U2XGOLsIX22NNla292" size="50">
     </div>
-    <br>
-    <button id="startMigrationButton">Pornește Migrarea pentru ID-ul Specificat</button>
-    <button id="migrateAllButton" title="Nu este implementat robust pentru client-side bulk" disabled>Migrează Toate (PRUDENȚĂ MAXIMĂ - neimplementat robust)</button>
+
+    <button id="startMigrationButton" disabled>Pornește Migrarea pentru ID-ul Specificat</button>
+    <button id="migrateAllButton" title="Migrarea tuturor documentelor din client-side este foarte riscantă și nu este recomandată/implementată robust aici." disabled>Migrează Toate (PRUDENȚĂ)</button>
 
     <h3>Log Migrare:</h3>
-    <div id="log">Așteptare acțiune...<br></div>
+    <div id="log">Așteptare autentificare și acțiune...<br></div>
 
-    <!-- Firebase SDK -->
     <script type="module">
         // --- IMPORTURI ȘI CONFIGURARE FIREBASE ---
-        // Adaugă aici configurația Firebase și inițializarea aplicației
-        // similar cu ce ai în psihoterapie.js sau personalizedMaterials.js
-
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
         import {
             getFirestore,
@@ -40,73 +45,73 @@
             getDoc,
             updateDoc,
             collection,
-            addDoc,
+            // addDoc, // Nu mai folosim addDoc direct, ci doc(collectionRef) pentru ID auto în batch
             writeBatch,
             Timestamp,
-            FieldValue, // Necesar pentru serverTimestamp și delete
+            deleteField, // Corecția cheie!
             query,
             orderBy,
             limit,
-            getDocs
+            getDocs,
+            serverTimestamp // Poate fi util pentru `migratedClientAt`
         } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
-
-        // --- CONFIGURARE FIREBASE ---
+        // --- CONFIGURARE FIREBASE (ÎNLOCUIEȘTE CU DATELE TALE) ---
         const firebaseConfig = {
             apiKey: "AIzaSyBn2bojEoV4_icF4fVVKFdJN1YjDhtlG98", // CHEIA TA API WEB
             authDomain: "personaltrainer-74ea4.firebaseapp.com",
             projectId: "personaltrainer-74ea4",
             storageBucket: "personaltrainer-74ea4.appspot.com",
             messagingSenderId: "591778567441",
-            appId: "1:591778567441:web:bbaeac19a3fb0f190668b0",
-             measurementId: "G-WLWNGNDK5V" 
+            appId: "1:591778567441:web:bbaeac19a3fb0f190668b0"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const auth = getAuth(app); // Necesar dacă ai reguli de securitate
+        const auth = getAuth(app);
 
         const logDiv = document.getElementById('log');
-        const chatIdInput = document.getElementById('chatIdInput');
+        const chatIdInputEl = document.getElementById('chatIdInput'); // Redenumit pentru a evita conflictul cu variabila chatId
         const startMigrationButton = document.getElementById('startMigrationButton');
-        const migrateAllButton = document.getElementById('migrateAllButton'); // Rămâne dezactivat
+        const migrateAllButton = document.getElementById('migrateAllButton');
 
         function logMessage(message, type = 'info') {
             const p = document.createElement('p');
-            p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            const timestamp = `[${new Date().toLocaleTimeString()}] `;
+            p.textContent = timestamp + message;
             p.className = type;
             logDiv.appendChild(p);
-            logDiv.scrollTop = logDiv.scrollHeight;
-            console.log(`[MigrateHTML - ${type.toUpperCase()}] ${message}`);
+            logDiv.scrollTop = logDiv.scrollHeight; // Auto-scroll
+            // Afișează și în consola browserului
+            if (type === 'error') console.error(timestamp + message);
+            else if (type === 'warning') console.warn(timestamp + message);
+            else console.log(timestamp + message);
         }
 
-        // Autentificare anonimă simplă pentru testare (dacă regulile permit useri autentificați)
-        // ÎNTR-UN SCENARIU REAL, VEI FI DEJA AUTENTIFICAT CA ADMIN/UTILIZATOR CU DREPTURI
-        let currentUser = null;
+        let currentFirebaseUser = null; // Redenumit pentru claritate
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                currentUser = user;
-                logMessage(`Autentificat ca: ${user.uid} (poate fi anonim)`, 'info');
+                currentFirebaseUser = user;
+                logMessage(`Autentificat ca: ${user.uid}. Puteți porni migrarea.`, 'success');
                 startMigrationButton.disabled = false;
             } else {
-                currentUser = null;
+                currentFirebaseUser = null;
                 logMessage('Utilizator neautentificat. Se încearcă autentificare anonimă...', 'info');
                 startMigrationButton.disabled = true;
                 signInAnonymously(auth).catch(error => {
-                    logMessage(`Eroare autentificare anonimă: ${error.message}`, 'error');
+                    logMessage(`Eroare autentificare anonimă: ${error.message}. Migrarea necesită autentificare.`, 'error');
                 });
             }
         });
 
-
         async function migrateSingleChatClientSide(chatId) {
-            if (!currentUser) {
-                logMessage("Eroare: Utilizatorul nu este autentificat. Migrarea nu poate începe.", "error");
+            if (!currentFirebaseUser) {
+                logMessage("Eroare Critică: Utilizatorul nu este autentificat. Reîncărcați pagina sau verificați consola.", "error");
                 return;
             }
             if (!chatId || chatId.trim() === "") {
-                logMessage("Eroare: ID-ul documentului de chat este necesar.", "error");
+                logMessage("Eroare: ID-ul documentului de chat este obligatoriu.", "error");
                 return;
             }
 
@@ -127,25 +132,30 @@
                 }
 
                 const chatData = chatDocSnap.data();
-                logMessage(`Document ${chatId} găsit. Se verifică array-ul 'messages'.`, 'info');
+                logMessage(`Document ${chatId} găsit. Se verifică starea migrării și array-ul 'messages'.`, 'info');
 
-                if (chatData.migratedToSubcollection === true && !confirm("Acest chat pare deja migrat. Forțezi re-migrarea (poate duce la duplicate)?")) {
-                    logMessage(`Migrarea pentru ${chatId} a fost anulată de utilizator (deja migrat).`, 'info');
-                    startMigrationButton.disabled = false;
-                    return;
+                if (chatData.migratedToSubcollection === true) {
+                     if (!confirm("Acest chat este marcat ca fiind DEJA MIGRAT. Sunteți absolut sigur că doriți să încercați o re-migrare? Acest lucru POATE DUCE LA MESAJE DUPLICATE dacă nu ați șters manual subcolecția 'messages' în prealabil.")) {
+                        logMessage(`Migrarea pentru ${chatId} a fost ANULATĂ de utilizator (marcat ca deja migrat).`, 'info');
+                        startMigrationButton.disabled = false;
+                        return;
+                    }
+                    logMessage("AVERTISMENT: Utilizatorul a ales să forțeze re-migrarea unui chat marcat ca migrat.", "warning");
                 }
 
 
                 if (!chatData.messages || !Array.isArray(chatData.messages)) {
                     logMessage(`Documentul ${chatId} nu are un array 'messages' valid.`, 'info');
-                    if (chatData.hasOwnProperty('messages')) {
+                    if (chatData.hasOwnProperty('messages')) { // Verifică dacă proprietatea 'messages' există, chiar dacă e null/undefined/etc.
                         logMessage(`Se încearcă ștergerea câmpului 'messages' (gol/invalid) din ${chatId}...`, 'info');
                         await updateDoc(chatDocRef, {
-                            messages: FieldValue.delete(), // Folosește FieldValue.delete() importat
+                            messages: deleteField(), // UTILIZARE CORECTĂ
                             migrationStatusClient: 'messages_array_deleted_no_migration',
-                            migratedClientAt: Timestamp.now()
+                            migratedClientAt: serverTimestamp() // Folosim serverTimestamp pentru consistență
                         });
                         logMessage(`Câmpul 'messages' (gol/invalid) șters din ${chatId}.`, 'success');
+                    } else {
+                        logMessage(`Documentul ${chatId} nu conține câmpul 'messages'. Nicio acțiune de ștergere necesară pentru array.`, 'info');
                     }
                     startMigrationButton.disabled = false;
                     return;
@@ -154,9 +164,9 @@
                 if (chatData.messages.length === 0) {
                     logMessage(`Documentul ${chatId} are un array 'messages' gol. Se șterge array-ul.`, 'info');
                      await updateDoc(chatDocRef, {
-                        messages: FieldValue.delete(),
+                        messages: deleteField(), // UTILIZARE CORECTĂ
                         migrationStatusClient: 'messages_array_deleted_empty_array',
-                        migratedClientAt: Timestamp.now()
+                        migratedClientAt: serverTimestamp()
                     });
                     logMessage(`Array-ul 'messages' (gol) șters din ${chatId}.`, 'success');
                     startMigrationButton.disabled = false;
@@ -167,45 +177,47 @@
                 const totalMessagesToMigrate = existingMessages.length;
                 logMessage(`Se vor migra ${totalMessagesToMigrate} mesaje pentru ${chatId}.`, 'info');
 
-                // Verificare simplă dacă subcolecția are deja mesaje (mai puțin robustă decât cu Admin SDK)
                 const existingSubQuery = query(messagesSubcollectionRef, limit(1));
                 const existingSubSnap = await getDocs(existingSubQuery);
                 if (!existingSubSnap.empty) {
-                    if (!confirm(`Subcolecția 'messages' pentru ${chatId} PARE să conțină deja date. Continuarea poate duce la duplicate. Ești sigur că vrei să continui?`)) {
-                        logMessage(`Migrarea pentru ${chatId} a fost anulată de utilizator (subcolecție existentă).`, 'info');
+                    if (!confirm(`Subcolecția 'messages' pentru ${chatId} PARE să conțină DEJA DATE. Continuarea migrării poate duce la mesaje duplicate. Sunteți sigur că vreți să continuați (de ex. dacă ați șters manual subcolecția înainte)?`)) {
+                        logMessage(`Migrarea pentru ${chatId} a fost ANULATĂ de utilizator (subcolecția 'messages' pare să existe).`, 'info');
                         startMigrationButton.disabled = false;
                         return;
                     }
-                    logMessage("Utilizatorul a ales să continue migrarea chiar dacă subcolecția pare să aibă date.", "warning");
+                    logMessage("AVERTISMENT: Utilizatorul a ales să continue migrarea chiar dacă subcolecția 'messages' pare să aibă date.", "warning");
                 }
 
-
-                const batchSize = 100; // Mai mic pentru client-side pentru a reduce riscul de timeout / probleme
+                const batchSize = 100; // Batch-uri mai mici pentru client-side
                 let messagesMigratedCount = 0;
+                let messagesSkippedInChunk = 0;
 
                 for (let i = 0; i < totalMessagesToMigrate; i += batchSize) {
-                    const batch = writeBatch(db);
+                    const currentBatch = writeBatch(db); // 'batch' era deja declarat, am redenumit
                     const chunk = existingMessages.slice(i, i + batchSize);
+                    messagesSkippedInChunk = 0; // Reset pentru fiecare chunk
 
                     logMessage(`Procesare batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(totalMessagesToMigrate / batchSize)} (mesaje ${i + 1} - ${Math.min(i + batchSize, totalMessagesToMigrate)})`, 'info');
 
                     for (const message of chunk) {
                         if (!message || typeof message.role !== 'string' || typeof message.content !== 'string') {
                             logMessage(`Mesaj invalid sau incomplet în array. Se omite: ${JSON.stringify(message)}`, 'warning');
+                            messagesSkippedInChunk++;
                             continue;
                         }
 
                         let firestoreTimestamp;
-                        if (message.timestamp && message.timestamp.toDate) { // Deja Firestore Timestamp (mai puțin probabil în datele vechi)
+                        if (message.timestamp && typeof message.timestamp.toDate === 'function') {
                             firestoreTimestamp = message.timestamp;
                         } else if (message.timestamp) {
                             try {
                                 firestoreTimestamp = Timestamp.fromDate(new Date(message.timestamp));
                             } catch (e) {
-                                logMessage(`Timestamp invalid: '${message.timestamp}'. Se folosește ora curentă.`, 'warning');
+                                logMessage(`Timestamp invalid: '${message.timestamp}'. Se folosește ora curentă. Eroare: ${e.message}`, 'warning');
                                 firestoreTimestamp = Timestamp.now();
                             }
                         } else {
+                             logMessage(`Mesaj fără timestamp. Se folosește ora curentă.`, 'warning');
                             firestoreTimestamp = Timestamp.now();
                         }
 
@@ -217,57 +229,59 @@
                             timestamp: firestoreTimestamp,
                             migratedFromOldArrayClient: true
                         };
-                        const newMessageRef = doc(messagesSubcollectionRef); // ID auto-generat
-                        batch.set(newMessageRef, newMessageData);
+                        const newMessageRef = doc(messagesSubcollectionRef);
+                        currentBatch.set(newMessageRef, newMessageData);
                         messagesMigratedCount++;
                     }
 
-                    if (messagesMigratedCount > (i / batchSize) * batchSize) { // Doar dacă s-au adăugat mesaje în batch
-                        await batch.commit();
+                    if (chunk.length > messagesSkippedInChunk) { // Doar dacă s-au adăugat mesaje valide în batch
+                        await currentBatch.commit();
                         logMessage(`Batch ${Math.floor(i / batchSize) + 1} commitat. ${messagesMigratedCount} mesaje migrate până acum.`, 'info');
                     } else {
-                        logMessage(`Batch ${Math.floor(i / batchSize) + 1} gol, sărit.`, 'info');
+                        logMessage(`Batch ${Math.floor(i / batchSize) + 1} nu a conținut mesaje valide pentru migrare, sărit.`, 'info');
                     }
-                     // O mică pauză pentru a nu stresa browser-ul/rețeaua prea tare
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await new Promise(resolve => setTimeout(resolve, 200)); // Pauză între batch-uri
                 }
 
                 // Actualizare document părinte
-                const lastMigratedMessage = existingMessages[totalMessagesToMigrate - 1];
+                const lastSuccessfullyMigratedMessage = existingMessages.filter(m => m && typeof m.role === 'string' && typeof m.content === 'string').pop();
                  let lastMsgTsParent;
-                 if (lastMigratedMessage.timestamp && lastMigratedMessage.timestamp.toDate) {
-                    lastMsgTsParent = lastMigratedMessage.timestamp;
-                 } else {
-                    try {
-                        lastMsgTsParent = Timestamp.fromDate(new Date(lastMigratedMessage.timestamp));
-                    } catch { lastMsgTsParent = Timestamp.now(); }
-                 }
 
+                 if (lastSuccessfullyMigratedMessage && lastSuccessfullyMigratedMessage.timestamp) {
+                     if (typeof lastSuccessfullyMigratedMessage.timestamp.toDate === 'function') {
+                        lastMsgTsParent = lastSuccessfullyMigratedMessage.timestamp;
+                     } else {
+                        try {
+                            lastMsgTsParent = Timestamp.fromDate(new Date(lastSuccessfullyMigratedMessage.timestamp));
+                        } catch { lastMsgTsParent = serverTimestamp(); } // Folosește serverTimestamp ca fallback
+                     }
+                 } else {
+                    lastMsgTsParent = serverTimestamp(); // Fallback dacă nu există niciun mesaj valid
+                 }
 
                 logMessage("Se actualizează documentul părinte și se șterge array-ul vechi...", 'info');
                 await updateDoc(chatDocRef, {
-                    messages: FieldValue.delete(),
-                    lastMessageText: String(lastMigratedMessage?.content || "").substring(0, 200),
+                    messages: deleteField(), // UTILIZARE CORECTĂ
+                    lastMessageText: String(lastSuccessfullyMigratedMessage?.content || "").substring(0, 200),
                     lastMessageTimestamp: lastMsgTsParent,
-                    lastMessageRole: String(lastMigratedMessage?.role || ""),
-                    migratedToSubcollection: true, // Marchează ca migrat
-                    migratedClientAt: Timestamp.now(),
+                    lastMessageRole: String(lastSuccessfullyMigratedMessage?.role || ""),
+                    migratedToSubcollection: true,
+                    migratedClientAt: serverTimestamp(), // Folosește serverTimestamp
                     migrationStatusClient: 'success'
                 });
 
-                logMessage(`Migrarea (client-side) pentru ${chatId} finalizată. ${messagesMigratedCount} mesaje mutate. Array 'messages' șters.`, 'success');
+                logMessage(`Migrarea (client-side) pentru ${chatId} finalizată! ${messagesMigratedCount} mesaje valide mutate. Array 'messages' șters.`, 'success');
 
             } catch (error) {
-                logMessage(`Eroare majoră la migrarea (client-side) pentru ${chatId}: ${error.message} \nStack: ${error.stack}`, 'error');
-                console.error(error);
-                // Încearcă să salvezi un status de eroare
+                logMessage(`Eroare Majoră la migrarea (client-side) pentru ${chatId}: ${error.message}\nStack: ${error.stack ? error.stack.substring(0,1000) : 'N/A'}`, 'error');
                 try {
-                    await updateDoc(doc(db, 'chatHistories', chatId), {
+                    await updateDoc(doc(db, 'chatHistories', chatId), { // Folosește updateDoc pentru a nu suprascrie tot
                         migrationStatusClient: 'failed',
-                        migrationErrorClient: error.message.substring(0, 500) // Limitează lungimea erorii
-                    });
+                        migrationErrorClient: error.message.substring(0, 500),
+                        migratedClientAt: serverTimestamp()
+                    }, {merge: true}); // Important să folosești merge dacă doc-ul ar putea să nu aibă aceste câmpuri
                 } catch (statusError) {
-                    logMessage(`Nu s-a putut actualiza statusul de eroare: ${statusError.message}`, 'error');
+                    logMessage(`Nu s-a putut actualiza statusul de eroare în Firestore: ${statusError.message}`, 'error');
                 }
             } finally {
                 startMigrationButton.disabled = false;
@@ -275,23 +289,20 @@
         }
 
         startMigrationButton.addEventListener('click', () => {
-            const chatIdToMigrate = chatIdInput.value;
-            if (confirm(`Sigur dorești să pornești migrarea pentru ID-ul: ${chatIdToMigrate}? Verifică ID-ul și fă un backup!`)) {
+            const chatIdToMigrate = chatIdInputEl.value; // Folosește chatIdInputEl
+            if (confirm(`ATENȚIE!\n\nVeți porni migrarea pentru ID-ul: ${chatIdToMigrate}\n\n- Asigurați-vă că ID-ul este corect.\n- Este RECOMANDAT să aveți un backup al datelor.\n- Dacă scriptul eșuează, verificați log-urile și consola pentru erori.\n\nContinuați?`)) {
                 migrateSingleChatClientSide(chatIdToMigrate);
             }
         });
 
         migrateAllButton.addEventListener('click', () => {
-            logMessage("Migrarea tuturor chat-urilor din client-side este o operațiune riscantă și nu este implementată robust aici. Folosește Admin SDK.", "error");
-            // Dacă ai implementa asta, ar trebui să faci getDocs pe 'chatHistories', să iterezi
-            // și să gestionezi rate limits, erori etc., ceea ce e foarte complex în client.
+            logMessage("Funcționalitatea 'Migrează Toate' nu este implementată robust pentru client-side din cauza riscurilor și complexității. Vă rugăm să folosiți un script Firebase Admin SDK pentru migrări în masă.", "error");
         });
 
-        // Initializează starea butonului pe baza autentificării
         if (auth.currentUser) {
             startMigrationButton.disabled = false;
         } else {
-            startMigrationButton.disabled = true; // Așteaptă onAuthStateChanged
+            // Butonul va fi activat de onAuthStateChanged
         }
 
     </script>
