@@ -82,56 +82,78 @@ function initializeSnakeGame() {
     const ctx = canvas.getContext('2d');
     const box = BOX_SIZE;
 
-    // Funcția de redimensionare a canvas-ului
+// Funcția de redimensionare a canvas-ului
     function resizeCanvas() {
-        const parent = canvas.parentElement; // Ar trebui să fie snakeGameInterface
-        const wrapper = snakeGameWrapper; // Părintele mai larg
-        
-        if (!parent || !wrapper) {
-            console.warn("Nu s-a putut redimensiona canvas-ul: elementele părinte lipsesc.");
-            return;
-        }
+        const parentInterface = canvas.parentElement; // Ar trebui să fie #snakeGameInterface
+        const gameModalContent = document.getElementById('snakeGameModalContent'); // Părintele mai larg, care are aspect-ratio
 
-        // Calculează dimensiunile disponibile LĂSÂND spațiu pentru celelalte elemente UI din #snakeGameInterface
-        // Aceste valori sunt aproximative și pot necesita ajustări fine bazate pe CSS-ul final.
-        const availableWidth = wrapper.clientWidth - (parseInt(getComputedStyle(parent).paddingLeft) + parseInt(getComputedStyle(parent).paddingRight) + 10); // 10px extra marjă
-        
-        // Calculăm înălțimea disponibilă mai atent:
-        // Înălțimea totală a wrapper-ului minus înălțimea elementelor non-canvas.
-        let nonCanvasHeight = 0;
-        const uiElements = [
-            parent.querySelector('h2'),
-            parent.querySelector('.score'),
-            parent.querySelector('.values'),
-            parent.querySelector('#snakeIntro.hidden') ? null : parent.querySelector('#snakeIntro'), // Doar dacă e vizibil
-            parent.querySelector('#snakeStatus'),
-            parent.querySelector('#snakeControls'),
-            parent.querySelector('.flex.gap-1'), // Butoanele de jos
-        ];
-        uiElements.forEach(el => {
-            if (el) {
-                nonCanvasHeight += el.offsetHeight;
-                const style = getComputedStyle(el);
-                nonCanvasHeight += parseInt(style.marginTop) + parseInt(style.marginBottom);
-            }
-        });
-        nonCanvasHeight += (parseInt(getComputedStyle(parent).paddingTop) + parseInt(getComputedStyle(parent).paddingBottom) + 10); // Padding-ul părintelui și o marjă
-
-        const availableHeight = wrapper.clientHeight - nonCanvasHeight;
-
-        if (availableWidth <= 0 || availableHeight <= 0) {
-            console.warn("Dimensiuni disponibile pentru canvas sunt <= 0. Verifică structura și CSS-ul.", availableWidth, availableHeight);
-            canvas.width = BOX_SIZE * 10; // Fallback la o dimensiune minimă
+        if (!parentInterface || !gameModalContent) {
+            console.warn("Nu s-a putut redimensiona canvas-ul: #snakeGameInterface sau #snakeGameModalContent lipsesc.");
+            canvas.width = BOX_SIZE * 10; // Fallback
             canvas.height = BOX_SIZE * 10;
             return;
         }
+
+        console.log("--- resizeCanvas START ---");
+        console.log("ModalContent dimensions (W x H):", gameModalContent.clientWidth, "x", gameModalContent.clientHeight);
+        console.log("ParentInterface computedStyle (paddingT, paddingB, paddingL, paddingR):",
+            getComputedStyle(parentInterface).paddingTop, getComputedStyle(parentInterface).paddingBottom,
+            getComputedStyle(parentInterface).paddingLeft, getComputedStyle(parentInterface).paddingRight);
+
+        // Lățimea disponibilă pentru canvas este lățimea interfeței părintelui minus padding-urile sale
+        const interfacePaddingLeft = parseInt(getComputedStyle(parentInterface).paddingLeft) || 0;
+        const interfacePaddingRight = parseInt(getComputedStyle(parentInterface).paddingRight) || 0;
+        const availableWidth = parentInterface.clientWidth - interfacePaddingLeft - interfacePaddingRight - 5; // O mică marjă de siguranță
         
-        // Determină dimensiunea maximă pătrată care încape
+        // Înălțimea disponibilă pentru canvas este mai complexă
+        // Luăm înălțimea totală a #snakeGameInterface și scădem înălțimea celorlalte elemente.
+        let nonCanvasHeight = 0;
+        const uiElementsToMeasure = [
+            parentInterface.querySelector('h2'),
+            parentInterface.querySelector('.score'),
+            parentInterface.querySelector('.values'),
+            parentInterface.querySelector('#snakeIntro:not(.hidden)'), // Doar dacă #snakeIntro NU e hidden
+            parentInterface.querySelector('#snakeStatus'),
+            parentInterface.querySelector('#snakeControls'),
+            parentInterface.querySelector('.flex.gap-1.justify-center.mt-auto.flex-wrap'), // Butoanele de jos (selector mai specific)
+        ];
+
+        console.log("Elements to measure for nonCanvasHeight:");
+        uiElementsToMeasure.forEach((el, index) => {
+            if (el) {
+                const elHeight = el.offsetHeight;
+                const marginTop = parseInt(getComputedStyle(el).marginTop) || 0;
+                const marginBottom = parseInt(getComputedStyle(el).marginBottom) || 0;
+                nonCanvasHeight += elHeight + marginTop + marginBottom;
+                console.log(`  - Element ${index}: height=${elHeight}, marginTop=${marginTop}, marginBottom=${marginBottom}. Current nonCanvasHeight=${nonCanvasHeight}`);
+            } else {
+                console.log(`  - Element ${index}: not found or not visible.`);
+            }
+        });
+
+        const interfacePaddingTop = parseInt(getComputedStyle(parentInterface).paddingTop) || 0;
+        const interfacePaddingBottom = parseInt(getComputedStyle(parentInterface).paddingBottom) || 0;
+        nonCanvasHeight += interfacePaddingTop + interfacePaddingBottom + 5; // Padding-ul containerului canvas-ului + marjă
+
+        console.log("Total nonCanvasHeight (including parentInterface padding):", nonCanvasHeight);
+        console.log("ParentInterface clientHeight:", parentInterface.clientHeight);
+
+        const availableHeight = parentInterface.clientHeight - nonCanvasHeight;
+
+        if (availableWidth <= 0 || availableHeight <= 0) {
+            console.warn(`Dimensiuni disponibile pentru canvas sunt <= 0. W: ${availableWidth}, H: ${availableHeight}. Verifică structura și CSS-ul.`);
+            canvas.width = BOX_SIZE * 10; // Fallback
+            canvas.height = BOX_SIZE * 10;
+            console.log("--- resizeCanvas END (fallback) ---");
+            return;
+        }
+        
         const newSizeBase = Math.min(availableWidth, availableHeight);
-        canvas.width = Math.floor(newSizeBase / box) * box; // Asigură multiplu de box
+        canvas.width = Math.floor(newSizeBase / box) * box;
         canvas.height = Math.floor(newSizeBase / box) * box;
 
-        console.log(`Canvas resized to: ${canvas.width}x${canvas.height} (available W/H: ${availableWidth.toFixed(0)}/${availableHeight.toFixed(0)}, nonCanvasH: ${nonCanvasHeight.toFixed(0)})`);
+        console.log(`Canvas resized to: ${canvas.width}x${canvas.height} (based on available W/H: ${availableWidth.toFixed(0)}/${availableHeight.toFixed(0)})`);
+        console.log("--- resizeCanvas END ---");
     }
     resizeCanvas(); // Apel inițial la crearea jocului
 
