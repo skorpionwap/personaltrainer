@@ -9,17 +9,17 @@ let gameVisibleAndActive = false; // Track if the game UI is currently supposed 
 let snakeGameWrapper;
 let startGameButton;
 
-
-// --- NEW HTML STRUCTURE (Provided by you, slightly adapted for clarity) ---
-// This structure will be injected directly into snakeGamePageContainer
+// --- HTML STRUCTURE FOR THE GAME ---
+// Acest HTML este preluat din #wrap din jocul tău original
+// și adaptat puțin pentru a se potrivi mai bine în container.
 const gameHTMLStructure = `
     <div id="snakeGameInterface" style="background: #293446; padding: 1rem; border-radius: 1rem; box-shadow: 0 4px 28px #0a121c; text-align: center; position: relative; max-width: 90%; margin: auto;">
       <h2 class="text-2xl text-yellow-200 mb-2" style="font-size: 1.5rem;">Snake 🐍 – Călătoria Interioară</h2>
       <div class="score mb-2" aria-live="polite" style="color: #e2e8f0;">Scor: <span id="snakeScore">0</span> | Maxim: <span id="snakeHighScore">0</span></div>
       <div class="values mb-2" aria-live="polite" style="color: #e2e8f0;">
-        💙 Emp: <span id="snakeEmpatie">0</span>
-        🦁 Cur: <span id="snakeCuraj">0</span>
-        ⏳ Răb: <span id="snakeRabdare">0</span>
+        💙 <span id="snakeEmpatie">0</span>
+        🦁 <span id="snakeCuraj">0</span>
+        ⏳ <span id="snakeRabdare">0</span>
       </div>
       <div id="snakeIntro" class="hidden bg-gray-700 p-4 rounded-lg mb-2 text-center" role="dialog" style="color: #e2e8f0;"></div>
       <canvas id="snakeCanvas" width="320" height="320" tabindex="0" aria-label="Joc Snake cu tematică emoțională" class="focus:outline-none focus:ring-2 focus:ring-green-600" style="background: #1d2230; border-radius: 0.5rem; box-shadow: 0 4px 16px #1118; display: block; margin: 0 auto 0.5rem; transition: transform 0.2s ease-in-out;"></canvas>
@@ -28,11 +28,9 @@ const gameHTMLStructure = `
       <div class="flex gap-2 justify-center">
         <button id="snakeRestartBtn" class="hidden px-4 py-2 bg-green-600 text-white rounded-lg shadow-lg hover:bg-green-700 transition duration-300" aria-label="Repornește jocul">Restart</button>
         <button id="snakeJournalBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition duration-300" aria-label="Deschide jurnalul">Jurnal</button>
-        <button id="snakeShopBtn" class="px-4 py-2 bg-yellow-500 text-white rounded-lg shadow-lg hover:bg-yellow-700 transition duration-300" aria-label="Deschide magazinul">Magazin</button>
+        <button id="snakeShopBtn" class="px-4 py-2 bg-yellow-600 text-white rounded-lg shadow-lg hover:bg-yellow-700 transition duration-300" aria-label="Deschide magazinul">Magazin</button>
         <button id="snakeLangBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow-lg hover:bg-purple-700 transition duration-300" aria-label="Schimbă limba">English</button>
       </div>
-      
-      {/* Modals remain as fixed overlays, triggered by buttons within snakeGameInterface */}
       <div id="snakeJournalModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 p-4">
         <div class="bg-gray-700 p-6 rounded-lg shadow-xl w-full max-w-md">
           <h3 class="text-xl text-yellow-200 mb-3">Jurnal Emoțional (Joc)</h3>
@@ -62,7 +60,6 @@ const gameHTMLStructure = `
       <div id="snakeEffect" aria-live="assertive" style="position: absolute; left: 50%; top: 24%; transform: translate(-50%, -50%); font-size: 1.9rem; font-weight: bold; color: #ffe166; text-shadow: 0 0 12px #000, 0 0 8px #232c37; pointer-events: none; opacity: 0; transition: opacity 0.8s;"></div>
     </div>
 `;
-
 
 
 function initializeSnakeGame() {
