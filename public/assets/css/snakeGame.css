@@ -1,6 +1,13 @@
 /* assets/css/snakeGame.css */
 
-/* Variabile de culoare (opțional, Tailwind deja oferă un sistem robust) */
+/* Aplică box-sizing: border-box global în interiorul modalului jocului pentru calcule mai ușoare */
+#snakeGameModalContainer *,
+#snakeGameModalContainer *::before,
+#snakeGameModalContainer *::after {
+    box-sizing: border-box;
+}
+
+/* Variabile de culoare */
 :root {
     --snake-game-text-default: #e2e8f0; /* gray-200 */
     --snake-game-text-dim: #94a3b8;    /* gray-400 */
@@ -13,192 +20,291 @@
     --snake-game-accent-red: #f87171;   /* red-400 */
 }
 
-/* Containerul modal principal pentru joc */
-#snakeGameModalContainer {
-    /* display: none; (gestionat de JS) */
-    /* Tailwind classes: fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-40 p-4 */
-    /* Poți adăuga aici un backdrop-filter dacă dorești un efect de blur */
-    /* backdrop-filter: blur(4px); */
-}
+/* Containerul modal principal pentru joc (stiluri din HTML-ul tău) */
+/* #snakeGameModalContainer este stilizat inline/Tailwind în psihoterapie.html */
+/* fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-40 p-4 */
 
+/* Conținutul modalului, părintele direct al wrapper-ului jocului */
 #snakeGameModalContent {
-    /* Tailwind classes: bg-gray-900 p-1 sm:p-2 rounded-lg shadow-xl relative w-full max-w-lg ... aspect-[4/3.5] ... */
-    /* Asigură-te că aspect-ratio funcționează bine sau ajustează height/max-height */
-    /* max-height: 95vh; poate fi mai util decât aspect-ratio fix pentru diverse ecrane */
-    border: 1px solid #4b5563; /* gray-600, un mic chenar */
+    background-color: var(--snake-game-bg-dark); /* gray-900, dar folosim variabila */
+    padding: 0.25rem; /* sm:p-2 este 0.5rem, p-1 este 0.25rem. Ajustează după preferințe */
+    border-radius: 0.5rem; /* rounded-lg */
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* shadow-xl */
+    position: relative;
+    width: 100%;
+    max-width: 48rem; /* md:max-w-2xl este 48rem, lg:max-w-3xl este 64rem. Ajustează. */
+    aspect-ratio: 4 / 3.5; /* Menține acest aspect ratio */
+    display: flex; /* Pentru a centra snakeGameWrapper dacă nu ocupă tot spațiul */
+    flex-direction: column; /* Asigură că snakeGameWrapper se poate extinde pe înălțime */
+    border: 1px solid #4b5563; /* gray-600 */
+    overflow: hidden; /* Previne ieșirea conținutului */
 }
 
-/* Wrapper-ul intern injectat de JS, dacă #snakeGameWrapper este direct în #snakeGameModalContent */
-#snakeGameModalContent #snakeGameWrapper {
-    /* Tailwind: h-full w-full flex-grow flex flex-col justify-center items-center ... */
-    /* background-color: #222c36; (deja inline, poate fi aici) */
-    /* border-radius: 0.5rem; (deja inline, poate fi aici) */
+/* Wrapper-ul intern injectat de JS, unde se randează UI-ul jocului */
+#snakeGameWrapper {
+    width: 100%;
+    height: 100%; /* Ocupă tot spațiul din #snakeGameModalContent */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Centrează #snakeGameInterface dacă e mai mic */
+    align-items: center;   /* Centrează #snakeGameInterface dacă e mai mic */
+    background-color: #222c36; /* Fundal specific wrapper-ului */
+    border-radius: 0.375rem; /* Un pic mai mic decât părintele pentru un efect de padding vizual */
+    flex-grow: 1; /* Important pentru a ocupa spațiul disponibil în #snakeGameModalContent */
+    overflow: hidden; /* Previne conținutul din #snakeGameInterface să iasă */
 }
 
-/* Interfața principală a jocului */
+/* Interfața principală a jocului, containerul tuturor elementelor UI */
 #snakeGameInterface {
-    /* Tailwind: text-gray-200 text-center w-full h-full flex flex-col p-2 */
-    /* background: #293446; (deja inline) */
-    font-family: 'Ubuntu', 'Roboto', sans-serif; /* Font specific pentru joc */
+    width: 100%;
+    height: 100%; /* Ocupă tot spațiul din #snakeGameWrapper */
+    display: flex;
+    flex-direction: column; /* Aranjează elementele pe verticală */
+    align-items: center; /* Centrează elementele pe orizontală (ex: canvas, butoane) */
+    padding: 0.5rem; /* Spațiu intern (Tailwind p-2) */
+    background: var(--snake-game-bg-medium);
+    font-family: 'Ubuntu', 'Roboto', sans-serif;
     color: var(--snake-game-text-default);
+    text-align: center;
+    overflow: hidden; /* Dacă elementele devin prea înalte, ascunde scrollbar-ul interfeței */
 }
 
+/* Titlul jocului */
 #snakeGameInterface h2 {
-    /* Tailwind: text-xl sm:text-2xl text-yellow-300 mb-1 font-semibold */
-    /* color: var(--snake-game-accent-yellow); */
+    font-size: 1.25rem; /* text-xl */
+    /* sm:text-2xl -> 1.5rem. Poți adăuga media query dacă e necesar */
+    color: var(--snake-game-accent-yellow);
+    margin-bottom: 0.25rem; /* mb-1 */
+    font-weight: 600; /* font-semibold */
+    flex-shrink: 0; /* Nu permite micșorarea titlului */
 }
 
+/* Informații scor, nivel, etc. */
 #snakeGameInterface .score,
 #snakeGameInterface .values {
-    /* Tailwind: text-xs sm:text-sm mb-1 */
+    font-size: 0.75rem; /* text-xs */
+    /* sm:text-sm -> 0.875rem */
+    margin-bottom: 0.25rem; /* mb-1 */
     color: var(--snake-game-text-dim);
+    flex-shrink: 0; /* Nu permite micșorarea */
+    line-height: 1.2; /* Îmbunătățește lizibilitatea */
 }
+#snakeGameInterface .values {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem; /* gap-3 */
+}
+
 #snakeGameInterface .score span,
-#snakeGameInterface .values span span { /* Targetează valorile numerice */
-    /* Tailwind: font-bold ... */
-    /* Culoarea specifică e deja setată de Tailwind (text-green-400 etc.) */
+#snakeGameInterface .values span span { /* Valorile numerice */
+    font-weight: 700; /* font-bold */
+    /* Culorile specifice (green, yellow, blue) sunt setate inline/Tailwind în HTML-ul jocului */
 }
 
+/* Mesajul de introducere al nivelului */
 #snakeIntro {
-    /* Tailwind: hidden bg-gray-700 p-2 sm:p-3 rounded-lg my-1 text-sm text-center */
-    background-color: rgba(0,0,0,0.2); /* Fundal mai subtil pentru intro */
+    background-color: rgba(0,0,0,0.25);
+    padding: 0.5rem 0.75rem; /* p-2 sm:p-3 */
+    border-radius: 0.5rem; /* rounded-lg */
+    margin-top: 0.25rem; /* my-1 */
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem; /* text-sm */
+    text-align: center;
     border: 1px solid var(--snake-game-bg-light);
+    flex-shrink: 0; /* Nu permite micșorarea */
+    max-width: 95%;
 }
+/* Clasa .hidden este adăugată de JS */
 
+/* Canvas-ul jocului */
 #snakeCanvas {
-    /* Tailwind: focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md shadow-lg block mx-auto mb-1 flex-shrink-0 */
-    /* background: #1d2230; (deja inline) */
-    /* max-width: 100%; height: auto; (deja inline) */
-    border: 2px solid #4b5563; /* gray-600, un chenar mai vizibil pentru canvas */
-    image-rendering: pixelated; /* Pentru un aspect retro, dacă dorești */
+    display: block; /* Elimină spațiul extra de sub canvas dacă e inline */
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 0.25rem; /* mb-1 */
+    border: 2px solid #4b5563; /* gray-600 */
+    border-radius: 0.375rem; /* rounded-md */
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); /* shadow-lg */
+    background: #1d2230; /* Fundal specific canvas-ului */
+    image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
+    /* Lățimea și înălțimea sunt setate de JS prin funcția resizeCanvas */
+    /* Nu seta flex-grow sau height: auto aici, lasă JS să controleze */
+    flex-shrink: 0; /* Important: Nu lăsa canvas-ul să se micșoreze */
+    max-width: 100%; /* Asigură că nu depășește containerul dacă JS calculează greșit */
+}
+#snakeCanvas:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.5); /* focus:ring-2 focus:ring-green-500 */
 }
 
+/* Bara de status pentru efecte active */
 #snakeStatus {
-    /* Tailwind: flex gap-1 sm:gap-2 justify-center my-1 text-xs sm:text-sm */
-    min-height: 28px; /* Spațiu pentru efecte chiar dacă e gol */
+    display: flex;
+    gap: 0.25rem; /* sm:gap-2 este 0.5rem, gap-1 este 0.25rem */
+    justify-content: center;
+    align-items: center; /* Aliniază efectele pe verticală */
+    margin-top: 0.25rem; /* my-1 */
+    margin-bottom: 0.25rem;
+    min-height: 28px; /* Spațiu rezervat */
+    flex-shrink: 0; /* Nu permite micșorarea */
+    width: 100%; /* Ocupă toată lățimea pentru a centra corect */
+    flex-wrap: wrap; /* Permite trecerea pe rândul următor dacă sunt multe efecte */
 }
 
+/* Controalele jocului (text informativ) */
 #snakeControls {
-    /* Tailwind: controls text-gray-400 text-xs sm:text-sm mb-1 */
     color: var(--snake-game-text-dim);
+    font-size: 0.75rem; /* text-xs */
+    /* sm:text-sm */
+    margin-bottom: 0.25rem; /* mb-1 */
+    flex-shrink: 0; /* Nu permite micșorarea */
+}
+
+/* Containerul pentru butoanele de acțiune din partea de jos */
+#snakeGameInterface > .flex.gap-1,
+#snakeGameInterface > .flex.gap-2 { /* Selector mai specific pentru containerul butoanelor */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap; /* Permite trecerea pe rândul următor */
+    gap: 0.25rem; /* Tailwind gap-1 / sm:gap-2 */
+    margin-top: auto; /* ÎMPINGE ACEST GRUP DE BUTOANE SPRE PARTEA DE JOS A #snakeGameInterface */
+    padding-top: 0.25rem; /* Puțin spațiu deasupra butoanelor */
+    flex-shrink: 0; /* Nu permite micșorarea */
+    width: 100%; /* Ocupă lățimea pentru centrare */
 }
 
 /* Butoanele principale din joc */
-#snakeGameInterface .flex.gap-1 button,
-#snakeGameInterface .flex.gap-2 button {
-    /* Tailwind: px-2 py-1 sm:px-3 sm:py-1.5 ... text-xs sm:text-sm rounded-md shadow */
-    /* Poți adăuga aici un font-weight sau tranziții dacă nu sunt acoperite */
-    font-weight: 500;
+#snakeGameInterface button { /* Stil general pentru toate butoanele din interfața jocului */
+    padding: 0.375rem 0.75rem; /* px-2 py-1 sm:px-3 sm:py-1.5 */
+    font-size: 0.75rem; /* text-xs sm:text-sm */
+    border-radius: 0.375rem; /* rounded-md */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow */
+    font-weight: 500; /* font-medium */
+    color: white;
     transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+    border: none;
+    cursor: pointer;
 }
-#snakeGameInterface .flex.gap-1 button:hover,
-#snakeGameInterface .flex.gap-2 button:hover {
+#snakeGameInterface button:hover {
     transform: translateY(-1px);
 }
-#snakeGameInterface .flex.gap-1 button:active,
-#snakeGameInterface .flex.gap-2 button:active {
+#snakeGameInterface button:active {
     transform: translateY(0px);
 }
 
+/* Culori specifice butoanelor (din HTML-ul jocului) */
+/* Exemplu: #snakeRestartBtn va avea bg-green-600 etc. direct în HTML. */
+/* Adaugă aici suprascrieri dacă e necesar. */
 
-/* Stiluri Generale pentru Modalele Jocului (Jurnal, Shop, Minigame) */
-/* Clasa .modal-overlay este definită în JS (gameStyles) - o replicăm aici pentru referință și posibile ajustări */
-.modal-overlay {
+
+/* ---- Stiluri Generale pentru Modalele Jocului (Jurnal, Shop, Minigame) ---- */
+.modal-overlay { /* Clasa adăugată de JS la deschiderea modalelor interne (Jurnal, Shop) */
     position: fixed;
     inset: 0;
-    background-color: rgba(17, 24, 39, 0.85); /* gray-900 cu mai mult opacity */
-    display: flex; /* Tailwind: flex */
-    align-items: center; /* Tailwind: items-center */
-    justify-content: center; /* Tailwind: justify-center */
-    z-index: 1000; /* Asigură-te că e deasupra celorlalte elemente, inclusiv chat-ul AI */
-    padding: 1rem; /* Tailwind: p-4 */
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
+    background-color: rgba(17, 24, 39, 0.9); /* gray-900 cu mai mult opacity */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000; /* Deasupra chat-ului AI și a modalului principal al jocului */
+    padding: 1rem;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
+/* Clasa .hidden este adăugată de JS pentru a le ascunde */
 
-.modal-content {
-    background-color: var(--snake-game-bg-medium); /* #2d3748 era gray-800, acesta e mai specific */
+.modal-content { /* Conținutul efectiv al modalelor Jurnal, Shop */
+    background-color: var(--snake-game-bg-medium);
     color: var(--snake-game-text-default);
-    padding: 1rem 1.5rem 1.5rem 1.5rem; /* Tailwind: p-6, ajustat puțin */
-    border-radius: 0.5rem; /* Tailwind: rounded-lg */
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1); /* Umbră + chenar fin */
+    padding: 1.25rem 1.5rem; /* Puțin mai mult padding vertical */
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1);
     width: 100%;
-    max-width: 480px; /* Puțin mai mic decât 500px standard pentru a se potrivi mai bine pe ecrane medii */
+    max-width: 480px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
     border: 1px solid #4b5563; /* gray-600 */
+    overflow: hidden; /* Previne scrollbar pe modal dacă conținutul e prea mare */
 }
 
 .modal-title {
-    font-size: 1.125rem; /* Tailwind: text-lg */
-    line-height: 1.75rem; /* Tailwind: leading-7 */
-    font-weight: 600; /* Tailwind: font-semibold */
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 600; /* font-semibold */
     color: var(--snake-game-accent-yellow);
-    margin-bottom: 1rem; /* Tailwind: mb-4 */
+    margin-bottom: 1rem; /* mb-4 */
     text-align: center;
+    flex-shrink: 0;
 }
 
 .modal-textarea {
     width: 100%;
-    padding: 0.625rem 0.75rem; /* Tailwind: p-2.5 sau p-3 */
-    background-color: var(--snake-game-bg-light); /* gray-700 */
-    border-radius: 0.375rem; /* Tailwind: rounded-md */
-    border: 1px solid #4b5563; /* gray-600 */
+    padding: 0.625rem 0.75rem;
+    background-color: var(--snake-game-bg-light);
+    border-radius: 0.375rem;
+    border: 1px solid #4b5563;
     color: var(--snake-game-text-default);
-    min-height: 90px; /* Tailwind: aprox h-24 */
+    min-height: 90px;
     margin-bottom: 1rem;
     font-size: 0.875rem; /* text-sm */
+    resize: vertical; /* Permite redimensionare verticală */
+    flex-shrink: 0;
 }
 .modal-textarea:focus {
     outline: none;
     border-color: var(--snake-game-accent-blue);
-    box-shadow: 0 0 0 2px rgba(var(--snake-game-accent-blue), 0.4); /* Culoare shadow mai potrivită */
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.4); /* Folosind var(--snake-game-accent-blue) ca bază */
 }
 
-.modal-scroll-content {
+.modal-scroll-content { /* Pentru vizualizarea intrărilor din jurnal */
     background-color: var(--snake-game-bg-light);
     padding: 0.75rem;
     border-radius: 0.375rem;
-    margin-top: 0.75rem;
-    max-height: 180px; /* Ajustat */
-    overflow-y: auto;
-    font-size: 0.8rem; /* Puțin mai mic */
-    border: 1px solid #4b5563; /* gray-600 */
+    margin-top: 0.5rem; /* Redus puțin */
+    /* max-height: 180px; - se poate controla mai bine cu flex-grow */
+    overflow-y: auto; /* Permite scroll intern */
+    font-size: 0.8rem;
+    border: 1px solid #4b5563;
+    flex-grow: 1; /* Permite acestui element să ocupe spațiul rămas */
+    min-height: 50px; /* Înălțime minimă */
 }
-.modal-scroll-content div { /* Fiecare intrare din jurnalul vizualizat */
+.modal-scroll-content div {
     padding-bottom: 0.5rem;
     margin-bottom: 0.5rem;
-    border-bottom: 1px solid #4b5563; /* gray-600 */
+    border-bottom: 1px solid #4b5563;
 }
 .modal-scroll-content div:last-child {
     border-bottom: none;
     margin-bottom: 0;
 }
 .modal-scroll-content p {
-    word-break: break-word; /* Asigură împărțirea cuvintelor lungi */
+    word-break: break-word;
 }
 
-.modal-actions {
+.modal-actions { /* Butoanele din subsolul modalelor Jurnal, Shop */
     margin-top: 1rem;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem; /* Tailwind: gap-2 */
+    gap: 0.5rem;
     justify-content: flex-end;
+    flex-shrink: 0;
 }
 
-.modal-actions button, .shop-item-btn { /* Stil comun pentru butoanele din modalele jocului */
+/* Stil comun pentru butoanele din modalele Jurnal, Shop */
+.modal-actions button, .shop-item-btn {
     color: white;
-    padding: 0.5rem 0.875rem; /* Tailwind: py-2 px-3.5 */
-    border-radius: 0.375rem; /* Tailwind: rounded-md */
-    font-size: 0.75rem; /* Tailwind: text-xs */
-    font-weight: 500; /* Tailwind: font-medium */
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.05em; /* Tailwind: tracking-wider */
+    letter-spacing: 0.05em;
     transition: background-color 0.2s, transform 0.1s;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: none;
+    cursor: pointer;
 }
 .modal-actions button:hover, .shop-item-btn:hover {
     transform: translateY(-1px);
@@ -208,90 +314,101 @@
     transform: translateY(0);
 }
 
-/* Culori specifice butoanelor de modal, definite în JS dar pot fi centralizate aici */
-.modal-btn-primary    { background-color: #2563eb; /* Tailwind: bg-blue-600 */ } .modal-btn-primary:hover    { background-color: #1d4ed8; /* bg-blue-700 */ }
-.modal-btn-secondary  { background-color: #ca8a04; /* Tailwind: bg-yellow-600 */ color: var(--snake-game-bg-dark) !important; } .modal-btn-secondary:hover  { background-color: #a16207; /* bg-yellow-700 */ }
-.modal-btn-neutral    { background-color: #4b5563; /* Tailwind: bg-gray-600 */ } .modal-btn-neutral:hover    { background-color: #374151; /* bg-gray-700 */ }
-.modal-btn-danger     { background-color: #dc2626; /* Tailwind: bg-red-600 */ } .modal-btn-danger:hover     { background-color: #b91c1c; /* bg-red-700 */ }
+/* Culori specifice butoanelor de modal (din JS) */
+.modal-btn-primary    { background-color: #2563eb; } .modal-btn-primary:hover    { background-color: #1d4ed8; }
+.modal-btn-secondary  { background-color: #ca8a04; color: var(--snake-game-bg-dark) !important; } .modal-btn-secondary:hover  { background-color: #a16207; }
+.modal-btn-neutral    { background-color: #4b5563; } .modal-btn-neutral:hover    { background-color: #374151; }
+.modal-btn-danger     { background-color: #dc2626; } .modal-btn-danger:hover     { background-color: #b91c1c; }
 
-/* Shop Items */
-.shop-item-btn {
+/* ---- Shop Items ---- */
+#snakeShopItems { /* Containerul pentru itemele din shop */
+    display: grid; /* Sau flex, depinde cum vrei să arate */
+    gap: 0.5rem;
+    overflow-y: auto; /* Scroll dacă sunt multe iteme */
+    flex-grow: 1; /* Ocupă spațiul rămas */
+    padding: 0.25rem; /* Un mic padding intern */
+    background-color: var(--snake-game-bg-light); /* Fundal ușor diferit */
+    border-radius: 0.25rem;
+    min-height: 100px; /* Înălțime minimă */
+}
+
+.shop-item-btn { /* Butonul individual pentru un item din shop */
     width: 100%;
     text-align: left;
-    background-color: var(--snake-game-accent-blue); /* Tailwind: bg-blue-500 era în JS */
-    margin-bottom: 0.5rem;
+    background-color: var(--snake-game-accent-blue);
+    margin-bottom: 0; /* Gap-ul din grid se ocupă de spațiere */
 }
 .shop-item-btn:hover {
-    background-color: #2563eb; /* Tailwind: bg-blue-600 */
+    background-color: #2563eb; /* blue-600 */
 }
 .shop-item-btn:disabled {
-    opacity: 0.7;
+    opacity: 0.6; /* Redus opacitatea pentru a fi mai clar că e disabled */
     cursor: not-allowed;
-    background-color: var(--snake-game-bg-light) !important; /* Suprascrie hover */
+    background-color: var(--snake-game-bg-light) !important;
     transform: none !important;
     box-shadow: none !important;
+    color: var(--snake-game-text-dim) !important;
 }
 .shop-item-cost {
-    font-size: 0.7rem; /* Tailwind: text-xs */
-    color: var(--snake-game-text-dim); /* gray-400 */
-    margin-top: 0.125rem; /* Tailwind: mt-0.5 */
+    font-size: 0.7rem;
+    color: var(--snake-game-text-default); /* Mai vizibil pe fundalul butonului */
+    opacity: 0.8;
+    margin-top: 0.125rem;
 }
 .shop-item-btn div:first-child { /* Numele itemului */
     font-weight: 500;
 }
 
-
-/* Efectul de flash text */
-#snakeEffect.game-effect { /* Asigură specificitate mai mare */
-    position: absolute;
+/* ---- Efectul de flash text ---- */
+#snakeEffect.game-effect {
+    position: absolute; /* Relativ la #snakeGameInterface (sau #snakeGameWrapper dacă e poziționat acolo) */
     left: 50%;
-    top: 15%; /* Puțin mai sus */
+    top: 15%; /* Poziționat mai sus în interfață */
     transform: translate(-50%, -50%);
-    font-size: 1.25rem; /* Ajustat */
+    font-size: 1.25rem;
     font-weight: bold;
     color: var(--snake-game-accent-yellow);
     text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Adaugă transform pentru un efect de "pop" */
-    z-index: 100;
+    transition: opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 100; /* Deasupra canvas-ului, dar sub modalele interne */
     padding: 0.5rem 1rem;
-    background-color: rgba(30, 41, 59, 0.7); /* gray-800 cu alpha */
+    background-color: rgba(var(--snake-game-bg-dark), 0.8); /* Folosește variabilă cu alpha */
     border-radius: 0.5rem;
     border: 1px solid rgba(255,255,255,0.1);
     max-width: 90%;
     line-height: 1.3;
+    text-align: center;
 }
 #snakeEffect.game-effect.positive { color: var(--snake-game-accent-green); }
 #snakeEffect.game-effect.negative { color: var(--snake-game-accent-red); }
-#snakeEffect.game-effect[style*="opacity: 1"] { /* Când e vizibil */
+#snakeEffect.game-effect[style*="opacity: 1"] {
     transform: translate(-50%, -50%) scale(1.05);
 }
 
-
-/* Bara de status pentru efecte active */
+/* ---- Bara de status pentru efecte active (sub canvas) ---- */
 #snakeStatus .stat-effect {
     display: flex;
     flex-direction: column;
     align-items: center;
-    background-color: rgba(0,0,0,0.35);
+    background-color: rgba(0,0,0,0.4); /* Ușor mai transparent */
     padding: 3px 6px;
     border-radius: 4px;
-    margin: 0 2px;
-    font-size: 0.65rem; /* Micșorat */
+    font-size: 0.65rem;
     color: var(--snake-game-text-default);
     min-width: 55px;
     text-align:center;
     border: 1px solid rgba(255,255,255,0.1);
     box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
-#snakeStatus .stat-effect.neg-effect span:first-child { /* Textul efectului negativ */
+#snakeStatus .stat-effect.neg-effect span:first-child {
     color: var(--snake-game-accent-red);
     font-weight: 500;
 }
 #snakeStatus .effect-bar-container {
     width: 100%;
-    height: 3px; /* Subțiat */
+    height: 3px;
     background-color: rgba(255,255,255,0.15);
     border-radius: 2px;
     margin-top: 2px;
@@ -301,61 +418,115 @@
     height: 100%;
     background-color: var(--snake-game-accent-green);
     border-radius: 2px;
-    transition: width 0.1s linear; /* Suficient de rapid */
+    transition: width 0.1s linear;
 }
 #snakeStatus .stat-effect.neg-effect .effect-bar {
     background-color: var(--snake-game-accent-red);
 }
 
-
 /* Butonul de lansare modal joc (din psihoterapie.html) */
-#launchGameModalButton.button-primary {
-    /* Moștenește stilurile .button-primary din psihoterapie.css */
-    /* Poți adăuga aici suprascrieri dacă e necesar */
-    font-size: 1rem;
-    padding: 0.6rem 1.2rem;
-    margin-top: 0.5rem;
-}
+/* #launchGameModalButton este stilizat cu clasele .button-primary .button-large în HTML */
 
-/* Separator de secțiune (dacă e folosit în psihoterapie.html) */
+/* Separator de secțiune (din psihoterapie.html) */
 .section-divider {
-    margin-top: 1.5rem; /* Ajustat */
+    margin-top: 1.5rem;
     margin-bottom: 1.5rem;
     border: 0;
-    border-top: 1px solid #374151; /* gray-700, mai subtil */
+    border-top: 1px solid var(--snake-game-bg-light); /* Mai subtil */
 }
 
-/* Responsive adjustments specific to game interface if needed beyond Tailwind */
-@media (max-width: 480px) {
+/* ---- Responsive adjustments ---- */
+@media (max-width: 640px) { /* sm breakpoint Tailwind, ajustează interfața jocului */
+    #snakeGameModalContent {
+        padding: 0.25rem; /* Mai puțin padding pe mobil pentru #snakeGameModalContent */
+        /* max-width: 100%; Poate fi necesar dacă max-width-ul de mai sus e prea restrictiv */
+        /* aspect-ratio: 4 / 4; Sau un aspect mai pătrățos pe mobil */
+    }
+    #snakeGameInterface {
+        padding: 0.375rem; /* Mai puțin padding intern pentru UI-ul jocului */
+    }
     #snakeGameInterface h2 {
-        font-size: 1.25rem; /* text-xl */
+        font-size: 1.125rem; /* text-lg */
+        margin-bottom: 0.125rem;
     }
     #snakeGameInterface .score,
     #snakeGameInterface .values,
     #snakeControls,
     #snakeStatus .stat-effect {
-        font-size: 0.7rem; /* Mai mic pe ecrane foarte mici */
+        font-size: 0.65rem; /* Și mai mic pe ecrane foarte mici */
+        margin-bottom: 0.125rem;
+        gap: 0.25rem; /* Micșorează gap-ul în .values și #snakeStatus */
     }
-    #snakeGameInterface .flex.gap-1 button,
-    #snakeGameInterface .flex.gap-2 button {
-        padding: 0.375rem 0.625rem; /* py-1.5 px-2.5 */
-        font-size: 0.7rem;
+    #snakeGameInterface .values {
+        gap: 0.5rem;
+    }
+    #snakeStatus {
+        min-height: 24px;
+        margin-top: 0.125rem;
+        margin-bottom: 0.125rem;
+    }
+    #snakeGameInterface button { /* Butoanele din joc */
+        padding: 0.25rem 0.5rem; /* py-1 px-2 */
+        font-size: 0.65rem;
+    }
+    #snakeIntro {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.75rem;
     }
     #snakeEffect.game-effect {
-        font-size: 1.1rem;
+        font-size: 1rem;
         padding: 0.4rem 0.8rem;
+        top: 12%; /* Puțin mai sus pe ecrane mici */
     }
-    .modal-content {
+
+    /* Modale interne (Jurnal, Shop) pe ecrane mici */
+    .modal-content { /* .modal-content din Jurnal/Shop */
         padding: 1rem;
     }
     .modal-title {
-        font-size: 1rem;
+        font-size: 1rem; /* text-base */
     }
     .modal-textarea {
         min-height: 70px;
+        font-size: 0.875rem;
     }
     .modal-actions button, .shop-item-btn {
         padding: 0.4rem 0.75rem;
         font-size: 0.7rem;
     }
+}
+
+/* Ascunde scrollbar-urile inestetice unde avem overflow: auto controlat */
+/* Pentru Chrome, Edge, și Safari */
+#snakeGameInterface::-webkit-scrollbar,
+.modal-scroll-content::-webkit-scrollbar,
+#snakeShopItems::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+#snakeGameInterface::-webkit-scrollbar-track,
+.modal-scroll-content::-webkit-scrollbar-track,
+#snakeShopItems::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.1);
+    border-radius: 4px;
+}
+#snakeGameInterface::-webkit-scrollbar-thumb,
+.modal-scroll-content::-webkit-scrollbar-thumb,
+#snakeShopItems::-webkit-scrollbar-thumb {
+    background-color: var(--snake-game-text-dim);
+    border-radius: 4px;
+    border: 2px solid transparent; /* Creează un efect de padding */
+    background-clip: content-box;
+}
+#snakeGameInterface::-webkit-scrollbar-thumb:hover,
+.modal-scroll-content::-webkit-scrollbar-thumb:hover,
+#snakeShopItems::-webkit-scrollbar-thumb:hover {
+    background-color: var(--snake-game-text-default);
+}
+/* Pentru Firefox */
+#snakeGameInterface,
+.modal-scroll-content,
+#snakeShopItems {
+    scrollbar-width: thin;
+    scrollbar-color: var(--snake-game-text-dim) rgba(0,0,0,0.1);
 }
