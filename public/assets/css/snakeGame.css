@@ -1,0 +1,140 @@
+/* assets/css/snakeGame.css sau adăugat în psihoterapie.css */
+
+/* Wrapper general pentru joc în tab-ul de Resurse */
+#interactiveGameSection .game-wrapper {
+    /* background-color: #222c36; (deja setat inline, poate fi mutat aici) */
+    /* padding: 15px; (deja setat inline) */
+    /* border-radius: 8px; (deja setat inline) */
+    /* text-align: center; (deja setat inline) */
+    /* margin-top: 20px; (deja setat inline) */
+    border: 1px solid #374151; /* Un mic chenar pentru delimitare */
+}
+
+/* Interfața principală a jocului, dacă vrei să suprascrii stilurile din #wrap */
+#snakeGameInterface {
+    /* max-width: 90%; (deja inline) */
+    /* ... alte stiluri generale pentru containerul jocului ... */
+    color: #e2e8f0; /* Text default pentru joc, dacă nu e setat de Tailwind */
+}
+
+#snakeGameInterface h2 {
+    /* font-size: 1.5rem; (deja inline) */
+    /* color: #fde047; /* Tailwind: text-yellow-300 sau text-yellow-200 */
+    /* margin-bottom: 0.5rem; /* Tailwind: mb-2 */
+}
+
+/* Stil pentru canvas, dacă e nevoie de ajustări */
+#snakeCanvas {
+    /* background: #1d2230; (deja inline) */
+    /* border-radius: 0.5rem; (deja inline) */
+    /* ... alte stiluri ... */
+    max-width: 100%; /* Asigură responsivitatea */
+    height: auto;    /* Menține aspect ratio dacă width-ul e ajustat */
+}
+
+/* Stiluri pentru scor, valori etc. - exemplu de suprascriere dacă e nevoie */
+#snakeGameInterface .score,
+#snakeGameInterface .values {
+    font-size: 1rem; /* Ajustează mărimea fontului dacă e necesar */
+    /* color: #cbd5e1; /* Tailwind: text-gray-300 */
+}
+
+/* Butoanele din joc - pot moșteni stilurile globale sau pot fi personalizate */
+#snakeGameInterface button {
+    /* Stiluri de bază pentru butoanele din joc, dacă nu sunt acoperite de Tailwind sau psihoterapie.css */
+    /* De exemplu, dacă vrei un font specific pentru joc */
+    /* font-family: 'Arial', sans-serif; */
+}
+
+/* Stiluri pentru modalele jocului (Jurnal, Shop, Minigame) */
+#snakeJournalModal,
+#snakeShopModal,
+#snakeMinigameModal {
+    /* display: none; (gestionat de JS) */
+    /* position: fixed; (deja inline în Tailwind) */
+    /* inset: 0; (deja inline în Tailwind) */
+    /* background-color: rgba(31, 41, 55, 0.75); /* Tailwind: bg-gray-800 bg-opacity-75 */
+    /* display: flex; (deja inline în Tailwind) */
+    /* align-items: center; (deja inline în Tailwind) */
+    /* justify-content: center; (deja inline în Tailwind) */
+    /* z-index: 50; (deja inline în Tailwind) */
+    /* padding: 1rem; /* Tailwind: p-4 */
+}
+
+#snakeJournalModal > div, /* Conținutul modalului */
+#snakeShopModal > div,
+#snakeMinigameModal > div {
+    /* background-color: #374151; /* Tailwind: bg-gray-700 */
+    /* padding: 1.5rem; /* Tailwind: p-6 */
+    /* border-radius: 0.5rem; /* Tailwind: rounded-lg */
+    /* box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); /* Tailwind: shadow-xl */
+    /* width: 100%; (deja inline în Tailwind) */
+    /* max-width: 28rem; /* Tailwind: max-w-md */
+    max-height: 90vh; /* Previne depășirea ecranului pe verticală */
+    overflow-y: auto; /* Scroll dacă e nevoie */
+}
+
+#snakeJournalModal h3,
+#snakeShopModal h3 {
+    /* color: #fde047; /* Tailwind: text-yellow-300 */
+    /* margin-bottom: 0.75rem; /* Tailwind: mb-3 */
+}
+
+#snakeJournalEntry {
+    /* background-color: #4b5563; /* Tailwind: bg-gray-600 */
+    /* color: #fff; */
+    min-height: 100px;
+}
+
+#snakeViewJournalContent {
+    /* background-color: #4b5563; /* Tailwind: bg-gray-600 */
+    /* max-height: 15rem; /* Tailwind: max-h-60 */
+    /* ... */
+}
+#snakeViewJournalContent div { /* Stil pentru fiecare intrare afișată */
+    border-bottom: 1px solid #6b7280; /* Tailwind: border-gray-500 */
+}
+#snakeViewJournalContent div:last-child {
+    border-bottom: none;
+}
+
+/* Efectul de flash text */
+#snakeEffect {
+    /* Stilurile sunt deja definite inline în gameHTMLStructure, dar pot fi mutate aici */
+    /* position: absolute; ... */
+    /* z-index: 100; Asigură-te că e deasupra canvas-ului, dar sub modale dacă e necesar */
+}
+
+/* Bara de status pentru efecte */
+#snakeStatus .stat {
+    position: relative;
+    font-size: 1.2rem; /* Sau cât era în original */
+    padding: 2px 5px;
+    background-color: rgba(0,0,0,0.3);
+    border-radius: 4px;
+    margin: 0 3px;
+}
+#snakeStatus .stat .bar {
+    position: absolute;
+    bottom: 0px; /* Ajustat să fie chiar la bază */
+    left: 0;
+    height: 3px;
+    background: #ffe166; /* Sau altă culoare relevantă */
+    border-radius: 2px;
+    transition: width 0.1s linear; /* Tranziție mai rapidă pentru bară */
+}
+
+
+/* Stil pentru butonul de start joc, dacă vrei să-l personalizezi dincolo de .button-primary */
+#startGameButton {
+    /* margin-top: 10px; */
+    /* font-size: 1.1rem; */
+}
+
+/* Clasa .section-divider adăugată în HTML pentru separare */
+.section-divider {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    border: 0;
+    border-top: 1px solid #4b5563; /* Tailwind: border-gray-600 */
+}

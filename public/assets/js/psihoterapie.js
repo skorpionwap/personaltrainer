@@ -3,6 +3,7 @@
     import {  getFirestore, collection, addDoc, getDocs, deleteDoc, doc, getDoc, updateDoc, query, where, setDoc, orderBy, limit, Timestamp, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"; 
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
     import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "https://esm.run/@google/generative-ai";
+    import { handleGameVisibility as handleSnakeGameVisibility } from './snakeGame.js'; // Asigură-te că calea e corectă
 
    // --- CONFIGURARE FIREBASE & GEMINI (UNICĂ) ---
     const firebaseConfig = {
@@ -277,48 +278,63 @@ Empatie profundă, validare constantă, ghidare reflexivă personalizată și fu
     // -----------------------------------------------------------------
 
 function showTab(tabName) {
-    console.log("[psihoterapie.js] showTab a fost apelat cu tabName:", tabName); // LOG DE VERIFICARE
+    console.log("[psihoterapie.js] showTab a fost apelat cu tabName:", tabName);
 
-    document.getElementById('jurnalFormContainer').style.display = (tabName === 'jurnal' ? 'block' : 'none');
-    document.getElementById('fisaFormContainer').style.display = (tabName === 'fisa' ? 'block' : 'none');
+    const isJurnal = tabName === 'jurnal';
+    const isFisa = tabName === 'fisa';
+    const isMateriale = tabName === 'materiale';
+    // const isJoc = tabName === 'joc'; // Nu mai avem tab separat pentru joc
 
-    // LOGICA PENTRU NOUL TAB
+    document.getElementById('jurnalFormContainer').style.display = (isJurnal ? 'block' : 'none');
+    document.getElementById('fisaFormContainer').style.display = (isFisa ? 'block' : 'none');
+
     const materialeContainer = document.getElementById('materialeFormContainer');
     if (materialeContainer) {
-        console.log("[psihoterapie.js] Container #materialeFormContainer găsit:", materialeContainer); // LOG
-        materialeContainer.style.display = (tabName === 'materiale' ? 'block' : 'none');
-         console.log("[psihoterapie.js] Display pentru #materialeFormContainer setat la:", materialeContainer.style.display); // LOG
-    } else {
-        console.error("[psihoterapie.js] EROARE: Containerul #materialeFormContainer NU a fost găsit!"); // LOG
+        materialeContainer.style.display = (isMateriale ? 'block' : 'none');
     }
 
-    document.getElementById('tabButtonJurnal').classList.toggle('active', tabName === 'jurnal');
-    document.getElementById('tabButtonFisa').classList.toggle('active', tabName === 'fisa');
-    // LOGICA PENTRU CLASA 'active' A NOULUI BUTON
+    document.getElementById('tabButtonJurnal').classList.toggle('active', isJurnal);
+    document.getElementById('tabButtonFisa').classList.toggle('active', isFisa);
     const btnMaterialeTab = document.getElementById('tabButtonMateriale');
     if (btnMaterialeTab) {
-        btnMaterialeTab.classList.toggle('active', tabName === 'materiale');
-         console.log("[psihoterapie.js] Clasa 'active' pentru #tabButtonMateriale setată la:", btnMaterialeTab.classList.contains('active')); // LOG
-    } else {
-        console.error("[psihoterapie.js] EROARE: Butonul #tabButtonMateriale NU a fost găsit pentru toggle class!"); // LOG
+        btnMaterialeTab.classList.toggle('active', isMateriale);
     }
-
 
     // Ascunde mesajele de confirmare existente
     document.getElementById('jurnalConfirmationMessage').style.display = 'none';
     document.getElementById('fisaConfirmationMessage').style.display = 'none';
-    const materialeInfoMsg = document.getElementById('materialeInfoMessage');
-    if (materialeInfoMsg && tabName !== 'materiale') {
+    const materialeInfoMsg = document.getElementById('materialeInfoMessage'); // Presupun că acesta este ID-ul din personalizedMaterials.js
+    if (materialeInfoMsg && !isMateriale) { // Ascunde mesajul de info materiale dacă nu suntem pe tab-ul de materiale
         materialeInfoMsg.style.display = 'none';
     }
 
+
     // APELUL CĂTRE FUNCȚIA DIN `personalizedMaterials.js`
-    if (tabName === 'materiale' && currentUserId) {
+    if (isMateriale && currentUserId) {
         if (typeof window.handleMaterialeTabActivated === 'function') {
-            console.log("[psihoterapie.js] Se va apela window.handleMaterialeTabActivated cu userId:", currentUserId); // LOG
+            console.log("[psihoterapie.js] Se va apela window.handleMaterialeTabActivated cu userId:", currentUserId);
             window.handleMaterialeTabActivated(currentUserId);
         } else {
-            console.warn("[psihoterapie.js] ATENȚIE: Funcția window.handleMaterialeTabActivated NU este (încă) definită. Acest lucru este normal dacă `personalizedMaterials.js` nu s-a încărcat/executat complet."); // LOG
+            console.warn("[psihoterapie.js] ATENȚIE: Funcția window.handleMaterialeTabActivated NU este (încă) definită.");
+        }
+    }
+
+    // GESTIONAREA VIZIBILITĂȚII JOCULUI SNAKE
+    // Jocul este în tab-ul 'materiale'
+    if (typeof handleSnakeGameVisibility === 'function') {
+        if (isMateriale) {
+            // Dacă tab-ul materiale e activ, și wrapper-ul jocului e vizibil (adică s-a apăsat "Joacă Acum")
+            // atunci notificăm modulul jocului că poate fi activ.
+            const snakeWrapper = document.getElementById('snakeGameWrapper');
+            if (snakeWrapper && snakeWrapper.style.display === 'block') {
+                handleSnakeGameVisibility(true);
+            } else {
+                // Chiar dacă suntem pe tab-ul materiale, dacă jocul nu e expandat, e considerat inactiv
+                handleSnakeGameVisibility(false);
+            }
+        } else {
+            // Dacă nu suntem pe tab-ul materiale, jocul sigur nu e vizibil/activ
+            handleSnakeGameVisibility(false);
         }
     }
 }
