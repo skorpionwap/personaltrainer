@@ -5,28 +5,28 @@ let gameInstance = null;
 let gameInitialized = false;
 let gameVisibleAndActive = false;
 
-// DOM Elements specific to the game, will be queried after HTML injection
-let snakeGameWrapper;
-let startGameButton; // Sau launchGameModalButton dacă folosești modal
-let snakeGameModalContainer; // Pentru varianta cu modal
-let closeSnakeGameModalButton; // Pentru varianta cu modal
+// DOM Elements
+let snakeGameModalContainer; // Containerul principal al modalului (din psihoterapie.html)
+let snakeGameWrapper;        // Wrapper-ul intern injectat în modal, unde se randează jocul
+let closeSnakeGameModalButton; // Butonul de închidere din interiorul modalului jocului
 
 // --- Variabile de configurare ---
-const INITIAL_SNAKE_SPEED = 170; // Mai lent pentru început
+const INITIAL_SNAKE_SPEED = 170;
 const BOX_SIZE = 20;
-const LEVEL_SCORE_INCREMENT = 25; // Scorul necesar per nivel, crește progresiv
+const LEVEL_SCORE_INCREMENT = 25;
 const PARTICLE_COUNT = 8;
 
-// --- HTML STRUCTURE FOR THE GAME (Modal Version) ---
+// --- HTML STRUCTURE FOR THE GAME MODAL (injectat o singură dată) ---
 const gameModalHTMLStructure = `
     <div id="snakeGameModalContent" class="bg-gray-900 p-1 sm:p-2 rounded-lg shadow-xl relative w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto" style="aspect-ratio: 4/3.5; display: flex; flex-direction: column;">
         <button id="closeSnakeGameModal" class="absolute top-1 right-1 text-white bg-red-600 hover:bg-red-700 rounded-full p-0 w-7 h-7 flex items-center justify-center text-sm z-50" title="Închide Jocul">×</button>
         <div id="snakeGameWrapper" class="game-wrapper h-full w-full flex-grow" style="display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #222c36; border-radius: 0.5rem;">
-            <!-- Conținutul efectiv al jocului va fi injectat aici -->
+            <!-- Conținutul efectiv al jocului (gameInterfaceHTMLStructure) va fi injectat aici de initializeSnakeGame -->
         </div>
     </div>
 `;
 
+// --- HTML STRUCTURE FOR THE GAME INTERFACE (injectat în snakeGameWrapper) ---
 const gameInterfaceHTMLStructure = `
     <div id="snakeGameInterface" class="text-gray-200 text-center w-full h-full flex flex-col p-2" style="background: #293446;">
       <h2 class="text-xl sm:text-2xl text-yellow-300 mb-1 font-semibold">Snake 🐍 – Călătoria Interioară</h2>
@@ -60,57 +60,82 @@ const gameInterfaceHTMLStructure = `
     </div>
 `;
 
-// --- SOUND EFFECTS (Placeholder) ---
-// const sounds = {
-//     collect: new Audio('path/to/collect.wav'),
-//     special: new Audio('path/to/special.wav'),
-//     negative: new Audio('path/to/negative.wav'),
-//     gameOver: new Audio('path/to/gameOver.wav'),
-//     levelUp: new Audio('path/to/levelUp.wav'),
-// };
-// function playSound(soundName) {
-//     if (sounds[soundName]) {
-//         sounds[soundName].currentTime = 0;
-//         sounds[soundName].play().catch(e => console.warn("Eroare redare sunet:", e));
-//     }
-// }
+// --- SOUND EFFECTS (Placeholder - decomentează și actualizează căile dacă le folosești) ---
+// const sounds = { /* ... */ };
+// function playSound(soundName) { /* ... */ }
 
 
 function initializeSnakeGame() {
-    if (gameInitialized) {
-        console.log("Jocul Snake este deja inițializat.");
-        return gameInstance;
-    }
-
-    if (snakeGameWrapper) {
-        snakeGameWrapper.innerHTML = gameInterfaceHTMLStructure;
-    } else {
-        console.error("Containerul pentru joc (#snakeGameWrapper) nu a fost găsit în DOM la injectare.");
+    // snakeGameWrapper este acum o variabilă la nivel de modul, setată înainte de apelul acestei funcții.
+    // Se așteaptă ca snakeGameWrapper să fie un element DOM valid.
+    if (!snakeGameWrapper) {
+        console.error("CRITICAL ERROR: #snakeGameWrapper nu a fost găsit în DOM când s-a apelat initializeSnakeGame.");
         return null;
     }
+    snakeGameWrapper.innerHTML = gameInterfaceHTMLStructure; // Injectează UI-ul specific jocului
 
     const canvas = document.getElementById('snakeCanvas');
     if (!canvas) {
-        console.error("Elementul canvas #snakeCanvas nu a fost găsit după injectare!");
+        console.error("Elementul canvas #snakeCanvas nu a fost găsit după injectarea gameInterfaceHTMLStructure!");
         return null;
     }
     const ctx = canvas.getContext('2d');
     const box = BOX_SIZE;
 
-    // Ajustare dimensiuni canvas pentru a umple containerul modal păstrând aspect ratio
+    // Funcția de redimensionare a canvas-ului
     function resizeCanvas() {
-        const parent = canvas.parentElement;
-        if (!parent) return;
-        const parentWidth = parent.clientWidth - 20; // Lăsăm puțin padding
-        const parentHeight = parent.clientHeight - 150; // Aproximativ, spațiu pentru UI
+        const parent = canvas.parentElement; // Ar trebui să fie snakeGameInterface
+        const wrapper = snakeGameWrapper; // Părintele mai larg
+        
+        if (!parent || !wrapper) {
+            console.warn("Nu s-a putut redimensiona canvas-ul: elementele părinte lipsesc.");
+            return;
+        }
 
-        const newSize = Math.min(parentWidth, parentHeight);
-        canvas.width = Math.floor(newSize / box) * box; // Asigură multiplu de box
-        canvas.height = Math.floor(newSize / box) * box;
+        // Calculează dimensiunile disponibile LĂSÂND spațiu pentru celelalte elemente UI din #snakeGameInterface
+        // Aceste valori sunt aproximative și pot necesita ajustări fine bazate pe CSS-ul final.
+        const availableWidth = wrapper.clientWidth - (parseInt(getComputedStyle(parent).paddingLeft) + parseInt(getComputedStyle(parent).paddingRight) + 10); // 10px extra marjă
+        
+        // Calculăm înălțimea disponibilă mai atent:
+        // Înălțimea totală a wrapper-ului minus înălțimea elementelor non-canvas.
+        let nonCanvasHeight = 0;
+        const uiElements = [
+            parent.querySelector('h2'),
+            parent.querySelector('.score'),
+            parent.querySelector('.values'),
+            parent.querySelector('#snakeIntro.hidden') ? null : parent.querySelector('#snakeIntro'), // Doar dacă e vizibil
+            parent.querySelector('#snakeStatus'),
+            parent.querySelector('#snakeControls'),
+            parent.querySelector('.flex.gap-1'), // Butoanele de jos
+        ];
+        uiElements.forEach(el => {
+            if (el) {
+                nonCanvasHeight += el.offsetHeight;
+                const style = getComputedStyle(el);
+                nonCanvasHeight += parseInt(style.marginTop) + parseInt(style.marginBottom);
+            }
+        });
+        nonCanvasHeight += (parseInt(getComputedStyle(parent).paddingTop) + parseInt(getComputedStyle(parent).paddingBottom) + 10); // Padding-ul părintelui și o marjă
+
+        const availableHeight = wrapper.clientHeight - nonCanvasHeight;
+
+        if (availableWidth <= 0 || availableHeight <= 0) {
+            console.warn("Dimensiuni disponibile pentru canvas sunt <= 0. Verifică structura și CSS-ul.", availableWidth, availableHeight);
+            canvas.width = BOX_SIZE * 10; // Fallback la o dimensiune minimă
+            canvas.height = BOX_SIZE * 10;
+            return;
+        }
+        
+        // Determină dimensiunea maximă pătrată care încape
+        const newSizeBase = Math.min(availableWidth, availableHeight);
+        canvas.width = Math.floor(newSizeBase / box) * box; // Asigură multiplu de box
+        canvas.height = Math.floor(newSizeBase / box) * box;
+
+        console.log(`Canvas resized to: ${canvas.width}x${canvas.height} (available W/H: ${availableWidth.toFixed(0)}/${availableHeight.toFixed(0)}, nonCanvasH: ${nonCanvasHeight.toFixed(0)})`);
     }
-    resizeCanvas(); // Inițial
-    // window.addEventListener('resize', resizeCanvas); // Adaugă dacă vrei redimensionare dinamică a modalului
+    resizeCanvas(); // Apel inițial la crearea jocului
 
+    // --- Starea jocului, DOM elements, funcții helper, events etc. (codul tău existent) ---
     let snake, dir, food, score, mult, speed, highScore, currentLevel;
     let paused, over, wallPass, magnet, shield;
     let activeColor, special, effects, effectId, particles, obstacles;
@@ -118,7 +143,6 @@ function initializeSnakeGame() {
     let lastTime, repelCountdown, journalEntries, language;
     let slowMotion, clarityMap, breathingActive;
 
-    // DOM elements (căutate după injectarea HTML)
     const scoreEl = document.getElementById('snakeScore'), highScoreEl = document.getElementById('snakeHighScore');
     const levelDisplayEl = document.getElementById('snakeLevelDisplay'), effectEl = document.getElementById('snakeEffect');
     const statusBar = document.getElementById('snakeStatus'), restartBtn = document.getElementById('snakeRestartBtn');
@@ -135,11 +159,11 @@ function initializeSnakeGame() {
     const valueEls = { empatie: document.getElementById('snakeEmpatie'), curaj: document.getElementById('snakeCuraj'), rabdare: document.getElementById('snakeRabdare') };
 
 
-    // --- ÎNCĂRCARE STARE JOC din localStorage ---
-    function loadGameState() {
+    // --- ÎNCĂRCARE STARE JOC ---
+    function loadGameState() { /* ... codul tău ... */ 
         highScore = parseInt(localStorage.getItem('snakeGameHighScoreV2')) || 0;
-        currentLevel = parseInt(localStorage.getItem('snakeGameCurrentLevelV2')) || 0;
-        score = parseInt(localStorage.getItem('snakeGameScoreV2')) || 0; // Scorul persistă
+        currentLevel = parseInt(localStorage.getItem('snakeGameCurrentLevelV2')) || 0; // Atenție: Nivelul începe de la 0 intern
+        score = parseInt(localStorage.getItem('snakeGameScoreV2')) || 0;
         values = JSON.parse(localStorage.getItem('snakeGameValuesV2')) || { empatie: 0, curaj: 0, rabdare: 0 };
         shield = JSON.parse(localStorage.getItem('snakeGameShieldV2')) || { level: 1, hits: 1 };
         slowMotion = JSON.parse(localStorage.getItem('snakeGameSlowMotionV2')) || false;
@@ -148,11 +172,10 @@ function initializeSnakeGame() {
         analytics = { sessions: JSON.parse(localStorage.getItem('snakeGameAnalyticsV2')) || [], current: {} };
         language = localStorage.getItem('snakeGameLanguageV2') || 'ro';
 
-        highScoreEl.textContent = highScore;
+        if(highScoreEl) highScoreEl.textContent = highScore;
     }
-
-    // --- SALVARE STARE JOC în localStorage ---
-    function saveGameState() {
+    // --- SALVARE STARE JOC ---
+    function saveGameState() { /* ... codul tău ... */ 
         localStorage.setItem('snakeGameHighScoreV2', highScore);
         localStorage.setItem('snakeGameCurrentLevelV2', currentLevel);
         localStorage.setItem('snakeGameScoreV2', score);
@@ -163,47 +186,45 @@ function initializeSnakeGame() {
         localStorage.setItem('snakeGameJournalV2', JSON.stringify(journalEntries));
         localStorage.setItem('snakeGameAnalyticsV2', JSON.stringify(analytics.sessions));
         localStorage.setItem('snakeGameLanguageV2', language);
-        console.log("Starea jocului Snake a fost salvată.");
+        // console.log("Starea jocului Snake a fost salvată.");
     }
 
-    loadGameState(); // Încarcă starea la inițializare
+    loadGameState();
 
-    // ---------- TRANSLATIONS, LEVELS, SPECIALS, SHOP ITEMS (la fel ca înainte) ----------
-    const translations = { ro: { score: 'Scor', highScore: 'Maxim', restart: 'Restart Nivel', journal: 'Jurnal', shop: 'Magazin', controls: 'Săgeți/WASD | Space/P: Pauză | J: Jurnal | M: Magazin', save: 'Salvează', export: 'Export PDF', view: 'Vezi Jurnal', journalSaved: 'Jurnal salvat!', journalEmpty: 'Jurnalul este gol.', close: 'Închide', emotionalSummary: 'Rezumat Emoțional', courageFeedback: '🦁 Curajul tău crește! Explorează ce te face puternic.', frustrationFeedback: '🌩️ Ai simțit frustrare. O pauză sau o respirație adâncă pot ajuta.', shieldProtect: '🛡️ Scutul a protejat Copilul Interior', curaj: 'Curaj', rabdare: 'Răbdare', empatie: 'Empatie', acceptare: 'Acceptare', frustrare: 'Frustrare', motivatie: 'Motivație', copil: 'Copil Interior', adult: 'Adult Sănătos', critic: 'Critic Interior', abandon: 'Abandon', izolare: 'Izolare', shopTitle: 'Magazin Interior', dailyQuest: 'Provocarea zilei: Colectează 3 ⭐ Motivație și scrie un gând recunoscător în jurnal.', breathing: 'Exercițiu de Respirație Conștientă', reframe: 'Alege o Afirmație Pozitivă:', stuck: 'Blocaj? Scrie ce te apasă în jurnal.', purchased: 'Cumpărat', InsufficientValues: 'Valori insuficiente!', level: 'Nivel', fullReset: 'Reset Joc Complet' }, en: { score: 'Score', highScore: 'High Score', restart: 'Restart Level', journal: 'Journal', shop: 'Shop', controls: 'Arrows/WASD | Space/P: Pause | J: Journal | M: Shop', save: 'Save', export: 'Export PDF', view: 'View Journal', journalSaved: 'Journal saved!', journalEmpty: 'Journal is empty.', close: 'Close', emotionalSummary: 'Emotional Summary', courageFeedback: '🦁 Your courage grows! Explore what makes you strong.', frustrationFeedback: '🌩️ You felt frustration. A break or deep breath can help.', shieldProtect: '🛡️ Shield protected the Inner Child', curaj: 'Courage', rabdare: 'Patience', empatie: 'Empathy', acceptare: 'Acceptance', frustrare: 'Frustration', motivatie: 'Motivation', copil: 'Inner Child', adult: 'Healthy Adult', critic: 'Inner Critic', abandon: 'Abandonment', izolare: 'Isolation', shopTitle: 'Inner Shop', dailyQuest: 'Daily Quest: Collect 3 ⭐ Motivation and write a grateful thought in your journal.', breathing: 'Mindful Breathing Exercise', reframe: 'Choose a Positive Affirmation:', stuck: 'Feeling stuck? Write what troubles you in the journal.', purchased: 'Purchased', InsufficientValues: 'Insufficient values!', level: 'Level', fullReset: 'Full Game Reset' } };
-    const levels = [ /* ... la fel ca înainte, poate cu bgColor actualizat pentru canvas ... */
+    // ---------- TRANSLATIONS, LEVELS, SPECIALS, SHOP ITEMS (codul tău) ----------
+    const translations = { ro: { score: 'Scor', highScore: 'Maxim', restart: 'Restart Nivel', journal: 'Jurnal', shop: 'Magazin', controls: 'Săgeți/WASD | Space/P: Pauză | J: Jurnal | M: Magazin', save: 'Salvează', export: 'Export PDF', view: 'Vezi Jurnal', journalSaved: 'Jurnal salvat!', journalEmpty: 'Jurnalul este gol.', close: 'Închide', emotionalSummary: 'Rezumat Emoțional', courageFeedback: '🦁 Curajul tău crește! Explorează ce te face puternic.', frustrationFeedback: '🌩️ Ai simțit frustrare. O pauză sau o respirație adâncă pot ajuta.', shieldProtect: '🛡️ Scutul a protejat Copilul Interior', curaj: 'Curaj', rabdare: 'Răbdare', empatie: 'Empatie', acceptare: 'Acceptare', frustrare: 'Frustrare', motivatie: 'Motivație', copil: 'Copil Interior', adult: 'Adult Sănătos', critic: 'Critic Interior', abandon: 'Abandon', izolare: 'Izolare', shopTitle: 'Magazin Interior', dailyQuest: 'Provocarea zilei: Colectează 3 ⭐ Motivație și scrie un gând recunoscător în jurnal.', breathing: 'Exercițiu de Respirație Conștientă', reframe: 'Alege o Afirmație Pozitivă:', stuck: 'Blocaj? Scrie ce te apasă în jurnal.', purchased: 'Cumpărat', InsufficientValues: 'Valori insuficiente!', level: 'Nivel', fullReset: 'Reset Joc Complet', Felicitări: 'Felicitări!', 'Ai finalizat Călătoria Interioară!': 'Ai finalizat Călătoria Interioară!', 'Poți continua explorarea sau reseta jocul.': 'Poți continua explorarea sau reseta jocul.', 'MaxedOut': 'Nivel Maxim', 'achiziționat': 'achiziționat', 'Nivelul': 'Nivelul', 'Ești sigur că vrei să resetezi tot progresul jocului?': 'Ești sigur că vrei să resetezi tot progresul jocului?' }, en: { score: 'Score', highScore: 'High Score', restart: 'Restart Level', journal: 'Journal', shop: 'Shop', controls: 'Arrows/WASD | Space/P: Pause | J: Journal | M: Shop', save: 'Save', export: 'Export PDF', view: 'View Journal', journalSaved: 'Journal saved!', journalEmpty: 'Journal is empty.', close: 'Close', emotionalSummary: 'Emotional Summary', courageFeedback: '🦁 Your courage grows! Explore what makes you strong.', frustrationFeedback: '🌩️ You felt frustration. A break or deep breath can help.', shieldProtect: '🛡️ Shield protected the Inner Child', curaj: 'Courage', rabdare: 'Patience', empatie: 'Empathy', acceptare: 'Acceptance', frustrare: 'Frustration', motivatie: 'Motivation', copil: 'Inner Child', adult: 'Healthy Adult', critic: 'Inner Critic', abandon: 'Abandonment', izolare: 'Isolation', shopTitle: 'Inner Shop', dailyQuest: 'Daily Quest: Collect 3 ⭐ Motivation and write a grateful thought in your journal.', breathing: 'Mindful Breathing Exercise', reframe: 'Choose a Positive Affirmation:', stuck: 'Feeling stuck? Write what troubles you in the journal.', purchased: 'Purchased', InsufficientValues: 'Insufficient values!', level: 'Level', fullReset: 'Full Game Reset', Felicitări: 'Congratulations!', 'Ai finalizat Călătoria Interioară!': 'You have completed the Inner Journey!', 'Poți continua explorarea sau reseta jocul.': 'You can continue exploring or reset the game.', 'MaxedOut': 'Max Level', 'achiziționat': 'purchased', 'Nivelul': 'Level', 'Ești sigur că vrei să resetezi tot progresul jocului?': 'Are you sure you want to reset all game progress?' } };
+    const levels = [ 
         { theme: 'Curaj', message: 'Explorează curajul. Ce te motivează?', specials: ['curaj', 'motivatie'], obstacles: 1, bgColor: 'rgba(255, 179, 71, 0.3)', snakeColor: '#ffb347', mechanic: null },
         { theme: 'Răbdare', message: 'Practică răbdarea. Cum te ajută să te calmezi?', specials: ['rabdare', 'acceptare'], obstacles: 2, bgColor: 'rgba(126, 217, 87, 0.3)', snakeColor: '#7ed957', mechanic: 'slowObstacles' },
         { theme: 'Empatie', message: 'Conectează-te. Ce simți când ești empatic?', specials: ['empatie', 'adult'], obstacles: 1, bgColor: 'rgba(89, 165, 224, 0.3)', snakeColor: '#59a5e0', mechanic: 'magnetFood' },
         { theme: 'Acceptare', message: 'Acceptă vulnerabilitățile. Ce te eliberează?', specials: ['acceptare', 'copil', 'rabdare'], obstacles: 2, bgColor: 'rgba(179, 136, 255, 0.3)', snakeColor: '#b388ff', mechanic: 'wallPassTemp' },
         { theme: 'Înfruntarea Criticului', message: 'Înfruntă criticul. Ce îți spui pentru a merge mai departe?', specials: ['critic', 'abandon', 'motivatie', 'adult'], obstacles: 0, bgColor: 'rgba(208, 0, 0, 0.4)', snakeColor: '#d00000', mechanic: 'bossCritique' }
     ];
-    const specials = [ /* ... la fel, poate cu simboluri emoji mai clare și valori ajustate ... */
+    const specials = [ /* ... codul tău ... */ 
         { type: 'curaj', symbol: '🦁', color: '#ffb347', valueType: 'curaj', points: 1, effect: () => { boost(1.5, t('curaj')); }, revert: endBoost, duration: 5000 },
         { type: 'rabdare', symbol: '⏳', color: '#7ed957', valueType: 'rabdare', points: 1, effect: () => { slow(t('rabdare')); }, revert: resetSpeed, duration: 7000 },
         { type: 'empatie', symbol: '💙', color: '#59a5e0', valueType: 'empatie', points: 1, effect: () => { magnet = true; flash(t('empatie') + ' Magnet Activ!'); }, revert: () => { magnet = false; }, duration: 8000 },
         { type: 'acceptare', symbol: '🌀', color: '#b388ff', valueType: 'acceptare', points: 1, effect: () => { wallPass = true; flash(t('acceptare') + ' - Treci prin Ziduri!'); }, revert: () => { wallPass = false; }, duration: 6000 },
         { type: 'motivatie', symbol: '⭐', color: '#ffe166', valueType: 'motivatie', points: 1, effect: () => { score += 5 * mult; updateScore(); flash(t('motivatie') + ' +5 Pcte!'); }, revert: null },
-        { type: 'copil', symbol: '👶🛡️', color: '#ffd1dc', valueType: 'copil', points: 0, effect: () => { shield.hits = Math.max(shield.hits, shield.level); flash(t('copil') + ' Protejat!'); }, revert: null }, // Nu se adaugă la valori, e un scut
+        { type: 'copil', symbol: '👶🛡️', color: '#ffd1dc', valueType: 'copil', points: 0, effect: () => { shield.hits = Math.max(shield.hits, shield.level); flash(t('copil') + ' Protejat!'); }, revert: null },
         { type: 'adult', symbol: '🧘', color: '#90e0ef', valueType: 'adult', points: 0, effect: () => { endNegativeEffects(); boost(1.2, t('adult') + ' Prezent!'); }, revert: endBoost, duration: 7000 },
-        // Negative
-        { type: 'critic', symbol: '🗣️💬', color: '#d00000', negative: true, effect: () => { invertDirection(); flash(t('critic') + ' Interior Activ!'); addActiveEffect(t('critic'), 3000, () => { /* nu e nevoie de revert specific aici */ }); }, revert: null },
+        { type: 'critic', symbol: '🗣️💬', color: '#d00000', negative: true, effect: () => { invertDirection(); flash(t('critic') + ' Interior Activ!'); addActiveEffect(t('critic'), 3000, () => {}); }, revert: null },
         { type: 'abandon', symbol: '💔', color: '#6d6875', negative: true, effect: () => { shrinkSnake(); flash(t('abandon') + ' - Te Simți Mic...'); addActiveEffect(t('abandon'), 4000); }, revert: null },
         { type: 'izolare', symbol: '🧱', color: '#5a189a', negative: true, effect: () => { repelFood(); flash(t('izolare') + ' - Mâncarea Fuge!'); addActiveEffect(t('izolare'), 5000); }, revert: null },
         { type: 'frustrare', symbol: '🤯', color: '#ff686b', negative: true, effect: () => { speedUpTemporary(t('frustrare') + ' Intensă!'); addActiveEffect(t('frustrare'), 3000); }, revert: resetSpeed }
     ];
-    const shopItemsList = [ /* ... la fel ... */
+    const shopItemsList = [ /* ... codul tău ... */ 
         { id: 'shieldUpgrade', name: 'Upgrade Scut Copil', cost: { curaj: 5, rabdare: 3 }, effect: () => { shield.level++; shield.hits = shield.level; flash('Scut Îmbunătățit la Nivelul ' + shield.level); saveGameState(); }, maxLevel: 3, currentLevelFn: () => shield.level-1 },
         { id: 'slowMotionActivate', name: 'Activare Respirație Liniștitoare', cost: { rabdare: 3, empatie: 2 }, effect: () => { slowMotion = true; flash('Respirația Liniștitoare poate fi activată cu R.'); saveGameState(); }, oneTimePurchase: true, purchasedFn: () => slowMotion },
         { id: 'clarityMapActivate', name: 'Activare Hartă Claritate (Obstacole Vizibile)', cost: { empatie: 4, curaj: 2 }, effect: () => { clarityMap = true; flash('Harta Clarității activată!'); saveGameState(); }, oneTimePurchase: true, purchasedFn: () => clarityMap },
-        { id: 'valueBoostCuraj', name: 'Focus pe Curaj (Crește șansa 🦁)', cost: { motivatie: 5 }, effect: () => { /* TODO: Logică pentru a crește șansa de curaj */ flash('Focus pe Curaj activat!');}, oneTimePurchase: false} // Exemplu de item repetabil
+        { id: 'valueBoostCuraj', name: 'Focus pe Curaj (Crește șansa 🦁)', cost: { motivatie: 5 }, effect: () => { flash('Focus pe Curaj activat!');}, oneTimePurchase: false}
     ];
 
-    // ---------- HELPERS (multe rămân similare, dar cu referințe DOM actualizate și mici îmbunătățiri) ----------
-    function t(key) { return translations[language]?.[key] || key; }
-
-    function spawnFree(avoidPlayer = true, minDistance = 0) {
+    // ---------- HELPERS (codul tău) ----------
+    function t(key) { return translations[language]?.[key] || translations['ro']?.[key] || key; }
+    function spawnFree(avoidPlayer = true, minDistance = 0) { /* ... codul tău ... */ 
         let p, attempts = 0;
-        const maxAttempts = (canvas.width / box) * (canvas.height / box); // Evită bucle infinite
+        const maxAttempts = (canvas.width / box) * (canvas.height / box);
         do {
             p = {
                 x: Math.floor(Math.random() * (canvas.width / box)) * box,
@@ -212,7 +233,7 @@ function initializeSnakeGame() {
             attempts++;
             if (attempts > maxAttempts) {
                 console.warn("Nu s-a putut găsi un spațiu liber pentru spawn.");
-                return snake[0]; // Failsafe, spawnează pe capul șarpelui (va fi colectat imediat)
+                return snake.length > 0 ? snake[0] : { x: 0, y: 0}; // Failsafe
             }
         } while (
             (avoidPlayer && snake.some(seg => seg.x === p.x && seg.y === p.y && (minDistance === 0 || Math.abs(seg.x - p.x) < minDistance * box || Math.abs(seg.y - p.y) < minDistance * box))) ||
@@ -222,130 +243,102 @@ function initializeSnakeGame() {
         );
         return p;
     }
-
-    function newFood() { food = spawnFree(true, 3); /* Evită spawn prea aproape de șarpe */ }
-
-    function newSpecial() {
-        if (special) return; // Doar un special activ o dată (cu excepția boss-ului)
+    function newFood() { food = spawnFree(true, 3); }
+    function newSpecial() { /* ... codul tău ... */ 
+        if (special) return; 
         const currentLvlData = levels[currentLevel];
         const levelSpecialsTypes = currentLvlData?.specials || specials.map(s => s.type);
-        const availableSpecialsPool = specials.filter(s => levelSpecialsTypes.includes(s.type) && !s.isBoss); // Exclude boss-ul din spawn random
+        const availableSpecialsPool = specials.filter(s => levelSpecialsTypes.includes(s.type) && !s.isBoss); 
 
-        // TODO: Ponderea apariției specialelor (pozitive vs negative, sau bazate pe 'focus' din shop)
         if (availableSpecialsPool.length === 0) return;
         const randomSpecialTemplate = availableSpecialsPool[Math.floor(Math.random() * availableSpecialsPool.length)];
-        special = { ...randomSpecialTemplate, ...spawnFree(true, 4) }; // Copiază template-ul și adaugă coordonate
+        special = { ...randomSpecialTemplate, ...spawnFree(true, 4) };
     }
-
     function spawnObstacle() { obstacles.push(spawnFree()); }
-
-    function updateScore() {
+    function updateScore() { /* ... codul tău ... */ 
         if(scoreEl) scoreEl.textContent = score;
         if (score > highScore) {
             highScore = score;
             if(highScoreEl) highScoreEl.textContent = highScore;
-            // saveGameState(); // Salvează imediat high score-ul
         }
-        analytics.current.score = score; // Update analytics
+        if(analytics && analytics.current) analytics.current.score = score;
     }
-    function updateValues() {
+    function updateValues() { /* ... codul tău ... */ 
         if(valueEls.empatie) valueEls.empatie.textContent = values.empatie;
         if(valueEls.curaj) valueEls.curaj.textContent = values.curaj;
         if(valueEls.rabdare) valueEls.rabdare.textContent = values.rabdare;
     }
-    function updateLevelDisplay() {
-        if(levelDisplayEl) levelDisplayEl.textContent = currentLevel + 1;
-    }
-
-    function flash(text, duration = 1800, type = 'info') { // 'info', 'good', 'bad'
+    function updateLevelDisplay() { if(levelDisplayEl) levelDisplayEl.textContent = currentLevel + 1; }
+    function flash(text, duration = 1800, type = 'info') { /* ... codul tău ... */ 
       if(!effectEl) return;
       effectEl.innerHTML = text;
-      effectEl.className = 'game-effect'; // Reset classes
+      effectEl.className = 'game-effect'; 
       if (type === 'good') effectEl.classList.add('positive');
       else if (type === 'bad') effectEl.classList.add('negative');
-      // else 'info' (default)
-
       effectEl.style.opacity = 1;
       setTimeout(() => { if(effectEl) effectEl.style.opacity = 0; }, duration);
     }
-
     function changeSpeed(newSpeed) { speed = Math.max(50, Math.min(350, newSpeed)); }
-    function resetSpeed() {
-        speed = INITIAL_SNAKE_SPEED + (currentLevel * 5); // Viteza crește ușor cu nivelul
-        activeColor = null; // Reset culoarea specială a șarpelui
+    function resetSpeed() { /* ... codul tău ... */ 
+        speed = INITIAL_SNAKE_SPEED + (currentLevel * 5); 
+        activeColor = null;
     }
-    function boost(factor, label) {
+    function boost(factor, label) { /* ... codul tău ... */ 
         mult = factor;
-        activeColor = levels[currentLevel]?.snakeColor || '#ffb347'; // Folosește culoarea nivelului
+        activeColor = (levels[currentLevel] && levels[currentLevel].snakeColor) || '#ffb347';
         flash(label, 3000, 'good');
-        // playSound('special');
         addActiveEffect(label, 3000, endBoost);
     }
     function endBoost() { mult = 1; activeColor = null; }
-
-    function speedUpTemporary(label) { // Pentru frustrare
+    function speedUpTemporary(label) { /* ... codul tău ... */ 
         const originalSpeed = speed;
-        changeSpeed(speed * 0.6); // Mult mai rapid
+        changeSpeed(speed * 0.6);
         activeColor = '#ff3030';
         flash(label, 3000, 'bad');
-        // playSound('negative');
         setTimeout(() => {
-            if (speed < originalSpeed) speed = originalSpeed; // Revine doar dacă nu a fost alt efect între timp
+            if (speed < originalSpeed) speed = originalSpeed; 
             activeColor = null;
         }, 3000);
     }
-    function slow(label) {
+    function slow(label) { /* ... codul tău ... */ 
         const originalSpeed = speed;
-        changeSpeed(speed * 1.6); // Mult mai lent
+        changeSpeed(speed * 1.6); 
         activeColor = '#7ed957';
         flash(label, 5000, 'good');
-        // playSound('special');
         addActiveEffect(label, 5000, () => {
             if (speed > originalSpeed) speed = originalSpeed;
             activeColor = null;
         });
     }
-
-    function endNegativeEffects() {
-        // Aici poți adăuga logica de a anula efectele negative specifice (invert, shrink, repel)
-        effects = effects.filter(e => !e.isNegative); // Elimină din array
-        statusBar.querySelectorAll('.neg-effect').forEach(el => el.remove()); // Elimină din UI
-        // Reset direcție dacă era inversată, etc.
+    function endNegativeEffects() { /* ... codul tău ... */ 
+        effects = effects.filter(e => !e.isNegative); 
+        if(statusBar) statusBar.querySelectorAll('.neg-effect').forEach(el => el.remove());
         flash("Efecte negative înlăturate!", 2000, 'good');
     }
-
-    function invertDirection() {
-        const oldDir = dir;
+    function invertDirection() { /* ... codul tău ... */ 
         if (dir === 'LEFT') dir = 'RIGHT';
         else if (dir === 'RIGHT') dir = 'LEFT';
         else if (dir === 'UP') dir = 'DOWN';
         else if (dir === 'DOWN') dir = 'UP';
-        // playSound('negative');
-        // Adaugă la active effects pentru UI, dar efectul e instant
     }
-    function shrinkSnake() {
-        const amountToShrink = Math.min(snake.length -1, 2); // Nu poate fi mai mic de 1
-        for(let i=0; i<amountToShrink; i++) snake.pop();
-        // playSound('negative');
+    function shrinkSnake() { /* ... codul tău ... */ 
+        const amountToShrink = Math.min(snake.length -1, 2);
+        for(let i=0; i<amountToShrink; i++) if(snake.length > 1) snake.pop();
     }
-    function repelFood() {
-        repelCountdown = Math.floor(5000 / speed); // 5 secunde de respingere
-        // playSound('negative');
-    }
-
-    function addActiveEffect(name, durationMs, onEndCallback = null) {
+    function repelFood() { repelCountdown = Math.floor(5000 / (speed || INITIAL_SNAKE_SPEED)); }
+    function addActiveEffect(name, durationMs, onEndCallback = null) { /* ... codul tău ... */ 
         if(!statusBar) return 'no-status-bar-' + effectId;
         const id = 'activeEffect' + (++effectId);
         const effectData = { id, name, durationMs, timeLeftMs: durationMs, onEnd: onEndCallback, isNegative: specials.find(s=>s.type === name || t(s.type) === name)?.negative };
 
-        const span = document.createElement('div'); // Folosim div pentru flexbox mai ușor
+        const span = document.createElement('div');
         span.className = 'stat-effect';
         if (effectData.isNegative) span.classList.add('neg-effect');
         span.id = id;
 
         const textSpan = document.createElement('span');
-        textSpan.textContent = name.length > 15 ? name.substring(0,12) + "..." : name; // Scurtează numele lungi
-        textSpan.title = name; // Tooltip cu numele complet
+        textSpan.textContent = name.length > 15 ? name.substring(0,12) + "..." : name;
+        textSpan.title = name; 
 
         const barContainer = document.createElement('div');
         barContainer.className = 'effect-bar-container';
@@ -360,8 +353,7 @@ function initializeSnakeGame() {
         effects.push(effectData);
         return id;
     }
-
-    function tickEffects(deltaTime) { // deltaTime în ms
+    function tickEffects(deltaTime) { /* ... codul tău ... */ 
         if(!statusBar || effects.length === 0) return;
         for (let i = effects.length - 1; i >= 0; i--) {
             const effect = effects[i];
@@ -382,117 +374,89 @@ function initializeSnakeGame() {
             }
         }
     }
-
-    function spawnParticles(x, y, color, count = PARTICLE_COUNT) {
+    function spawnParticles(x, y, color, count = PARTICLE_COUNT) { /* ... codul tău ... */ 
       for (let i = 0; i < count; i++) {
         particles.push({
-            x: x + (Math.random() - 0.5) * box * 0.5, // Spawnează mai aproape de centru
+            x: x + (Math.random() - 0.5) * box * 0.5, 
             y: y + (Math.random() - 0.5) * box * 0.5,
-            vx: (Math.random() - 0.5) * (3 + Math.random() * 2), // Viteză variabilă
+            vx: (Math.random() - 0.5) * (3 + Math.random() * 2), 
             vy: (Math.random() - 0.5) * (3 + Math.random() * 2),
-            alpha: 0.8 + Math.random() * 0.2, // Alpha inițial variabil
+            alpha: 0.8 + Math.random() * 0.2,
             color,
-            size: 2 + Math.random() * 3, // Mărime variabilă
-            decay: 0.02 + Math.random() * 0.02 // Rata de dispariție variabilă
+            size: 2 + Math.random() * 3, 
+            decay: 0.02 + Math.random() * 0.02 
         });
       }
     }
 
-    // ---------- LEVEL MECHANICS (îmbunătățit) ----------
-    function applyLevelMechanics() {
+    // ---------- LEVEL MECHANICS ----------
+    function applyLevelMechanics() { /* ... codul tău ... */ 
         if (currentLevel >= levels.length) return;
         const lvlData = levels[currentLevel];
         if (!lvlData) return;
-
-        // Setare fundal canvas specific nivelului
         canvas.style.backgroundColor = lvlData.bgColor || '#1d2230';
-
         const mechanic = lvlData.mechanic;
-        if (mechanic === 'slowObstacles') {
-            // TODO: Implementează obstacole care se mișcă lent
-            flash("Atenție la obstacolele lente!", 2000);
-        } else if (mechanic === 'magnetFood') {
-            magnet = true; // Acest efect persistă pentru nivel? Sau temporar?
-            flash("Mâncarea este atrasă de tine!", 3000, 'good');
-            addActiveEffect("Magnet Mâncare", 15000, () => magnet = false); // Durează 15s
-        } else if (mechanic === 'wallPassTemp') {
-            wallPass = true;
-            flash("Poți trece prin ziduri temporar!", 3000, 'good');
-            addActiveEffect("Trecere Ziduri", 10000, () => wallPass = false); // Durează 10s
-        } else if (mechanic === 'bossCritique') {
-            obstacles = []; // Curăță obstacolele
-            // Spawn un "boss" - un special care nu dispare și are viață
-            special = {
-                ...specials.find(s => s.type === 'critic'), // Găsește template-ul criticului
-                ...spawnFree(true, 5), // Spawnează-l departe
-                isBoss: true,
-                bossMaxHits: 3 + currentLevel, // Viața crește cu nivelul (dacă e refăcut)
-                bossCurrentHits: 3 + currentLevel,
-                symbol: 'BOSS 🗣️💬'
-            };
-            flash(`Înfruntă ${t('Critic Interior')} BOSS! Lovește-l de ${special.bossCurrentHits} ori!`, 3500, 'bad');
+        if (mechanic === 'slowObstacles') { flash("Atenție la obstacolele lente!", 2000); }
+        else if (mechanic === 'magnetFood') { magnet = true; flash("Mâncarea este atrasă de tine!", 3000, 'good'); addActiveEffect("Magnet Mâncare", 15000, () => magnet = false); }
+        else if (mechanic === 'wallPassTemp') { wallPass = true; flash("Poți trece prin ziduri temporar!", 3000, 'good'); addActiveEffect("Trecere Ziduri", 10000, () => wallPass = false); }
+        else if (mechanic === 'bossCritique') {
+            obstacles = []; 
+            const bossTemplate = specials.find(s => s.type === 'critic');
+            if(bossTemplate) {
+                 special = {
+                    ...bossTemplate, 
+                    ...spawnFree(true, 5), 
+                    isBoss: true,
+                    bossMaxHits: 3 + currentLevel, 
+                    bossCurrentHits: 3 + currentLevel,
+                    symbol: 'BOSS 🗣️💬'
+                };
+                flash(`Înfruntă ${t('Critic Interior')} BOSS! Lovește-l de ${special.bossCurrentHits} ori!`, 3500, 'bad');
+            }
         }
-        // Alte mecanici pot fi adăugate aici
     }
 
     // ---------- JOURNAL, SHOP, MINIGAMES (cu modale stilizate) ----------
-    // (Funcțiile toggleJournalModal, saveJournal, exportJournal, displayJournalEntries,
-    // toggleShopModal, startBreathing, startReframe, și event listeners pentru butoanele de close
-    // rămân similare ca logică, dar se asigură că manipulează clasele `hidden` pe modale
-    // și că pun/scot jocul din pauză corespunzător)
-
-    function setupModal(modalElement, openBtnElement, closeBtnElement, onOpenCallback = null) {
-        if (openBtnElement) {
+    function setupModal(modalElement, openBtnElement, closeBtnElement, onOpenCallback = null) { /* ... codul tău ... */ 
+        if (openBtnElement && modalElement && closeBtnElement) {
             openBtnElement.onclick = () => {
                 if (paused && !modalElement.classList.contains('hidden')) {
                     modalElement.classList.add('hidden');
-                    // Nu relua jocul automat
                 } else {
-                    paused = true; // Pauză la deschiderea oricărui modal
-                    // Ascunde alte modale dacă sunt deschise
+                    paused = true; 
                     [journalModal, shopModal, minigameModal].forEach(m => {
-                        if (m !== modalElement) m.classList.add('hidden');
+                        if (m && m !== modalElement) m.classList.add('hidden');
                     });
                     modalElement.classList.remove('hidden');
                     if (onOpenCallback) onOpenCallback();
                 }
             };
-        }
-        if (closeBtnElement) {
             closeBtnElement.onclick = () => {
                 modalElement.classList.add('hidden');
-                // Nu relua jocul automat
-                if (canvas) canvas.focus(); // Redă focusul pe joc
+                if (canvas) canvas.focus(); 
             };
         }
     }
-
-    setupModal(journalModal, journalBtn, closeJournalModalBtn, () => {
-        journalEntry.focus();
-        viewJournalContentEl.classList.add('hidden'); // Ascunde by default
-    });
-    setupModal(shopModal, shopBtn, closeShopModalBtn, populateShop);
-    // Minigames vor fi deschise programatic (ex. startBreathing)
-
-    // Jurnal
-    saveJournal.onclick = () => { /* ... la fel ... */ };
-    exportJournal.onclick = () => { /* ... la fel, verifică `jspdf` ... */ };
-    viewJournal.onclick = () => { /* ... la fel ... */ };
-
-    // Shop
-    function populateShop() {
+    if(journalModal && journalBtn && closeJournalModalBtn) setupModal(journalModal, journalBtn, closeJournalModalBtn, () => { if(journalEntry) journalEntry.focus(); if(viewJournalContentEl) viewJournalContentEl.classList.add('hidden'); });
+    if(shopModal && shopBtn && closeShopModalBtn) setupModal(shopModal, shopBtn, closeShopModalBtn, populateShop);
+    
+    if(saveJournal) saveJournal.onclick = () => { /* ... */ };
+    if(exportJournal) exportJournal.onclick = () => { /* ... */ };
+    if(viewJournal) viewJournal.onclick = () => { /* ... */ };
+    
+    function populateShop() { /* ... codul tău ... */ 
+        if(!shopItemsEl) return;
         shopItemsEl.innerHTML = '';
         shopItemsList.forEach(item => {
             const btn = document.createElement('button');
             btn.className = 'shop-item-btn';
             let currentItemLevel = item.currentLevelFn ? item.currentLevelFn() : 0;
             let purchased = item.purchasedFn ? item.purchasedFn() : false;
-
             let costString = Object.entries(item.cost).map(([k, v]) => `${v} ${t(k)}`).join(', ');
             let nameString = t(item.name);
 
             if (item.maxLevel && currentItemLevel >= item.maxLevel) {
-                btn.innerHTML = `<div>${nameString} (Max Nivel)</div><div class="shop-item-cost">${t('MaxedOut') || 'Maxed Out'}</div>`;
+                btn.innerHTML = `<div>${nameString} (Max Nivel)</div><div class="shop-item-cost">${t('MaxedOut')}</div>`;
                 btn.disabled = true;
             } else if (item.oneTimePurchase && purchased) {
                 btn.innerHTML = `<div>${nameString}</div><div class="shop-item-cost">${t('purchased')}</div>`;
@@ -503,14 +467,21 @@ function initializeSnakeGame() {
 
             btn.onclick = () => {
                 if (btn.disabled) return;
-                if (Object.entries(item.cost).every(([k, v]) => values[k] >= v)) {
+                let canAfford = true;
+                for (const [key, val] of Object.entries(item.cost)) {
+                    if (!values[key] || values[key] < val) {
+                        canAfford = false;
+                        break;
+                    }
+                }
+
+                if (canAfford) {
                     Object.entries(item.cost).forEach(([k, v]) => values[k] -= v);
-                    item.effect(); // Aceasta ar trebui să actualizeze starea (ex. shield.level++, slowMotion = true)
+                    item.effect(); 
                     updateValues();
                     flash(`${t(item.name)} ${t('achiziționat')}!`, 2000, 'good');
-                    // playSound('special');
-                    populateShop(); // Re-randează shop-ul pentru a actualiza starea butoanelor
-                    saveGameState(); // Salvează starea după cumpărare
+                    populateShop(); 
+                    saveGameState(); 
                 } else {
                     flash(t('InsufficientValues'), 2000, 'bad');
                 }
@@ -518,155 +489,116 @@ function initializeSnakeGame() {
             shopItemsEl.appendChild(btn);
         });
     }
+    function startBreathing() { /* ... */ }
+    function startReframe() { /* ... */ }
+    if(closeMinigameModalBtn && minigameModal) closeMinigameModalBtn.onclick = () => { minigameModal.classList.add('hidden'); canvas.focus(); };
 
 
-    // Minigames (startBreathing, startReframe adaptate pentru a folosi minigameModal)
-    function startBreathing() { /* ... la fel, dar afișează în minigameModal și folosește minigameContentEl ... */ }
-    function startReframe() { /* ... la fel ... */ }
-    closeMinigameModalBtn.onclick = () => { /* ... la fel ... */ };
-
-
-    // ---------- LANGUAGE (adaptat) ----------
-    function setLanguage(lang) {
+    // ---------- LANGUAGE ----------
+    function setLanguage(lang) { /* ... codul tău, adaptat pentru a verifica existența elementelor ... */ 
         language = lang;
-        // Actualizează TOATE textele din UI-ul jocului
-        const elementsToTranslate = {
-            // Titluri
-            '#snakeGameInterface h2': 'Snake – Călătoria Interioară', // Acest titlu e fix, dar altele pot fi traduse
-            [journalModal.querySelector('h3')]: 'journalTitleSnake', // Exemplu dacă titlurile modale sunt dinamice
-            [shopModal.querySelector('h3')]: 'shopTitle',
+        const gameInterfaceEl = document.getElementById('snakeGameInterface');
+        if (!gameInterfaceEl) return; // Ieși dacă UI-ul jocului nu e (încă) în DOM
 
-            // UI Principal
-            [scoreEl?.parentNode.firstChild]: 'score', // Complex, trebuie verificat nodul text
-            [highScoreEl?.parentNode.firstChild]: 'highScore',
-            [levelDisplayEl?.parentNode.childNodes[4]]: 'level', // Foarte fragil, mai bine un span dedicat
-            '#snakeControls': 'controls',
-            [restartBtn]: 'restart',
-            [fullResetBtn]: 'fullReset',
-            [journalBtn]: 'journal',
-            [shopBtn]: 'shop',
-            [langBtn]: (language === 'ro' ? 'English' : 'Română'),
+        const titleH2 = gameInterfaceEl.querySelector('h2');
+        if (titleH2) titleH2.textContent = t('Snake 🐍 – Călătoria Interioară'); // Titlul e fix, dar poate ai alte titluri
+        
+        const scoreLabel = scoreEl?.parentNode?.firstChild;
+        if (scoreLabel && scoreLabel.nodeType === Node.TEXT_NODE) scoreLabel.textContent = t('score') + ": ";
+        
+        const highScoreLabel = highScoreEl?.parentNode?.firstChild;
+        if (highScoreLabel && highScoreLabel.nodeType === Node.TEXT_NODE) highScoreLabel.textContent = t('highScore') + ": ";
 
-            // Jurnal Modal
-            '#snakeJournalEntry[placeholder]': 'journalPlaceholderSnake',
-            [saveJournal]: 'save',
-            [exportJournal]: 'export',
-            [viewJournal]: 'view',
-            [closeJournalModalBtn]: 'close',
-            // Shop Modal (titlu deja mapat, itemele se traduc la populare)
-            [closeShopModalBtn]: 'close',
-            // Minigame Modal
-            [closeMinigameModalBtn]: 'close',
-        };
-        for (const selectorOrElement in elementsToTranslate) {
-            let el;
-            if (typeof selectorOrElement === 'string') {
-                if (selectorOrElement.includes('[placeholder]')) {
-                    el = document.querySelector(selectorOrElement.replace('[placeholder]', ''));
-                    if (el) el.placeholder = t(translations.ro[elementsToTranslate[selectorOrElement]]); // Presupunem că cheia e pt RO
-                } else {
-                    el = document.querySelector(selectorOrElement);
-                }
-            } else {
-                el = selectorOrElement; // Este deja un element DOM
-            }
-
-            if (el) {
-                const key = elementsToTranslate[selectorOrElement];
-                if (el.nodeType === Node.TEXT_NODE) { // Pentru nodurile text
-                     //el.textContent = t(key) + (key === 'score' || key === 'highScore' || key === 'level' ? ': ' : ''); // Adaugă :
-                } else if (el.tagName === 'BUTTON' || el.tagName === 'TEXTAREA' && !selectorOrElement.includes('[placeholder]')) {
-                    el.textContent = t(key);
-                } else if (el.firstChild && el.firstChild.nodeType === Node.TEXT_NODE && (key === 'score' || key === 'highScore' || key ==='level')){
-                     // Cazul specific pentru "Scor: ", "Maxim: ", "Nivel: "
-                     // el.firstChild.textContent = t(key) + ": ";
-                }
-                 else {
-                    // Pentru alte elemente, poate titluri
-                    // el.innerHTML = t(key); // Folosește innerHTML dacă textul tradus poate conține tag-uri simple
-                }
-            }
-        }
-        // Cazuri speciale care nu se potrivesc ușor în buclă
-        if(scoreEl?.parentNode?.firstChild.nodeType === Node.TEXT_NODE) scoreEl.parentNode.firstChild.textContent = t('score') + ": ";
-        if(highScoreEl?.parentNode?.firstChild.nodeType === Node.TEXT_NODE) highScoreEl.parentNode.firstChild.textContent = t('highScore') + ": ";
-        const levelLabel = levelDisplayEl?.parentElement?.childNodes; // Caută textul "Nivel: "
-        if (levelLabel) {
-            for(let node of levelLabel){
-                if(node.nodeType === Node.TEXT_NODE && node.textContent.includes("Nivel")){
+        const levelLabelNodes = levelDisplayEl?.parentElement?.childNodes;
+        if (levelLabelNodes) {
+            for(let node of levelLabelNodes){
+                if(node.nodeType === Node.TEXT_NODE && node.textContent.trim().startsWith("Nivel") || node.textContent.trim().startsWith("Level")){
                     node.textContent = " " + t('level') + ": ";
                     break;
                 }
             }
         }
+        
+        if(controlsEl) controlsEl.textContent = t('controls');
+        if(restartBtn) restartBtn.textContent = t('restart');
+        if(fullResetBtn) fullResetBtn.textContent = t('fullReset');
+        if(journalBtn) journalBtn.textContent = t('journal');
+        if(shopBtn) shopBtn.textContent = t('shop');
+        if(langBtn) langBtn.textContent = (language === 'ro' ? 'English' : 'Română');
 
+        if(journalModal) journalModal.querySelector('.modal-title').textContent = t('Jurnal Emoțional (Joc)');
+        if(journalEntry) journalEntry.placeholder = t('Notează-ți gândurile...');
+        if(saveJournal) saveJournal.textContent = t('save');
+        if(exportJournal) exportJournal.textContent = t('export');
+        if(viewJournal) viewJournal.textContent = t('view');
+        if(closeJournalModalBtn) closeJournalModalBtn.textContent = t('close');
+        
+        if(shopModal) shopModal.querySelector('.modal-title').textContent = t('shopTitle');
+        if(closeShopModalBtn) closeShopModalBtn.textContent = t('Închide Magazin'); // Sau t('close') dacă e generic
+
+        if(closeMinigameModalBtn) closeMinigameModalBtn.textContent = t('Închide Minijoc'); // Sau t('close')
 
         if(langBtn) langBtn.setAttribute('aria-label', language === 'ro' ? 'Switch to English' : 'Schimbă în Română');
+        
         if (introEl && !introEl.classList.contains('hidden') && currentLevel < levels.length) {
-             introEl.innerHTML = `<strong>${t(levels[currentLevel].theme)}</strong><br>${t(levels[currentLevel].message)}<br><small>${t('dailyQuest')}</small>`;
+             introEl.innerHTML = `
+                <strong class="text-base sm:text-lg">${t('level')} ${currentLevel + 1}: ${t(levels[currentLevel].theme)}</strong><br>
+                <span class="text-xs sm:text-sm">${t(levels[currentLevel].message)}</span><br>
+                <em class="text-xs text-gray-400">${t('dailyQuest')}</em>`;
         }
-        updateValues(); // Re-afișează valorile (Empatie, Curaj, Răbdare) traduse
-        // playSound('uiClick'); // Sunet pentru schimbare limbă
+        updateValues(); 
     }
     if(langBtn) langBtn.onclick = () => { setLanguage(language === 'ro' ? 'en' : 'ro'); saveGameState(); };
 
 
-    // ---------- ANALYTICS (la fel, dar salvează în localStorage specific jocului) ----------
-    function saveAnalytics() {
-        analytics.current.timeEnded = Date.now(); // Adaugă timp de final
+    // ---------- ANALYTICS ----------
+    function saveAnalytics() { /* ... codul tău ... */ 
+        if (!analytics || !analytics.current) return;
+        analytics.current.timeEnded = Date.now();
         analytics.current.level = currentLevel;
         analytics.current.finalValues = { ...values };
         analytics.sessions.push({ ...analytics.current });
-        // localStorage.setItem('snakeGameAnalyticsV2', JSON.stringify(analytics.sessions));
-        console.log("Snake game analytics for session saved.");
+        // localStorage.setItem('snakeGameAnalyticsV2', JSON.stringify(analytics.sessions)); // Salvarea se face în saveGameState
+        // console.log("Snake game analytics for session saved.");
     }
-    function checkStuck() { /* ... la fel ... */ }
+    function checkStuck() { /* ... */ }
 
-    // ---------- FULL RESET GAME & NEXT LEVEL SETUP (logica de progresie) ----------
-    function fullResetGameToLevelZero() {
-        currentLevel = 0;
+    // ---------- FULL RESET GAME & NEXT LEVEL SETUP ----------
+    function fullResetGameToLevelZero() { /* ... codul tău ... */ 
+        currentLevel = 0; // Nivelul începe de la 0 intern
         score = 0;
         values = { empatie: 0, curaj: 0, rabdare: 0 };
-        shield = { level: 1, hits: 1 }; // Reset scut la starea inițială
+        shield = { level: 1, hits: 1 }; 
         slowMotion = false;
         clarityMap = false;
-        // Nu reseta highScore aici, e global pentru joc
-        // Nu reseta analytics.sessions, doar curentul
-        // Nu reseta journalEntries sau language
-        // playSound('uiClick');
-        nextLevelSetup(true); // true pentru reset inițial/complet
-        saveGameState(); // Salvează starea resetată (fără progres)
+        // highScore nu se resetează
+        nextLevelSetup(true); // true pentru reset complet
+        saveGameState(); 
     }
 
-    function nextLevelSetup(isInitialOrFullReset = false) {
-        snake = [{ x: Math.floor(canvas.width / box / 2) * box, y: Math.floor(canvas.height / box / 2) * box }]; // Start în centru
-        dir = ['UP', 'DOWN', 'LEFT', 'RIGHT'][Math.floor(Math.random() * 4)]; // Direcție aleatorie la startul nivelului
+    function nextLevelSetup(isInitialOrFullReset = false) { /* ... codul tău ... */ 
+        snake = [{ x: Math.floor(canvas.width / box / 2) * box, y: Math.floor(canvas.height / box / 2) * box }];
+        dir = ['UP', 'DOWN', 'LEFT', 'RIGHT'][Math.floor(Math.random() * 4)];
 
-        if (!isInitialOrFullReset) { // Dacă e trecere la nivel nou, nu reset de la zero
-            // Păstrează scorul și valorile
-            // playSound('levelUp');
-        } else { // Dacă e reset inițial sau full reset
-            if (currentLevel > 0 && !isInitialOrFullReset) {
-                // Dacă e un reset de nivel (nu full), nu reseta scorul/valorile
-            } else {
-                 score = 0; // Doar la full reset sau primul start absolut
-                 values = { empatie: 0, curaj: 0, rabdare: 0 };
-                 shield = { level: 1, hits: 1 };
-                 slowMotion = false;
-                 clarityMap = false;
-            }
+        if (!isInitialOrFullReset) {
+            // Păstrează scor, valori dacă e doar trecere la nivel nou
+        } else {
+             score = 0; 
+             values = { empatie: 0, curaj: 0, rabdare: 0 };
+             shield = { level: 1, hits: 1 };
+             slowMotion = false;
+             clarityMap = false;
         }
 
-
         mult = 1;
-        speed = INITIAL_SNAKE_SPEED - (currentLevel * 3); // Viteza crește ușor cu nivelul, dar nu prea mult
-        speed = Math.max(80, speed); // Limită inferioară viteză
+        speed = INITIAL_SNAKE_SPEED - (currentLevel * 3);
+        speed = Math.max(80, speed); 
         wallPass = magnet = false;
-        shield.hits = shield.level;
+        if(shield) shield.hits = shield.level; // Asigură-te că shield e definit
 
         activeColor = null;
         over = false;
-        paused = isInitialOrFullReset ? false : true; // Pauză pentru intro între nivele
+        paused = isInitialOrFullReset ? false : true; 
 
         special = null;
         effects = [];
@@ -675,7 +607,10 @@ function initializeSnakeGame() {
         if (statusBar) statusBar.innerHTML = '';
 
         collected = { curaj: 0, rabdare: 0, empatie: 0, acceptare: 0, frustrare: 0, motivatie: 0, critic: 0, abandon: 0, izolare: 0, adult: 0, copil: 0 };
-        analytics.current = { scoreAtLevelStart: score, valuesAtLevelStart: { ...values }, obstacles: [], timeLevelStart: Date.now() };
+        if(analytics && analytics.current) { // Asigură-te că analytics.current e definit
+            analytics.current = { scoreAtLevelStart: score, valuesAtLevelStart: { ...values }, obstacles: [], timeLevelStart: Date.now() };
+        }
+
 
         updateScore();
         updateValues();
@@ -687,7 +622,7 @@ function initializeSnakeGame() {
 
         if (currentLevel < levels.length) {
             const currentLvlData = levels[currentLevel];
-            if(introEl) {
+            if(introEl && currentLvlData) {
                 introEl.innerHTML = `
                     <strong class="text-base sm:text-lg">${t('level')} ${currentLevel + 1}: ${t(currentLvlData.theme)}</strong><br>
                     <span class="text-xs sm:text-sm">${t(currentLvlData.message)}</span><br>
@@ -698,7 +633,7 @@ function initializeSnakeGame() {
             setTimeout(() => {
                 if(introEl) introEl.classList.add('hidden');
                 paused = false;
-                applyLevelMechanics();
+                if (currentLvlData) applyLevelMechanics(); // Verifică currentLvlData
                 if (gameVisibleAndActive && !over && !paused) {
                      lastTime = performance.now();
                      requestAnimationFrame(gameLoop);
@@ -706,64 +641,74 @@ function initializeSnakeGame() {
             }, isInitialOrFullReset ? 100 : 3500);
 
             obstacles = [];
-            for (let i = 0; i < (currentLvlData.obstacles || 0); i++) spawnObstacle();
-        } else {
+            if (currentLvlData) { // Verifică currentLvlData
+                 for (let i = 0; i < (currentLvlData.obstacles || 0); i++) spawnObstacle();
+            }
+        } else { // Joc finalizat
             if(introEl) {
                 introEl.innerHTML = `<strong class="text-lg">${t('Felicitări!')}</strong><br><span class="text-sm">${t('Ai finalizat Călătoria Interioară!')}</span><br><em class="text-xs">${t('Poți continua explorarea sau reseta jocul.')}</em>`;
                 introEl.classList.remove('hidden');
-                paused = true; // Lasă pe pauză la final
+                paused = true; 
             }
-            // Mod "endless" ar putea începe aici, sau opțiune de fullReset.
         }
         if (!isInitialOrFullReset) {
             lastTime = performance.now();
         }
-        // saveGameState(); // Salvează starea la începutul fiecărui nivel
     }
 
 
     // ---------- DRAW (cu îmbunătățiri vizuale) ----------
-    function draw() {
+    function draw() { /* ... codul tău, asigură-te că folosești `chroma` în siguranță ... */ 
         if (!ctx || !canvas) return;
-        const currentLvlData = levels[currentLevel] || levels[levels.length-1]; // Folosește ultimul nivel dacă depășim
-        const baseBg = currentLvlData.bgColor || 'rgba(29, 34, 48, 0.5)'; // #1d2230
-        const snakeHeadColor = activeColor || (shield.hits > 0 ? '#FFACE4' : (currentLvlData.snakeColor || '#36a26b')); // Roz pentru scut, apoi culoarea nivelului
-        const snakeBodyColor = shield.hits > 0 ? '#FFD1F0' : (currentLvlData.snakeColor ? chroma(currentLvlData.snakeColor).darken(0.5).hex() : '#88dab2');
+        const currentLvlData = levels[currentLevel] || levels[levels.length-1]; 
+        const baseBg = (currentLvlData && currentLvlData.bgColor) ? currentLvlData.bgColor : 'rgba(29, 34, 48, 0.5)'; 
+        
+        let snakeHeadColorToUse = '#36a26b'; // Default
+        if (activeColor) snakeHeadColorToUse = activeColor;
+        else if (shield && shield.hits > 0) snakeHeadColorToUse = '#FFACE4';
+        else if (currentLvlData && currentLvlData.snakeColor) snakeHeadColorToUse = currentLvlData.snakeColor;
 
-        // Gradient subtil pentru fundal
+        let snakeBodyColorToUse = '#88dab2'; // Default
+        if (shield && shield.hits > 0) snakeBodyColorToUse = '#FFD1F0';
+        else if (currentLvlData && currentLvlData.snakeColor && typeof chroma !== 'undefined') {
+             try { snakeBodyColorToUse = chroma(currentLvlData.snakeColor).darken(0.5).hex(); } catch(e) { /* fallback la default dacă chroma eșuează */ }
+        } else if (currentLvlData && currentLvlData.snakeColor) {
+            snakeBodyColorToUse = currentLvlData.snakeColor; // Fără darken dacă chroma nu e disponibil
+        }
+
+
         const gradient = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 0, canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 1.5);
-        try {
-            gradient.addColorStop(0, chroma(baseBg).brighten(0.3).alpha(0.8).css());
-            gradient.addColorStop(1, chroma(baseBg).alpha(0.9).css());
-        } catch (e) { // Fallback dacă chroma nu e disponibil sau e eroare
-             gradient.addColorStop(0, baseBg);
-             gradient.addColorStop(1, baseBg);
+        if (typeof chroma !== 'undefined') {
+            try {
+                gradient.addColorStop(0, chroma(baseBg).brighten(0.3).alpha(0.8).css());
+                gradient.addColorStop(1, chroma(baseBg).alpha(0.9).css());
+            } catch (e) { 
+                 gradient.addColorStop(0, baseBg); gradient.addColorStop(1, baseBg);
+            }
+        } else {
+             gradient.addColorStop(0, baseBg); gradient.addColorStop(1, baseBg);
         }
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Desenare șarpe cu cap distinct și corp
         snake.forEach((seg, i) => {
             ctx.beginPath();
-            if (i === 0) { // Capul
-                ctx.fillStyle = snakeHeadColor;
-                // Desenăm un cerc pentru cap sau un dreptunghi mai rotunjit
+            if (i === 0) { 
+                ctx.fillStyle = snakeHeadColorToUse;
                 ctx.arc(seg.x + box / 2, seg.y + box / 2, box / 2, 0, 2 * Math.PI);
                 ctx.fill();
-                // Ochi (simpli)
                 ctx.fillStyle = 'white';
                 let eyeOffsetX = dir === 'LEFT' ? -box/4 : (dir === 'RIGHT' ? box/4 : 0);
                 let eyeOffsetY = dir === 'UP' ? -box/4 : (dir === 'DOWN' ? box/4 : 0);
-                if (dir === 'LEFT' || dir === 'RIGHT') { // Ochi laterali
+                if (dir === 'LEFT' || dir === 'RIGHT') { 
                     ctx.fillRect(seg.x + box/2 + eyeOffsetX - 1, seg.y + box/4 -1, 2, 2);
-                    ctx.fillRect(seg.x + box/2 + eyeOffsetX - 1, seg.y + box*0.75 -1 -1, 2, 2); // -1 pt pupilă
-                } else { // Ochi sus/jos
+                    ctx.fillRect(seg.x + box/2 + eyeOffsetX - 1, seg.y + box*0.75 -1 -1, 2, 2); 
+                } else { 
                      ctx.fillRect(seg.x + box/4 -1, seg.y + box/2 + eyeOffsetY -1, 2, 2);
                      ctx.fillRect(seg.x + box*0.75 -1 -1, seg.y + box/2 + eyeOffsetY -1, 2, 2);
                 }
-            } else { // Corpul
-                ctx.fillStyle = snakeBodyColor;
-                // Dreptunghiuri rotunjite pentru corp
+            } else { 
+                ctx.fillStyle = snakeBodyColorToUse;
                 const radius = box / 4;
                 ctx.beginPath();
                 ctx.moveTo(seg.x + radius, seg.y);
@@ -778,17 +723,54 @@ function initializeSnakeGame() {
                 ctx.closePath();
                 ctx.fill();
             }
-            // Bordură subtilă pentru definire
-            ctx.strokeStyle = chroma(ctx.fillStyle).darken(1.5).hex();
+            if (typeof chroma !== 'undefined') {
+                try { ctx.strokeStyle = chroma(ctx.fillStyle).darken(1.5).hex(); } catch(e) { ctx.strokeStyle = '#000';}
+            } else {
+                 ctx.strokeStyle = '#555'; // Fallback border
+            }
             ctx.lineWidth = 1;
             ctx.stroke();
         });
 
-        if(food) { /* ... la fel ... */ }
-        if (special) { /* ... la fel ... */ }
-        obstacles.forEach(o => { /* ... la fel ... */ });
-        particles.forEach(p => { /* ... la fel, folosește p.size și p.decay ... */
-            ctx.fillStyle = chroma(p.color).alpha(p.alpha).css();
+        if(food) { 
+            ctx.fillStyle = '#FF6B6B'; // Roșu pentru mâncare
+            ctx.beginPath();
+            ctx.arc(food.x + box / 2, food.y + box / 2, box / 2.2, 0, 2 * Math.PI); // Puțin mai mic
+            ctx.fill();
+            ctx.fillStyle = '#FFE66D'; // Galben pentru "sâmbure"
+            ctx.beginPath();
+            ctx.arc(food.x + box / 2, food.y + box / 2, box / 5, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+        if (special) { 
+            ctx.fillStyle = special.color;
+            ctx.beginPath();
+            ctx.arc(special.x + box/2, special.y + box/2, box/1.8, 0, 2* Math.PI); // Mai mare pentru special
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.8)'; // Text alb cu transparență
+            ctx.font = `${box * 0.6}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(special.symbol, special.x + box / 2, special.y + box / 2 + 1); // +1 pentru aliniere
+             if (special.isBoss) {
+                ctx.fillStyle = 'white';
+                ctx.font = `${box * 0.3}px Arial`;
+                ctx.fillText(`${special.bossCurrentHits}/${special.bossMaxHits}`, special.x + box / 2, special.y + box * 0.9);
+            }
+        }
+        obstacles.forEach(o => { 
+            ctx.fillStyle = '#6c757d'; // Gri pentru obstacole
+            ctx.fillRect(o.x, o.y, box, box);
+            ctx.strokeStyle = '#343a40'; // Bordură mai închisă
+            ctx.lineWidth = 2;
+            ctx.strokeRect(o.x, o.y, box, box);
+        });
+        particles.forEach(p => { 
+            if (typeof chroma !== 'undefined') {
+                try { ctx.fillStyle = chroma(p.color).alpha(p.alpha).css(); } catch(e) { ctx.fillStyle = 'rgba(200,200,200,'+p.alpha+')'; }
+            } else {
+                ctx.fillStyle = `rgba(200,200,200,${p.alpha})`; // Fallback particule
+            }
             ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
             p.x += p.vx;
             p.y += p.vy;
@@ -798,115 +780,127 @@ function initializeSnakeGame() {
     }
 
 
-    // ---------- GAME LOOP (cu deltaTime pentru tickEffects) ----------
+    // ---------- GAME LOOP ----------
     let previousTimestamp = 0;
-    function gameLoop(timestamp) {
+    function gameLoop(timestamp) { /* ... codul tău ... */ 
         const deltaTime = timestamp - previousTimestamp;
         previousTimestamp = timestamp;
 
-        if (!gameVisibleAndActive || over) { // Scoatem `paused` de aici, vrem să desenăm dacă e pauză
-             if(gameVisibleAndActive && !over && paused) draw(); // Desenează starea de pauză
-            return requestAnimationFrame(gameLoop);
+        if (!gameVisibleAndActive || over) { 
+             if(gameVisibleAndActive && !over && paused) draw(); 
+            return; // Nu mai cere requestAnimationFrame dacă nu e vizibil/activ
         }
-        if(paused) { // Dacă e pauză, doar desenează și cere următorul frame
+        if(paused) { 
             draw();
-            return requestAnimationFrame(gameLoop);
+            if (gameVisibleAndActive) requestAnimationFrame(gameLoop); // Continuă bucla de desenare dacă e vizibil și pe pauză
+            return;
         }
-
 
         if (timestamp - lastTime >= speed) {
             update();
             lastTime = timestamp;
         }
-        tickEffects(deltaTime); // Actualizează efectele active
+        tickEffects(deltaTime); 
         draw();
-        requestAnimationFrame(gameLoop);
+        if (gameVisibleAndActive) requestAnimationFrame(gameLoop); // Doar dacă e încă vizibil/activ
     }
 
-    // ---------- UPDATE (cu logica de progresie între nivele) ----------
-    function update() {
-        if (over || paused) return;
-        // ... (logica de mișcare, coliziuni, colectare - similară, dar acum `level` se numește `currentLevel`) ...
+    // ---------- UPDATE ----------
+    function update() { /* ... codul tău ... */ 
+        if (over || paused || !snake || snake.length === 0) return; // Adaugă verificare pentru snake
 
         const head = { x: snake[0].x, y: snake[0].y };
-        // ... (logica de mișcare cap) ...
         if (dir === 'LEFT') head.x -= box;
         else if (dir === 'RIGHT') head.x += box;
         else if (dir === 'UP') head.y -= box;
         else if (dir === 'DOWN') head.y += box;
 
-        // Magnet și Repel (rămân similare)
-        // ...
+        if (repelCountdown > 0 && food) {
+            const dx = food.x - head.x;
+            const dy = food.y - head.y;
+            if (Math.abs(dx) < box * 3 && Math.abs(dy) < box * 3) { // Dacă e aproape
+                let newFoodX = food.x + Math.sign(dx) * box;
+                let newFoodY = food.y + Math.sign(dy) * box;
+                // Asigură că nu iese din canvas
+                newFoodX = Math.max(0, Math.min(canvas.width - box, newFoodX));
+                newFoodY = Math.max(0, Math.min(canvas.height - box, newFoodY));
+                food.x = newFoodX;
+                food.y = newFoodY;
+            }
+            repelCountdown--;
+        } else if (magnet && food) {
+            const dx = food.x - head.x;
+            const dy = food.y - head.y;
+            if (Math.abs(dx) > box/2 || Math.abs(dy) > box/2) { // Nu e exact pe cap
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    head.x += Math.sign(dx) * box;
+                } else {
+                    head.y += Math.sign(dy) * box;
+                }
+            }
+        }
 
-        // Wall Pass și Coliziuni cu pereții (rămân similare)
-        // ...
-        if (wallPass) { /* ... */ }
+
+        if (wallPass) { 
+            if (head.x < 0) head.x = canvas.width - box;
+            else if (head.x >= canvas.width) head.x = 0;
+            if (head.y < 0) head.y = canvas.height - box;
+            else if (head.y >= canvas.height) head.y = 0;
+        }
         else if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) return gameOver('wall');
 
 
-        // Coliziune cu propriul corp (rămâne similară)
         for (let i = 1; i < snake.length; i++) {
             if (head.x === snake[i].x && head.y === snake[i].y) return gameOver('self');
         }
-        // Coliziune cu obstacole (rămâne similară)
         for (let o of obstacles) {
             if (head.x === o.x && head.y === o.y) return gameOver('obstacle');
         }
 
-
-        // Colectare mâncare
         if (food && head.x === food.x && head.y === food.y) {
             score += mult;
             updateScore();
             newFood();
             spawnParticles(food.x + box / 2, food.y + box / 2, '#34D399');
-            // playSound('collect');
             navigator.vibrate?.(50);
-            // Crește șansa de special dacă nu e deja unul pe hartă
             if (!special && Math.random() < (0.25 + currentLevel * 0.03) ) newSpecial();
         } else {
             snake.pop();
         }
 
-        // Colectare special
         if (special && head.x === special.x && head.y === special.y) {
-            const sp = { ...special }; // Copiază specialul pentru procesare
-            special = null; // Consumă-l de pe hartă
+            const sp = { ...special }; 
+            special = null; 
 
             if (sp.isBoss) {
                 sp.bossCurrentHits--;
                 flash(`Lovitură Critic BOSS! Rămase: ${sp.bossCurrentHits}`, 2000, sp.bossCurrentHits > 0 ? 'bad' : 'good');
-                // playSound(sp.bossCurrentHits > 0 ? 'negative' : 'levelUp');
                 if (sp.bossCurrentHits <= 0) {
                     flash(`${t('CRITICUL INTERIOR')} ÎNVINS!`, 3000, 'good');
-                    score += 50 + currentLevel * 10; // Bonus mai mare
+                    score += 50 + currentLevel * 10; 
                     updateScore();
-                    // Aici se trece la nivelul următor sau se termină jocul
                     currentLevel++;
+                    saveGameState();
                     setTimeout(() => nextLevelSetup(false), 2500);
                 } else {
-                    // Repoziționează boss-ul sau adaugă o mecanică (ex. devine mai rapid)
-                    special = { ...sp, ...spawnFree(true, 6) }; // Îl punem înapoi, dar în alt loc
+                    special = { ...sp, ...spawnFree(true, 6) }; 
                 }
-            } else if (sp.negative && shield.hits > 0) {
+            } else if (sp.negative && shield && shield.hits > 0) {
                 shield.hits--;
                 flash(t('shieldProtect') + ` (${shield.hits} ${shield.hits === 1 ? 'lovitură' : 'lovituri'})`, 2000, 'good');
                 spawnParticles(sp.x + box/2, sp.y + box/2, '#FFFFFF', 15);
-                // playSound('special'); // Sunet de scut activat
             } else {
                 if (sp.type) collected[sp.type] = (collected[sp.type] || 0) + 1;
-                analytics.current.obstacles.push(sp.type); // Salvează în analytics-ul nivelului
+                if (analytics && analytics.current && analytics.current.obstacles) analytics.current.obstacles.push(sp.type);
                 if (sp.valueType && values.hasOwnProperty(sp.valueType)) {
                     values[sp.valueType] += sp.points || 1;
                 }
-                if (sp.effect) sp.effect(); // Aplică efectul (boost, slow etc.) care adaugă la `activeEffects`
+                if (sp.effect) sp.effect(); 
 
                 spawnParticles(sp.x + box / 2, sp.y + box / 2, sp.color, 12);
                 navigator.vibrate?.(100);
-                // playSound(sp.negative ? 'negative' : 'special');
 
                 if (sp.type === 'critic' && !sp.isBoss) {
-                    // playSound('uiInteraction'); // Sunet pentru deschidere minijoc
                     startReframe();
                 }
             }
@@ -915,86 +909,80 @@ function initializeSnakeGame() {
         }
         snake.unshift(head);
 
-
-        // Trecere la nivelul următor (dacă nu e nivel de boss care gestionează asta)
         const levelData = levels[currentLevel];
-        if (levelData && !levelData.mechanic?.includes('boss')) { // Nu trece automat dacă e nivel de boss
-            const scoreNeededForNextLevel = (currentLevel + 1) * LEVEL_SCORE_INCREMENT + (currentLevel * 5); // Scorul necesar crește
+        if (levelData && !levelData.mechanic?.includes('boss')) { 
+            const scoreNeededForNextLevel = (currentLevel + 1) * LEVEL_SCORE_INCREMENT + (currentLevel * 5); 
             if (currentLevel < levels.length - 1 && score >= scoreNeededForNextLevel) {
                 currentLevel++;
                 flash(`${t('Nivelul')} ${currentLevel + 1}: ${t(levels[currentLevel].theme)} atins!`, 3000, 'good');
-                // playSound('levelUp');
-                saveGameState(); // Salvează progresul la trecerea de nivel
+                saveGameState(); 
                 setTimeout(() => nextLevelSetup(false), 2500);
             }
         }
     }
 
-    // ---------- GAME OVER (cu detalii) ----------
-    function gameOver(reason = 'unknown') {
+    // ---------- GAME OVER ----------
+    function gameOver(reason = 'unknown') { /* ... codul tău ... */ 
         if (over) return;
         over = true;
         paused = true;
-        // playSound('gameOver');
-        saveGameState(); // Salvează starea finală
-        saveAnalytics(); // Salvează datele sesiunii de joc
+        saveGameState(); 
+        saveAnalytics(); 
 
         let reasonText = '';
         if (reason === 'wall') reasonText = 'Ai lovit un perete.';
         else if (reason === 'self') reasonText = 'Te-ai auto-colizionat.';
         else if (reason === 'obstacle') reasonText = 'Ai lovit un obstacol.';
-
+        
         let raport = `<strong class="text-lg">${t('emotionalSummary')} (${reasonText})</strong><br>`;
-        // ... (restul raportului, similar)
+        // Adaugă aici mai multe detalii dacă vrei
         flash(raport, 7000, 'bad');
 
         if(restartBtn) restartBtn.classList.remove('hidden');
-        if(fullResetBtn) fullResetBtn.classList.remove('hidden'); // Afișează și butonul de reset complet
+        if(fullResetBtn) fullResetBtn.classList.remove('hidden');
     }
 
 
-    // ---------- CONTROLS (cu preventDefault și adaptat pentru modal) ----------
-    function handleKeyDown(e) {
+    // ---------- CONTROLS ----------
+    function handleKeyDown(e) { /* ... codul tău ... */ 
         const isInputFocused = document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA');
-        if (isInputFocused && (e.key !== 'Escape')) return; // Nu interfera cu input-ul din modale (ex. jurnal)
+        if (isInputFocused && (e.key !== 'Escape')) return; 
 
-        // Prevenire scroll pentru tastele relevante dacă jocul e activ și nu e într-un modal de input
         const relevantKeysForPrevent = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'p', 'j', 'm', 'r'];
         if (gameVisibleAndActive && !over && relevantKeysForPrevent.includes(e.key.toLowerCase())) {
-             // Verificare suplimentară dacă un modal al jocului e deschis, dar nu e cel de input text
-            const isActionModalOpen = !journalModal.classList.contains('hidden') ||
-                                     !shopModal.classList.contains('hidden') ||
-                                     !minigameModal.classList.contains('hidden');
-            if (!isInputFocused || !isActionModalOpen) { // Previne scroll dacă nu scriem în jurnal
+            const isActionModalOpen = (journalModal && !journalModal.classList.contains('hidden')) ||
+                                     (shopModal && !shopModal.classList.contains('hidden')) ||
+                                     (minigameModal && !minigameModal.classList.contains('hidden'));
+            if (!isInputFocused || !isActionModalOpen) { 
                 e.preventDefault();
             }
         }
-         if (e.key === 'Escape') { // Escape închide orice modal deschis al jocului
-            if (!journalModal.classList.contains('hidden')) { closeJournalModalBtn.click(); return; }
-            if (!shopModal.classList.contains('hidden')) { closeShopModalBtn.click(); return; }
-            if (!minigameModal.classList.contains('hidden')) { closeMinigameModalBtn.click(); return; }
-            // Dacă niciun modal nu e deschis și jocul e activ, Escape poate pune pauză
+         if (e.key === 'Escape') { 
+            if (journalModal && !journalModal.classList.contains('hidden')) { if(closeJournalModalBtn) closeJournalModalBtn.click(); return; }
+            if (shopModal && !shopModal.classList.contains('hidden')) { if(closeShopModalBtn) closeShopModalBtn.click(); return; }
+            if (minigameModal && !minigameModal.classList.contains('hidden')) { if(closeMinigameModalBtn) closeMinigameModalBtn.click(); return; }
             else if (gameVisibleAndActive && !over) {
                 paused = !paused;
                 flash(paused ? "Joc în Pauză" : "Joc Reluat", 1500);
-                if(!paused) { lastTime = performance.now(); requestAnimationFrame(gameLoop); }
+                if(!paused) { lastTime = performance.now(); if(gameVisibleAndActive) requestAnimationFrame(gameLoop); }
                 return;
             }
         }
 
-
         if (!gameVisibleAndActive || over || breathingActive) return;
         const k = e.key.toLowerCase();
 
-        // ... (restul logicii pentru ' ', 'p', 'j', 'm', 'r' - similară, dar asigură că apelează funcțiile de toggle modal)
-        if (k === ' ' || k === 'p') { /* ... toggle pauză ... */ }
-        if (k === 'j') { journalBtn.click(); return; }
-        if (k === 'm') { shopBtn.click(); return; }
-        if (k === 'r' && slowMotion && !breathingActive) { /* ... startBreathing() ... */ }
+        if (k === ' ' || k === 'p') { 
+            paused = !paused;
+            flash(paused ? "Joc în Pauză" : "Joc Reluat", 1500);
+            if (!paused) { lastTime = performance.now(); if(gameVisibleAndActive) requestAnimationFrame(gameLoop); }
+            return;
+        }
+        if (k === 'j' && journalBtn) { journalBtn.click(); return; }
+        if (k === 'm' && shopBtn) { shopBtn.click(); return; }
+        if (k === 'r' && slowMotion && !breathingActive) { startBreathing(); return; }
 
-
-        if (paused && !(k === ' ' || k === 'p')) return; // Doar Space/P funcționează pe pauză (pe lângă modale)
-
+        if (paused && !(k === ' ' || k === 'p')) return;
 
         if ((k === 'arrowleft' || k === 'a') && dir !== 'RIGHT') dir = 'LEFT';
         else if ((k === 'arrowup' || k === 'w') && dir !== 'DOWN') dir = 'UP';
@@ -1002,29 +990,24 @@ function initializeSnakeGame() {
         else if ((k === 'arrowdown' || k === 's') && dir !== 'UP') dir = 'DOWN';
     }
     document.addEventListener('keydown', handleKeyDown);
-    // Touch controls (rămân similare, dar adaugă `passive: false` pentru a permite `preventDefault`)
-
-
-    // Atașare event listeners pentru butoanele din joc
-    if(restartBtn) restartBtn.onclick = () => { nextLevelSetup(false); saveGameState(); /*playSound('uiClick');*/ };
+    
+    if(restartBtn) restartBtn.onclick = () => { nextLevelSetup(false); saveGameState(); };
     if(fullResetBtn) fullResetBtn.onclick = () => {
         if (confirm(t('Ești sigur că vrei să resetezi tot progresul jocului?'))) {
             fullResetGameToLevelZero();
-            // playSound('uiClick');
         }
     };
-    // journalBtn, shopBtn sunt gestionate de `setupModal`
 
-    // ---------- INITIALIZE SCRIPT ----------
-    setLanguage(language); // Setează limba încărcată
-    nextLevelSetup(true); // Inițializează primul nivel (sau cel salvat)
+    // ---------- INITIALIZE SCRIPT & RETURN GAME INSTANCE ----------
+    setLanguage(language);
+    nextLevelSetup(true); // Inițializează jocul (va seta `paused` la true pentru intro dacă nu e reset)
 
     gameInitialized = true;
-    console.log("Instanța jocului Snake a fost inițializată și îmbunătățită.");
+    console.log("Instanța jocului Snake a fost inițializată.");
 
-    gameInstance = {
-        pause: () => { /* ... similar ... */ },
-        resume: () => { /* ... similar ... */ },
+    return { // Obiectul gameInstance
+        pause: () => { if (!paused) { paused = true; flash("Joc în Pauză", 1500); } },
+        resume: () => { if (paused && !over) { paused = false; flash("Joc Reluat", 1500); lastTime = performance.now(); if(gameVisibleAndActive) requestAnimationFrame(gameLoop); canvas.focus();} },
         resetCurrentLevel: () => nextLevelSetup(false),
         fullReset: fullResetGameToLevelZero,
         isPaused: () => paused,
@@ -1032,152 +1015,145 @@ function initializeSnakeGame() {
         setGameVisibility: (isVisible) => {
             const oldVisibility = gameVisibleAndActive;
             gameVisibleAndActive = isVisible;
-            if (isVisible && !oldVisibility && !over) { // Dacă devine vizibil și nu era, și nu e game over
-                console.log("Game visibility ON, resuming/starting game loop.");
-                paused = false; // Asigură că nu e pe pauză la revenire
+            if (isVisible && !oldVisibility && !over) {
+                console.log("SnakeGame: Vizibilitate ON, pornește/reia game loop.");
+                // paused = false; // Reluarea e gestionată de resume() sau de nextLevelSetup
                 lastTime = performance.now();
-                requestAnimationFrame(gameLoop);
+                requestAnimationFrame(gameLoop); // Asigură pornirea buclei
                 if(canvas) canvas.focus();
             } else if (!isVisible && oldVisibility && !paused) {
-                console.log("Game visibility OFF, pausing game.");
+                console.log("SnakeGame: Vizibilitate OFF, pune jocul pe pauză.");
                 paused = true;
             }
         },
+        triggerResize: resizeCanvas, // Expune funcția de resize
         cleanup: () => {
             document.removeEventListener('keydown', handleKeyDown);
-            // window.removeEventListener('resize', resizeCanvas);
+            // Aici poți adăuga și alte operațiuni de curățare, ex: oprire sunete, intervale
             gameInitialized = false;
-            gameInstance = null;
+            gameInstance = null; // Distruge instanța
             console.log("Snake game instance cleaned up.");
         }
     };
-    return gameInstance;
 }
 
-// --- GESTIONARE MODAL ȘI PORNIRE JOC ---
+// --- GESTIONARE MODAL PRINCIPAL ȘI PORNIRE JOC ---
 document.addEventListener('DOMContentLoaded', () => {
-    const launchModalBtn = document.getElementById('launchGameModalButton'); // Presupunând că acesta e ID-ul din psihoterapie.html
-    snakeGameModalContainer = document.getElementById('snakeGameModalContainer');
-    closeSnakeGameModalButton = document.getElementById('closeSnakeGameModal'); // Definit în gameModalHTMLStructure
-    snakeGameWrapper = document.getElementById('snakeGameWrapper'); // Definit în gameModalHTMLStructure
+    const launchModalBtn = document.getElementById('launchGameModalButton');
+    snakeGameModalContainer = document.getElementById('snakeGameModalContainer'); // Obținut din psihoterapie.html
 
-
-    if (launchModalBtn && snakeGameModalContainer) {
-        launchModalBtn.addEventListener('click', () => {
-            if (!snakeGameModalContainer.querySelector('#snakeGameInterface')) { // Injectează doar dacă nu există deja
-                 if (snakeGameWrapper) snakeGameWrapper.innerHTML = ''; // Golește wrapper-ul intern
-                 else { // Dacă snakeGameWrapper nu e găsit (caz improbabil dacă gameModalHTMLStructure e corect)
-                    snakeGameModalContainer.querySelector('#snakeGameModalContent').innerHTML = `<div id="snakeGameWrapper" class="game-wrapper h-full w-full flex-grow" style="display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #222c36; border-radius: 0.5rem;"></div>`;
-                    snakeGameWrapper = snakeGameModalContainer.querySelector('#snakeGameWrapper');
-                 }
-            }
-
-            if (!gameInitialized) {
-                gameInstance = initializeSnakeGame();
-            }
-
-            if (gameInstance) {
-                snakeGameModalContainer.style.display = 'flex';
-                // Este posibil ca resizeCanvas să trebuiască apelat aici DUPĂ ce modalul e vizibil
-                const tempCanvas = document.getElementById('snakeCanvas');
-                if(tempCanvas && typeof resizeCanvas === 'function') { // resizeCanvas e definit in initializeSnakeGame
-                    // Nu putem apela direct resizeCanvas de aici fără a-l expune.
-                    // O soluție e ca initializeSnakeGame să-l apeleze după ce canvas e creat și părintele e vizibil.
-                    // Sau, mai simplu, setează o dimensiune fixă/procentuală bună pentru canvas în CSS.
-                }
-
-                gameInstance.setGameVisibility(true);
-                if (gameInstance.isOver()) { // Dacă era game over, resetează nivelul curent
-                    gameInstance.resetCurrentLevel();
-                } else if (gameInstance.isPaused()){ // Dacă era doar pe pauză, reia
-                    gameInstance.resume();
-                }
-                const activeCanvas = document.getElementById('snakeCanvas');
-                if(activeCanvas) setTimeout(() => activeCanvas.focus(), 50);
-            }
-        });
+    if (!launchModalBtn) {
+        console.error("Butonul #launchGameModalButton nu a fost găsit!");
+        return;
+    }
+    if (!snakeGameModalContainer) {
+        console.error("Containerul #snakeGameModalContainer nu a fost găsit în HTML!");
+        return;
     }
 
-    if (closeSnakeGameModalButton) { // Acum este în interiorul gameModalHTMLStructure
-         // Event listener-ul va fi atașat când gameModalHTMLStructure e injectat,
-         // sau trebuie delegat de pe un părinte static.
-         // Pentru simplitate, îl atașăm după ce știm că modalul e în DOM.
-         // Acest listener ar trebui să fie în `initializeSnakeGame` dacă butonul e creat dinamic.
-         // SAU, dacă snakeGameModalContainer e mereu în DOM (doar display:none):
-        document.addEventListener('click', function(event) { // Delegare
-            if (event.target && event.target.id === 'closeSnakeGameModal') {
-                if(snakeGameModalContainer) snakeGameModalContainer.style.display = 'none';
-                if (gameInstance) {
-                    gameInstance.setGameVisibility(false);
-                }
+    launchModalBtn.addEventListener('click', () => {
+        console.log("Butonul 'Începe Călătoria Interioară' a fost apăsat.");
+
+        // 1. Injectează structura HTML a modalului (gameModalHTMLStructure) DOAR DACĂ nu există deja.
+        //    Aceasta creează #snakeGameModalContent și #snakeGameWrapper în interior.
+        if (!snakeGameModalContainer.querySelector('#snakeGameModalContent')) {
+            snakeGameModalContainer.innerHTML = gameModalHTMLStructure;
+
+            // 2. Obține referințele la wrapper-ul jocului și butonul de închidere DUPĂ injectare.
+            snakeGameWrapper = document.getElementById('snakeGameWrapper');
+            closeSnakeGameModalButton = document.getElementById('closeSnakeGameModal');
+
+            if (!snakeGameWrapper) {
+                console.error("CRITICAL: #snakeGameWrapper nu a fost găsit după injectarea gameModalHTMLStructure!");
+                return;
             }
-        });
-    }
+
+            // 3. Atașează event listener pentru butonul de închidere al modalului.
+            if (closeSnakeGameModalButton) {
+                closeSnakeGameModalButton.addEventListener('click', () => {
+                    if (snakeGameModalContainer) snakeGameModalContainer.style.display = 'none';
+                    if (gameInstance) {
+                        gameInstance.setGameVisibility(false); // Oprește logica jocului
+                    }
+                });
+            } else {
+                console.warn("#closeSnakeGameModal button not found after modal structure injection.");
+            }
+        }
+        // La click-uri ulterioare, snakeGameWrapper și closeSnakeGameModalButton ar trebui să fie deja definite din prima rulare.
+
+        // 4. Inițializează logica și UI-ul intern al jocului (dacă nu e deja inițializat).
+        //    initializeSnakeGame() va injecta gameInterfaceHTMLStructure în snakeGameWrapper.
+        if (!gameInitialized) {
+            if (!snakeGameWrapper) { // Verificare suplimentară, deși ar trebui să fie setat mai sus
+                console.error("CRITICAL: snakeGameWrapper este null înainte de a apela initializeSnakeGame!");
+                return;
+            }
+            gameInstance = initializeSnakeGame(); // Acum initializeSnakeGame folosește snakeGameWrapper corect.
+        }
+
+        // 5. Afișează modalul și gestionează starea jocului.
+        if (gameInstance) {
+            snakeGameModalContainer.style.display = 'flex';
+
+            // Apelează triggerResize după ce modalul e vizibil și instanța e creată.
+            // Folosește setTimeout pentru a permite DOM-ului să se actualizeze complet.
+            if (typeof gameInstance.triggerResize === 'function') {
+                setTimeout(() => gameInstance.triggerResize(), 50); // Un mic delay
+            }
+
+            gameInstance.setGameVisibility(true); // Pornește/reia logica jocului
+
+            if (gameInstance.isOver()) { // Dacă jocul era terminat, resetează nivelul curent
+                gameInstance.resetCurrentLevel();
+            } else if (gameInstance.isPaused()) { // Dacă era doar pe pauză, reia
+                gameInstance.resume();
+            }
+            // else: jocul va porni de la sine prin nextLevelSetup și gameLoop activat de setGameVisibility
+
+            const activeCanvas = document.getElementById('snakeCanvas');
+            if (activeCanvas) {
+                setTimeout(() => activeCanvas.focus(), 100); // Dă focus pe canvas pentru controale
+            }
+        } else {
+            console.error("Inițializarea jocului a eșuat, gameInstance este null.");
+            // Poți afișa un mesaj de eroare utilizatorului aici dacă e cazul.
+        }
+    });
 });
 
-// --- CSS PENTRU MODALE ȘI ELEMENTE SPECIFICE JOCULUI (adăugat direct aici pentru simplitate) ---
-// Ideal, acest CSS ar fi într-un fișier separat și încărcat în psihoterapie.html
-const gameStyles = `
-    .modal-overlay { position: fixed; inset: 0; background-color: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
-    .modal-content { background-color: #2d3748; /* gray-800 */ color: #e2e8f0; /* gray-200 */ padding: 1.5rem; border-radius: 0.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 100%; max-width: 500px; max-height: 90vh; display: flex; flex-direction: column; }
-    .modal-title { font-size: 1.25rem; font-weight: 600; color: #facc15; /* yellow-400 */ margin-bottom: 1rem; text-align: center; }
-    .modal-textarea { width: 100%; padding: 0.75rem; background-color: #4a5568; /* gray-600 */ border-radius: 0.375rem; border: 1px solid #718096; /* gray-500 */ color: white; min-height: 80px; margin-bottom: 1rem; }
-    .modal-textarea:focus { outline: none; border-color: #63b3ed; /* blue-400 */ box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.5); }
-    .modal-scroll-content { background-color: #4a5568; padding: 0.75rem; border-radius: 0.375rem; margin-top: 0.75rem; max-height: 200px; overflow-y: auto; font-size: 0.875rem; }
-    .modal-scroll-content div { padding-bottom: 0.5rem; margin-bottom: 0.5rem; border-bottom: 1px solid #718096; }
-    .modal-scroll-content div:last-child { border-bottom: none; margin-bottom: 0; }
-    .modal-actions { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; }
-    .modal-btn-primary { background-color: #38a169; /* green-600 */ } .modal-btn-primary:hover { background-color: #2f855a; /* green-700 */ }
-    .modal-btn-secondary { background-color: #ecc94b; /* yellow-500 */ color: #2d3748; } .modal-btn-secondary:hover { background-color: #d69e2e; /* yellow-600 */ }
-    .modal-btn-neutral { background-color: #718096; /* gray-500 */ } .modal-btn-neutral:hover { background-color: #4a5568; /* gray-600 */ }
-    .modal-btn-danger { background-color: #e53e3e; /* red-600 */ } .modal-btn-danger:hover { background-color: #c53030; /* red-700 */ }
-    .modal-actions button { color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; transition: background-color 0.2s; }
-    .shop-item-btn { width: 100%; text-align: left; padding: 0.75rem 1rem; background-color: #4299e1; /* blue-500 */ color: white; border-radius: 0.375rem; margin-bottom: 0.5rem; transition: background-color 0.2s; }
-    .shop-item-btn:hover { background-color: #3182ce; /* blue-600 */ }
-    .shop-item-btn:disabled { opacity: 0.6; cursor: not-allowed; background-color: #718096; }
-    .shop-item-cost { font-size: 0.75rem; color: #a0aec0; /* gray-400 */ margin-top: 0.25rem; }
-    .game-effect { position: absolute; left: 50%; top: 20%; transform: translate(-50%, -50%); font-size: 1.5rem; sm:font-size: 1.9rem; font-weight: bold; color: #ffe166; text-shadow: 1px 1px 3px #000; pointer-events: none; opacity: 0; transition: opacity 0.7s ease-out, transform 0.7s ease-out; z-index: 100; padding: 0.5rem 1rem; background-color: rgba(0,0,0,0.5); border-radius: 0.5rem;}
-    .game-effect.positive { color: #68d391; /* green-400 */ }
-    .game-effect.negative { color: #fc8181; /* red-400 */ }
-    .stat-effect { display: flex; flex-direction: column; align-items: center; background-color: rgba(0,0,0,0.4); padding: 2px 5px; border-radius: 4px; margin: 0 2px; font-size: 0.7rem; color: #cbd5e1; min-width: 60px; text-align:center; }
-    .stat-effect.neg-effect span:first-child { color: #fc8181; }
-    .effect-bar-container { width: 100%; height: 4px; background-color: rgba(255,255,255,0.2); border-radius: 2px; margin-top: 2px; overflow: hidden;}
-    .effect-bar { height: 100%; background-color: #68d391; /* green-400 */ border-radius: 2px; transition: width 0.15s linear; }
-    .stat-effect.neg-effect .effect-bar { background-color: #fc8181; }
-`;
-const styleSheet = document.createElement("style");
-styleSheet.type = "text/css";
-styleSheet.innerText = gameStyles;
-document.head.appendChild(styleSheet);
-
-// Adaugă Chroma.js dacă vrei culori mai avansate (opțional)
+// Adaugă Chroma.js dacă vrei culori mai avansate (opțional) - asigură-te că scriptul e inclus în HTML
 // <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.1.2/chroma.min.js"></script>
 // Verifică dacă Chroma este disponibil înainte de a-l folosi: if (typeof chroma !== 'undefined') { ... }
 
-
 // Funcție apelată din psihoterapie.js când tab-ul "materiale" este activat sau dezactivat
 export function handleGameVisibility(isVisible) {
+    // Verifică dacă modalul jocului este efectiv deschis
     const modalIsOpen = snakeGameModalContainer && snakeGameModalContainer.style.display === 'flex';
+
     if (gameInstance && typeof gameInstance.setGameVisibility === 'function') {
+        // Jocul trebuie să fie vizibil doar dacă și tab-ul este activ ȘI modalul este deschis
         gameInstance.setGameVisibility(isVisible && modalIsOpen);
+
         if (isVisible && modalIsOpen && (gameInstance.isOver() || gameInstance.isPaused())) {
             const gameCanvas = document.getElementById('snakeCanvas');
-            if(gameCanvas) setTimeout(() => gameCanvas.focus(), 50); // Dă focus după ce modalul e sigur vizibil
+            if (gameCanvas) setTimeout(() => gameCanvas.focus(), 50);
         }
-    } else if (isVisible && !gameInitialized && modalIsOpen) {
-        // Dacă tab-ul e vizibil, modalul e deschis, dar jocul nu e inițializat
-        console.log("Tab materiale activ, modal joc deschis. Se inițializează jocul.");
-        gameInstance = initializeSnakeGame();
-        if(gameInstance) gameInstance.setGameVisibility(true);
+    } else if (isVisible && modalIsOpen && !gameInitialized) {
+        // Cazul în care tab-ul devine vizibil, modalul e deschis, dar jocul nu fusese inițializat
+        // Acest scenariu e acoperit de `launchModalBtn` click, dar e o verificare suplimentară.
+        console.log("Tab materiale activ, modal joc deschis. Se va inițializa la click pe 'Începe Călătoria'.");
+        // Nu inițializa automat aici; lasă click-ul pe buton să o facă.
     }
 }
 
+// Salvare stare la părăsirea paginii
 window.addEventListener('beforeunload', () => {
-    if (gameInstance && gameInitialized && !gameInstance.isOver()) {
-        saveGameState(); // Salvează starea curentă la părăsirea paginii
+    if (gameInstance && gameInitialized && gameVisibleAndActive && !gameInstance.isOver()) {
+        // Doar dacă jocul e activ și nu e game over
+        saveGameState(); // Funcția saveGameState e definită în initializeSnakeGame
         console.log("Progresul jocului Snake a fost salvat la părăsirea paginii.");
     }
-    if (gameInstance && typeof gameInstance.cleanup === 'function') {
-        // gameInstance.cleanup(); // Curăță resurse dacă e necesar
-    }
+    // `gameInstance.cleanup()` ar putea fi apelat aici dacă e necesar,
+    // dar închidearea tab-ului eliberează oricum resursele JS.
 });
