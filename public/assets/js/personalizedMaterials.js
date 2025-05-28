@@ -381,8 +381,8 @@ async function loadUserThemes(userId) {
 // MODIFICAT: renderThemeManagementUI pentru a respecta noile opțiuni de actualizare
 function renderThemeManagementUI(userId) {
     if (!themeManagementContainer || !materialGenerationControlsContainer) return;
-    themeManagementContainer.innerHTML = ''; // Golește containerul principal al temelor
-    materialGenerationControlsContainer.innerHTML = ''; // Curăță și controalele de generare material
+    themeManagementContainer.innerHTML = '';
+    materialGenerationControlsContainer.innerHTML = '';
 
     let headerHTML = `<h4>Teme Personalizate Identificate</h4>`;
     if (currentUserThemes && currentUserThemes.themes && currentUserThemes.themes.length > 0) {
@@ -403,45 +403,43 @@ function renderThemeManagementUI(userId) {
     } else {
         headerHTML += `<p>Nicio temă personalizată identificată încă. Alege o opțiune de mai jos pentru a începe analiza.</p>`;
     }
-    themeManagementContainer.innerHTML = headerHTML; // Adaugă întâi header-ul
+    themeManagementContainer.innerHTML = headerHTML;
 
-    // Container pentru butoanele de selectare a temelor (dacă există teme)
     if (currentUserThemes && currentUserThemes.themes && currentUserThemes.themes.length > 0) {
         const themeSelectButtonsContainer = document.createElement('div');
-        themeSelectButtonsContainer.className = 'theme-buttons-container'; // Clasă existentă
+        themeSelectButtonsContainer.className = 'theme-buttons-container';
         currentUserThemes.themes.forEach((themeObj) => {
             const themeButton = document.createElement('button');
-            themeButton.className = 'theme-select-button button-outline'; // Clasă existentă
+            themeButton.className = 'theme-select-button button-outline';
             themeButton.dataset.themeTitle = encodeURIComponent(themeObj.title);
             themeButton.textContent = themeObj.title;
             themeButton.addEventListener('click', handleThemeSelectedFromList);
             themeSelectButtonsContainer.appendChild(themeButton);
         });
-        themeManagementContainer.appendChild(themeSelectButtonsContainer); // Adaugă butoanele de temă
-        selectedThemeTitleForGeneration = null; // Resetează la fiecare render
+        themeManagementContainer.appendChild(themeSelectButtonsContainer);
+        selectedThemeTitleForGeneration = null;
         selectedThemeContextForGeneration = null;
     }
 
-    // NOU: Container distinct pentru butoanele de actualizare, adăugat DUPĂ butoanele de temă
     const updateOptionsOuterContainer = document.createElement('div');
-    updateOptionsOuterContainer.className = 'theme-update-options-outer-container'; // Clasă nouă pentru spațiere/stil
-    updateOptionsOuterContainer.style.marginTop = '20px'; // Adaugă spațiu deasupra
+    updateOptionsOuterContainer.className = 'theme-update-options-outer-container';
+    // Nu mai setăm margin-top aici, se face din CSS
 
-    const updateButtonsTitle = document.createElement('h5'); // Un mic titlu pentru secțiunea de actualizare
+    const updateButtonsTitle = document.createElement('h5');
     updateButtonsTitle.textContent = 'Actualizează Lista de Teme pe Baza Sursei:';
-    updateButtonsTitle.style.marginBottom = '10px';
+    // Nu mai setăm margin-bottom aici, se face din CSS
     updateOptionsOuterContainer.appendChild(updateButtonsTitle);
 
     const updateButtonsInnerContainer = document.createElement('div');
-    updateButtonsInnerContainer.className = 'theme-update-options-inner-container'; // Poate fi folosit pentru flex/grid
+    updateButtonsInnerContainer.className = 'theme-update-options-inner-container'; // CSS-ul va adăuga 'gap'
 
-    // Stil comun pentru butoanele de actualizare (presupunând că 'button-primary' este stilul dorit)
-    const updateButtonBaseClass = 'button-primary'; // Sau 'button-secondary', etc.
+    // MODIFICAT: Folosim noua clasă comună pentru stil
+    const updateButtonSharedClass = 'button-theme-update-action';
 
     // Buton 1: Doar Jurnale și Fișe
     const refreshJFOnlyButton = document.createElement('button');
-    refreshJFOnlyButton.id = 'refreshThemesJFOnlyButton';
-    refreshJFOnlyButton.className = updateButtonBaseClass; // Aplică stilul dorit
+    refreshJFOnlyButton.id = 'refreshThemesJFOnlyButton'; // Păstrăm ID-ul dacă e util
+    refreshJFOnlyButton.className = updateButtonSharedClass; // Aplică noua clasă
     refreshJFOnlyButton.textContent = '🔄 Jurnale & Fișe';
     refreshJFOnlyButton.title = `Analizează ultimele ${LIMIT_JURNALE_FARA_CHAT} jurnale și ${LIMIT_FISE_FARA_CHAT} fișe (fără chat)`;
     refreshJFOnlyButton.disabled = !(genAIMaterials && currentUserIdMaterials);
@@ -452,7 +450,6 @@ function renderThemeManagementUI(userId) {
                 fise: true, limitFise: LIMIT_FISE_FARA_CHAT,
                 chat: false, limitChat: 0
             };
-            // ... restul logicii de disable/enable și apel identifyAndSaveKeyThemes
             document.querySelectorAll('.theme-select-button, .theme-update-options-inner-container button, .material-type-button').forEach(btn => btn.disabled = true);
             identifyAndSaveKeyThemes(userId, true, sources).finally(() => {
                 document.querySelectorAll('.theme-select-button, .theme-update-options-inner-container button, .material-type-button').forEach(btn => btn.disabled = !(genAIMaterials && currentUserIdMaterials));
@@ -464,7 +461,7 @@ function renderThemeManagementUI(userId) {
     // Buton 2: Doar Chat Extins
     const refreshChatOnlyButton = document.createElement('button');
     refreshChatOnlyButton.id = 'refreshThemesChatOnlyButton';
-    refreshChatOnlyButton.className = updateButtonBaseClass; // Aplică stilul dorit
+    refreshChatOnlyButton.className = updateButtonSharedClass; // Aplică noua clasă
     refreshChatOnlyButton.textContent = '💬 Chat Extins';
     refreshChatOnlyButton.title = `Analizează ultimele ~${LIMIT_CHAT_EXTINS} mesaje chat (fără jurnale/fișe)`;
     refreshChatOnlyButton.disabled = !(genAIMaterials && currentUserIdMaterials);
@@ -475,7 +472,6 @@ function renderThemeManagementUI(userId) {
                 fise: false, limitFise: 0,
                 chat: true, limitChat: LIMIT_CHAT_EXTINS
             };
-            // ... restul logicii de disable/enable și apel identifyAndSaveKeyThemes
             document.querySelectorAll('.theme-select-button, .theme-update-options-inner-container button, .material-type-button').forEach(btn => btn.disabled = true);
             identifyAndSaveKeyThemes(userId, true, sources).finally(() => {
                 document.querySelectorAll('.theme-select-button, .theme-update-options-inner-container button, .material-type-button').forEach(btn => btn.disabled = !(genAIMaterials && currentUserIdMaterials));
@@ -487,7 +483,7 @@ function renderThemeManagementUI(userId) {
     // Buton 3: Toate Sursele (standard)
     const refreshAllStandardButton = document.createElement('button');
     refreshAllStandardButton.id = 'refreshThemesAllStandardButton';
-    refreshAllStandardButton.className = updateButtonBaseClass; // Aplică stilul dorit
+    refreshAllStandardButton.className = updateButtonSharedClass; // Aplică noua clasă
     refreshAllStandardButton.textContent = '🌐 Toate Sursele';
     refreshAllStandardButton.title = `Analizează ultimele ${LIMIT_JURNALE_CU_CHAT} jurnale, ${LIMIT_FISE_CU_CHAT} fișe și ~${LIMIT_CHAT_STANDARD} mesaje chat`;
     refreshAllStandardButton.disabled = !(genAIMaterials && currentUserIdMaterials);
@@ -498,7 +494,6 @@ function renderThemeManagementUI(userId) {
                 fise: true, limitFise: LIMIT_FISE_CU_CHAT,
                 chat: true, limitChat: LIMIT_CHAT_STANDARD
             };
-            // ... restul logicii de disable/enable și apel identifyAndSaveKeyThemes
             document.querySelectorAll('.theme-select-button, .theme-update-options-inner-container button, .material-type-button').forEach(btn => btn.disabled = true);
             identifyAndSaveKeyThemes(userId, true, sources).finally(() => {
                  document.querySelectorAll('.theme-select-button, .theme-update-options-inner-container button, .material-type-button').forEach(btn => btn.disabled = !(genAIMaterials && currentUserIdMaterials));
@@ -508,7 +503,7 @@ function renderThemeManagementUI(userId) {
     updateButtonsInnerContainer.appendChild(refreshAllStandardButton);
 
     updateOptionsOuterContainer.appendChild(updateButtonsInnerContainer);
-    themeManagementContainer.appendChild(updateOptionsOuterContainer); // Adaugă containerul cu noile butoane la sfârșit
+    themeManagementContainer.appendChild(updateOptionsOuterContainer);
 }
 
 function handleThemeSelectedFromList(event) {
