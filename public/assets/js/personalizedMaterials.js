@@ -618,7 +618,7 @@ Articolul trebuie să:
     *   Să se încheie cu o notă de încurajare autentică, validare și auto-compasiune.
     *   Sublinieze că înțelegerea și schimbarea sunt procese graduale și că solicitarea de sprijin (inclusiv profesional) este un semn de putere.
     *   Poate sugera reflecții suplimentare sau direcții de explorare pentru utilizator.
-Lungime Articol: Aproximativ 5000-10000 cuvinte.
+Lungime Articol: Aproximativ 3000-5000 cuvinte.
 `;
     } else if (materialType === 'fisa_lucru') {
         materialPrompt = `${commonInstructions}
@@ -683,7 +683,7 @@ SPAȚIILE PE CARE LE INCLUZI SUNT SCURTE, SIMBOLICE.
     *   Sugestii scurte de unde ar putea afla mai multe, dacă este cazul (ex: "Pentru mai multe despre mindfulness, poți explora aplicații precum Headspace sau Calm." - Fii neutru și general).
     *   Recomandarea de a discuta dificultățile cu un terapeut, dacă este cazul.
 
-Lungime Fișă: Suficient de detaliată pentru a fi utilă, dar nu copleșitoare. Calitatea și caracterul acționabil primează.`;
+Lungime Fișă: Suficient de detaliată pentru a fi utilă, dar nu copleșitoare. Calitatea și caracterul acționabil primează. Maxim 5000 cuvinte`;
     } else {
         return `EROARE: Tip de material necunoscut: ${materialType}.`;
     }
