@@ -511,12 +511,69 @@ function initializeSnakeGame() {
           }
         });
 
-        if(food) { /* ... cod existent ... */ }
-        if (special) { /* ... cod existent ... */ }
-        obstacles.forEach(o => { /* ... cod existent ... */ });
-        particles.forEach(p => { /* ... cod existent ... */ });
+        if (food) {
+            ctx.fillStyle = '#34D399'; // Verde smarald pentru mâncare
+            // Desenăm un cerc pentru mâncare
+            ctx.beginPath();
+            ctx.arc(food.x + box / 2, food.y + box / 2, box / 2.8, 0, Math.PI * 2); // Raza puțin ajustată (box/2.8)
+            ctx.fill();
+
+            // Opțional: un mic efect de strălucire/highlight
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.beginPath();
+            ctx.arc(food.x + box / 2.5, food.y + box / 2.5, box / 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // --- COMPLETAT: Desenarea specialului ---
+        if (special) {
+          ctx.font = `${box}px Arial`; // Asigură-te că fontul este setat corespunzător
+          ctx.fillStyle = special.color;
+          // ctx.shadowColor = special.color; // Efect de glow simplu - poate fi costisitor, opțional
+          // ctx.shadowBlur = 8;
+          ctx.textAlign = 'center'; // Centrează emoji-ul în box
+          ctx.textBaseline = 'middle'; // Aliniază vertical emoji-ul
+          ctx.fillText(special.symbol, special.x + box / 2, special.y + box / 2 + 2); // Ajustat pentru centrare mai bună
+          // ctx.shadowBlur = 0; // Reset shadow
+          ctx.textAlign = 'left'; // Resetează textAlign la default dacă e necesar
+          ctx.textBaseline = 'alphabetic'; // Resetează textBaseline
+        }
+
+        // --- COMPLETAT: Desenarea obstacolelor ---
+        obstacles.forEach(o => {
+          ctx.fillStyle = clarityMap ? 'rgba(255,0,0,0.4)' : '#c70000'; // Roșu mai intens pt obstacole
+          ctx.fillRect(o.x, o.y, box, box);
+          ctx.strokeStyle = '#500000'; // O bordură mai închisă pentru obstacole
+          ctx.strokeRect(o.x, o.y, box, box);
+        });
+
+        // --- COMPLETAT: Desenarea particulelor ---
+        particles.forEach(p => {
+          // Convert hex to rgba for alpha, dacă e necesar (nu pare folosit acum)
+          // let r = 0, g = 0, b = 0;
+          // if (p.color.length === 7) { // #RRGGBB
+          //   r = parseInt(p.color.slice(1, 3), 16);
+          //   g = parseInt(p.color.slice(3, 5), 16);
+          //   b = parseInt(p.color.slice(5, 7), 16);
+          //   ctx.fillStyle = `rgba(${r},${g},${b}, ${p.alpha})`;
+          // } else {
+          //    ctx.fillStyle = p.color; // Dacă e deja un string rgba sau un nume de culoare
+          // }
+          ctx.fillStyle = p.color; // Presupunând că p.color e deja un string valid pentru fillStyle (poate cu alpha)
+                                  // Dacă p.color e doar hex, și vrei alpha, trebuie convertit ca mai sus.
+                                  // Sau, setezi globalAlpha înainte de fillRect dacă alpha e separat.
+
+          ctx.globalAlpha = p.alpha; // Metodă mai simplă pentru transparență
+          ctx.fillRect(p.x - 2, p.y - 2, 5, 5); // Particule puțin mai mici
+          ctx.globalAlpha = 1.0; // Reset globalAlpha la valoarea default
+
+          p.x += p.vx;
+          p.y += p.vy;
+          p.alpha -= 0.025; // Se estompează puțin mai repede
+        });
         particles = particles.filter(p => p.alpha > 0);
     }
+
 
     function gameLoop(timestamp) {
         if (!gameVisibleAndActive || paused || over) {
